@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+- 工程维护（应用仍 1.3.1）：通用 build.ps1 不再覆盖本机路径，修复单任务参数拆分、支持常规 Gradle 参数转发与真实退出码；复杂参数明确拒绝，避免批处理静默修改。最终 10 项执行回归在 PowerShell 7 / Windows PowerShell 5.1 通过。
+- 新增 GitHub Actions workflow（push / PR / 手动），执行脚本回归、JVM、lint、debug APK，报告/成功调试包保留 7 天；只读 token、固定上游 SHA 和 Wrapper 分发校验，不使用项目签名私钥。首次线上结果以实际 run 为准。
+- Maven 默认官方源，-PuseChinaMirrors=true 显式开启国内镜像；补构建/CI说明及已有 Lint 分类，不升级依赖、不屏蔽警告、不改变应用功能。
+
 - 用户确认 1.3.1 后授权公开 GitHub；整理首次提交允许清单、忽略规则、第三方说明、跨电脑构建说明及交接文件，不改业务或版本。
 - 按用户选择暂不添加项目许可证；本机配置、交付历史、设计状态、原始验证文件不上传。首次源码副本构建及 44 项 JVM 通过，APK 哈希与已交付包一致；本轮离线 lint 0 错误、41 警告，未重跑设备测试。
 - 2026-10-23 已首次推送公开仓库 https://github.com/dufan82/campus-toolbox ，默认分支 main；源码基线 224e4cd，未创建 PR / Release 或发布安装附件。

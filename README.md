@@ -77,7 +77,7 @@ macOS / Linux 使用相同 Gradle 任务：
 ./gradlew :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
-这两种系统的命令入口已提供，但尚未在相应设备上实测。本机专用 `build.ps1` 不属于公开源码，不需要复制它的 E 盘路径。项目当前配置含阿里云 Maven 镜像及官方源；首次构建需要能够访问这些依赖源和 Gradle 分发地址。
+也可使用已纳入源码的通用 PowerShell 入口 `./build.ps1 -Task check`，不会覆盖本机环境变量；常规 Gradle 开关可追加，含空白/引号/shell 字符的复杂值会明确拒绝，请使用 gradle.properties。默认使用官方依赖源，国内网络可显式追加 `-PuseChinaMirrors=true`。首次构建需要联网下载 Gradle / 依赖，分发文件会校验 SHA-256。详细环境与脚本回归见 [构建说明](docs/BUILD.md)。macOS 尚未实测；Linux 实际结果见 Actions 运行记录。
 
 首次获取依赖需要联网。APK 输出为 `app/build/outputs/apk/debug/app-debug.apk`。生成其他正式发行版本时须自行配置发布签名，不能使用这里的开发测试签名。
 
@@ -101,6 +101,8 @@ $env:ANDROID_SERIAL='emulator-5580' # 换成自己的 adb serial
 历史实际验证见 [1.3.1 实施与验证](docs/1.3.1-实施与验证.md)；本次上传范围与验证边界见 [GitHub 交接说明](docs/GITHUB.md)。原始日志留在开发机，不把历史记录冒充每次克隆后的测试结果。
 
 ## 协作与第三方说明
+
+自动检查配置与使用边界见 [CI 说明](docs/CI.md)，既有告警分类见 [Lint 分析](docs/LINT.md)。CI debug APK 不是正式发行包，其签名可能无法覆盖已安装版本，不要为试装卸载旧应用。
 
 当前公开仓库暂不添加项目源码许可证；公开查看不等于获得 MIT 等开源许可。第三方材料仍按其原有许可证提供，不因项目没有许可证而改变。
 

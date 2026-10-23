@@ -1,6 +1,6 @@
 # Campus Toolbox · 当前开发状态
 
-最后更新时间：2026-10-23 10:35 +08:00（Asia/Shanghai）
+最后更新时间：2026-10-23 11:15 +08:00（Asia/Shanghai）
 
 ## 当前版本与分支
 
@@ -12,11 +12,13 @@
 
 ## 当前开发目标
 
-OSS-001 / OSS-002 / GIT-001 已完成：按用户确认公开 GitHub、暂不添加项目许可证；完成提交范围审查、第三方说明、干净源码构建、首次提交和远程推送。业务代码和现有安装包不变。
+BUILD-001 / CI-001：移除构建入口对本机盘符/缓存的强制覆盖，接入 GitHub Actions 的 JVM、lint、APK 构建及报告。QA-003 只读分类现有警告。用户已明确授权验证后提交、推送并检查实际 CI 结果；不改业务功能、依赖版本或安装包版本，不代替真机验收。
 
 ## 正在执行的任务
 
-无。已核对远程默认分支 main、公开状态、项目许可证字段为空；首次推送 SHA 与本机一致，未登录 HTTP 访问返回 200。此收尾文档更新另行提交并推送，最终版本以远程 main 为准。
+- BUILD-001 / CI-001 进行中。开工本地/远程均为 b793063，工作区干净，线上尚无 workflow；用户本轮已授权推送与检查云端结果。
+- 通用入口、镜像开关、Wrapper 校验、脚本回归与 workflow 已实现；PowerShell 7 / Windows PowerShell 5.1 各 10 项通过，actionlint 通过。实际 Wrapper 调用已完成，完整重跑 JVM / lint / APK 也通过；正在准备推送并验证云端。
+- QA-003 只读分类已完成，见 docs/LINT.md；不等于修复所有警告。不上传私钥，不配置正式签名/Release/商店发布。
 
 ## 技术栈与目录
 
@@ -67,7 +69,9 @@ verification/             仅本机验证脚本、日志和原生截图，不上
 
 ## 最近修改的文件
 
-本轮发布整理：.gitignore、.gitattributes、README、根目录进度文件、THIRD_PARTY_NOTICES.md、LICENSES/Apache-2.0.txt、docs/GITHUB.md。业务源码、版本、依赖和既有安装包未改。
+本轮工程维护：build.ps1、scripts/Test-Build.ps1、.github/workflows/android.yml、settings.gradle.kts、gradle/wrapper/gradle-wrapper.properties、.gitignore、README、AGENTS / STATUS / TASKS / CHANGELOG、docs/BUILD.md、docs/CI.md、docs/LINT.md。业务源码、应用/库版本和现有安装包不变。
+
+历史首次发布整理：.gitignore、.gitattributes、README、根目录进度文件、THIRD_PARTY_NOTICES.md、LICENSES/Apache-2.0.txt、docs/GITHUB.md。
 
 1.3.1 业务轮：Models.kt 的 contentOnly 配置、LocalStore.kt 开关读写、ContentPanel.kt 复选框、app/build.gradle.kts 版本；新增 ContentModeTest，补 PlainWatermarkTest 和 ExportDialogFlowTest，调整旧 APK 升级夹具构造方式；README/三份进度文件、1.3.1 说明与交付验证同步。
 
@@ -75,7 +79,17 @@ verification/             仅本机验证脚本、日志和原生截图，不上
 
 ## 构建和测试结果
 
-### 本轮 GitHub 发布准备实际执行
+### 本轮 BUILD-001 / CI-001 / QA-003 实际执行
+
+- 新 scripts/Test-Build.ps1 在旧脚本下 6 项全部失败（未调用项目 Wrapper）；改为通用入口后，补正单任务数组和附加参数转发，PowerShell 7 / Windows PowerShell 5.1 各 6 项通过。夹具在 verification/build-script-tests/，不上传 Git。
+- 提交前独立审阅确认带引号/空白值会被 Windows 批处理改写、PS7 原生命令偏好会丢失失败退出码。新增 3 项回归先失败，再局部关闭该偏好并明确拒绝复杂参数，不实现多层 shell 转义；另补 shell 字符拒绝。修正 PS5.1 测试捕获 stderr、测试输入跨原生进程先丢引号的问题后，最终两种 Windows PowerShell 各 10 项全部通过；包含实际 caller 目录恢复检查。
+- actionlint 1.7.12 校验 workflow 通过，工具下载后对比上游 SHA-256 一致；未新增应用依赖。Action 使用已核对的上游完整 SHA，Gradle 分发校验与官方一致。
+- 本机首次官方 Gradle 下载极慢，一次 curl 尝试连接超时；只终止经 PID/路径/参数确认属于本任务的慢下载。通过镜像取得相同分发，SHA-256 与官方一致后预填本机 Wrapper ZIP 缓存，不改仓库官方 URL、不伪造缓存校验标记；新的实际 Wrapper 调用成功（1 执行 / 54 up-to-date）。
+- 同版本已缓存工具链另行 --rerun-tasks 完整执行 :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline -PuseChinaMirrors=true，55 项 Gradle task 执行成功；44 JVM（28+16）通过，0 失败/错误，本轮 lint 0 错误、42 警告。APK SHA-256 仍为 c69c232e0ffc52ae5c0ea4747a124797765a73aa0666bf89e873da4792c47411。既有 5 条编译期废弃 API 提示未因维护而隐藏。
+- QA-003 核对历史两份 XML：42 与 41 仅差一条 Gradle 更新提示，其余一致；没有证据据此屏蔽全部 Warning 或改业务。分类不是本轮 Lint 重新运行。
+- 线上 workflow 尚待本轮实际推送、启动和核对；不会把语法校验视为云端构建成功。
+
+### 历史首次 GitHub 发布准备实际执行
 
 - 明确暂存 74 个文件；检查禁止路径、凭据模式、真实身份信息及长数字/邮箱候选。候选逐项为公开照片 URL、明确标记的测试资料和恶意链接测试，不是用户数据；未输出真实候选值。两个二进制文件分别为官方 Wrapper JAR 和公开测试照片，已核对来源/许可与图像元数据。
 - 17 个相对 Markdown 链接可解析，git diff --cached --check 通过；gradlew 已设置 100755 可执行位。

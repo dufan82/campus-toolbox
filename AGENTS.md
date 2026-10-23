@@ -36,7 +36,8 @@
 - 快递成功启动只代表系统接受 Intent，不等于已验证第三方目标页面；保持包名固定和安全的链接校验。
 - 新增依赖先说明目的和影响；能用现有能力完成的，不新增大型依赖。独立任务确有收益时才委派。
 - 业务改动优先运行仓库已有相关 tests / lint；比例合适地验证，避免无改动反复跑无关检查。
-- 公开构建入口以 README 的 Gradle Wrapper 命令为准。本机专用 build.ps1、旧升级脚本和原始验证证据不上传，不能假设克隆后存在；JVM 检查不等于设备测试。
+- 构建入口为 README 中的 Gradle Wrapper 命令或通用 build.ps1；脚本必须尊重使用者的 JDK / SDK / 缓存 / 临时目录，不硬编码本机路径。旧升级脚本和原始验证证据不上传；JVM 检查不等于设备测试。
+- 工具链改动先运行 scripts/Test-Build.ps1；CI 的定义见 .github/workflows/android.yml。修改自动检查后必须记录实际运行 URL、提交与结果；配置存在不等于 CI 通过。保持只读 token、完整 SHA 固定的 Actions 和明确的构建产物范围，不上传私钥或整个工作区。
 - 通用入口为 `./gradlew.bat :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug`，环境须有合适 JDK 与 SDK。
 - 设备测试 `:app:connectedDebugAndroidTest` 必须选专用模拟器/测试设备并明确 serial；会安装测试包、写测试照片，不能默认在用户真机运行。升级夹具只按其专用流程运行。
 - 文档改动只需检查内容、链接及变更范围；不因此声称重跑应用测试。每个测试结果写实际命令、时间、范围、通过/失败/跳过数和证据路径；未运行写“未运行”，历史记录写“读取历史证据”。失败和警告必须如实报告。
