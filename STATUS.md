@@ -1,6 +1,6 @@
 # Campus Toolbox · 当前开发状态
 
-最后更新时间：2026-10-23 11:15 +08:00（Asia/Shanghai）
+最后更新时间：2026-10-23 11:19 +08:00（Asia/Shanghai）
 
 ## 当前版本与分支
 
@@ -87,7 +87,9 @@ verification/             仅本机验证脚本、日志和原生截图，不上
 - 本机首次官方 Gradle 下载极慢，一次 curl 尝试连接超时；只终止经 PID/路径/参数确认属于本任务的慢下载。通过镜像取得相同分发，SHA-256 与官方一致后预填本机 Wrapper ZIP 缓存，不改仓库官方 URL、不伪造缓存校验标记；新的实际 Wrapper 调用成功（1 执行 / 54 up-to-date）。
 - 同版本已缓存工具链另行 --rerun-tasks 完整执行 :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline -PuseChinaMirrors=true，55 项 Gradle task 执行成功；44 JVM（28+16）通过，0 失败/错误，本轮 lint 0 错误、42 警告。APK SHA-256 仍为 c69c232e0ffc52ae5c0ea4747a124797765a73aa0666bf89e873da4792c47411。既有 5 条编译期废弃 API 提示未因维护而隐藏。
 - QA-003 核对历史两份 XML：42 与 41 仅差一条 Gradle 更新提示，其余一致；没有证据据此屏蔽全部 Warning 或改业务。分类不是本轮 Lint 重新运行。
-- 线上 workflow 尚待本轮实际推送、启动和核对；不会把语法校验视为云端构建成功。
+- 线上 workflow 已推送并触发，尚待完整成功；不会把语法校验视为云端构建成功。
+- 首次线上运行 39894075600（提交 6083ee1）失败：Ubuntu 上 10 项脚本用例实际通过，但最后一个预期拒绝用例的 LASTEXITCODE=1 被 GitHub pwsh 外层继承，Android 构建被跳过。已定位测试入口应在全通过时显式 exit 0，正在修复并重跑；不把这次运行记为 CI 通过。链接：https://github.com/dufan82/campus-toolbox/actions/runs/39894075600 。
+- 修复后用 GitHub 同类调用边界（调用脚本后退出 LASTEXITCODE）在 PS7 / PS5.1 各执行完整 10 项，均成功返回 0；将推送补丁重跑云端，业务源码未变。
 
 ### 历史首次 GitHub 发布准备实际执行
 

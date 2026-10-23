@@ -105,3 +105,4 @@ try {
 }
 if ($failures.Count) { throw "$($failures.Count) of $($cases.Count) build-script checks failed" }
 Write-Output "PASS all $($cases.Count) build-script checks"
+exit 0
