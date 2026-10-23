@@ -1,0 +1,54 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+*.jks
+*.keystore
+.idea/
+
+# Local secrets, signing material and device data
+.env
+.env.*
+!.env.example
+*.p12
+*.pfx
+*.pem
+*.key
+*.mobileprovision
+**/shared_prefs/
+**/databases/
+**/drafts/
+
+# Local tooling, verification evidence and delivery history stay on this computer
+.superdesign/
+.verification/
+**/.verification/
+/verification/
+/交付/
+/历史归档/
+/design-preview/
+/build.ps1
+
+# Historical notes and one-off local helpers are not the public handoff
+/docs/*
+!/docs/1.1.0-实施与验证.md
+!/docs/1.2.0-实施与验证.md
+!/docs/1.3.0-实施与验证.md
+!/docs/1.3.1-实施与验证.md
+!/docs/GITHUB.md
+/app/src/test/java/cn/campuslife/assistant/express/verify-express.ps1
+/app/src/test/java/cn/campuslife/assistant/express/VERIFICATION.md
+
+# Generated outputs and editor/OS state
+*.apk
+*.aab
+*.apks
+*.zip
+*.log
+*.hprof
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
