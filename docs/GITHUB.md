@@ -33,3 +33,5 @@ GitHub 是提交时的共享副本，不是后台自动同步服务。私有仓�
 公开仓库 `dufan82/campus-toolbox`，暂不添加项目许可证。Gradle Wrapper 的 Apache-2.0 文本只适用于对应第三方文件；不将整个项目标成 MIT 或 Apache-2.0。
 
 仓库已在 2026-10-23 实际创建并推送，默认分支 main。首个源码提交 224e4cd 已核对远程一致，未登录网页访问 200。没有创建 PR 或 GitHub Release，安装包仍在本地交付目录。
+
+后续 BUILD-001 / CI-001 已将通用构建入口、脚本回归和自动检查纳入源码。当前状态看 STATUS.md，实际运行与 CI 临时调试构建产物见 [CI 说明](CI.md)；它们不是正式签名安装包或 GitHub Release。
