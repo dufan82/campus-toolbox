@@ -62,3 +62,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Build.ps1
 回归在 verification/build-script-tests 下建立独立的有空格目录，用记录型 Wrapper 替身隔离外部 Gradle，实际执行构建入口：检查四种任务、常规参数转发、环境保留、工作目录恢复、原生命令异常偏好及失败退出码、复杂参数的安全拒绝。不会安装手机应用或联网下载依赖；这些回归不是完整 APK 构建的替代品。临时夹具保留供排查，不纳入 Git。
 
 设备测试需专用模拟器和明确 serial，另见 README。不要把升级夹具默认运行在真实手机上。
+
+## 地图测试构建
+
+1.4.0 新增固定版本高德 SDK；构建不要求提供 Key。需要真实地图时，在本机忽略的 `local.properties` 填 `AMAP_ANDROID_KEY` 或配置同名环境变量，不在 Gradle 命令行传值，不提交私有配置。环境变量优先，空值生成无地图 Key 的 APK，其余工具仍可用。
+
+SDK 目前只有 ARMv7 / ARM64 原生库。x86 专用模拟器可追加 `-PmapUiTestWithoutNative=true` 做非 SDK 的 UI 回归；这个去库产物不能交付。正常 `assembleDebug` 不带该参数，须在交付前核对两个 ARM ABI 和原签名。真实在线地图与定位仍须 ARM 设备验证，详见 [地图说明](MAP.md)。

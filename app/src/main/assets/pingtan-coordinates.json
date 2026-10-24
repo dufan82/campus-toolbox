@@ -1,0 +1,1128 @@
+{
+  "version": 2,
+  "coordinateSystem": "GCJ-02",
+  "campus": {
+    "latitude": 25.550861,
+    "longitude": 119.752883
+  },
+  "locations": [
+    {
+      "id": "canteen-1",
+      "latitude": 25.55155,
+      "longitude": 119.751397,
+      "source": "AMap Android POI B0JBLZTGYO: 福建信息职业技术学院(平潭校区)第一食堂",
+      "reviewed": true
+    },
+    {
+      "id": "canteen-2",
+      "latitude": 25.551808,
+      "longitude": 119.75372,
+      "source": "AMap Android POI B0GDUC73C3: 福建信息职业技术学院(平潭校区)第二食堂",
+      "reviewed": true
+    },
+    {
+      "id": "activity-center",
+      "latitude": 25.551947,
+      "longitude": 119.752157,
+      "source": "AMap Android POI B0JBLZTGYP: 福建信息职业技术学院(平潭校区)师生活动中心",
+      "reviewed": true
+    },
+    {
+      "id": "gym",
+      "latitude": 25.550775,
+      "longitude": 119.755875,
+      "source": "AMap Android POI B0LKKKMMK6: 信息学院体育馆",
+      "reviewed": true
+    },
+    {
+      "id": "sunken-plaza",
+      "latitude": 25.552941,
+      "longitude": 119.75376,
+      "source": "AMap Android POI B0MA5UP3SF: 福信广场(下沉广场); address references 福建信息职业技术学院学生宿舍7号楼",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-9",
+      "latitude": 25.552972728176087,
+      "longitude": 119.75465584568467,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-10",
+      "latitude": 25.552333885092516,
+      "longitude": 119.75465718678915,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-8",
+      "latitude": 25.553515984103754,
+      "longitude": 119.75433666281734,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-7",
+      "latitude": 25.553407091130747,
+      "longitude": 119.7537278013814,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-5",
+      "latitude": 25.55331755683437,
+      "longitude": 119.75288961107857,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-3",
+      "latitude": 25.552753731214768,
+      "longitude": 119.75199107107396,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-4",
+      "latitude": 25.553232862168116,
+      "longitude": 119.75201521095468,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-1",
+      "latitude": 25.55305863295218,
+      "longitude": 119.75088331876975,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-2",
+      "latitude": 25.552603699916343,
+      "longitude": 119.75096914945675,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "teacher-1",
+      "latitude": 25.553214713303277,
+      "longitude": 119.74992040574988,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "teacher-2",
+      "latitude": 25.55268839502725,
+      "longitude": 119.74974203885343,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "teacher-3",
+      "latitude": 25.55216933404973,
+      "longitude": 119.75006658613869,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-1-north",
+      "latitude": 25.550445164316756,
+      "longitude": 119.74984798610771,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "construction",
+      "latitude": 25.54986559572755,
+      "longitude": 119.7495811063153,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-1-south",
+      "latitude": 25.549306593723312,
+      "longitude": 119.74983993948082,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-3",
+      "latitude": 25.54797804603147,
+      "longitude": 119.75076127826165,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-6",
+      "latitude": 25.551234050669297,
+      "longitude": 119.75478995613312,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-7",
+      "latitude": 25.550770641063846,
+      "longitude": 119.75483421258112,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "humanities",
+      "latitude": 25.550085807922475,
+      "longitude": 119.75485969356632,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "science-1",
+      "latitude": 25.55012936633068,
+      "longitude": 119.75088465987425,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "science-2",
+      "latitude": 25.549838976643606,
+      "longitude": 119.7509396451581,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "science-3",
+      "latitude": 25.549294494084005,
+      "longitude": 119.7512695568613,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "science-4",
+      "latitude": 25.54836886805612,
+      "longitude": 119.75181404528199,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "lecture-hall",
+      "latitude": 25.552131826059824,
+      "longitude": 119.75292582089966,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "training-8",
+      "latitude": 25.548989582770222,
+      "longitude": 119.74983859837633,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "campus-gate-north",
+      "latitude": 25.55396123434169,
+      "longitude": 119.75217480238832,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "dorm-6",
+      "latitude": 25.552871094276952,
+      "longitude": 119.75286547119784,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "custom-3545700a-0ca8-4738-9b1f-49ea3e46ea34",
+      "latitude": 25.54852253457128,
+      "longitude": 119.74984798610771,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "custom-33c8a79f-1cf5-4b1a-95c0-adc669ea7123",
+      "latitude": 25.547945376640424,
+      "longitude": 119.7498748081974,
+      "source": "manual-map-review",
+      "reviewed": true
+    },
+    {
+      "id": "express-station",
+      "latitude": 25.552579501302233,
+      "longitude": 119.75579310228751,
+      "source": "manual-map-review",
+      "reviewed": true
+    }
+  ],
+  "catalog": [
+    {
+      "id": "training-1-north",
+      "name": "实训1楼北门",
+      "category": "STUDY",
+      "aliases": [
+        "实训1北",
+        "实训1北楼",
+        "实训1北门",
+        "实1北门",
+        "实训楼1北门",
+        "1号实训楼北门",
+        "实训1号楼北门",
+        "建筑工程学院"
+      ]
+    },
+    {
+      "id": "construction",
+      "name": "建工馆",
+      "category": "STUDY",
+      "aliases": [
+        "建筑工程学院"
+      ]
+    },
+    {
+      "id": "training-1-south",
+      "name": "实训1楼南门",
+      "category": "STUDY",
+      "aliases": [
+        "实训1南",
+        "实训1南楼",
+        "实训1南门",
+        "实1南门",
+        "实训楼1南门",
+        "1号实训楼南门",
+        "实训1号楼南门",
+        "数字技术学院",
+        "数字产业学院"
+      ]
+    },
+    {
+      "id": "training-2",
+      "name": "实训2楼",
+      "category": "STUDY",
+      "aliases": [
+        "实训2",
+        "实2",
+        "实训2号楼",
+        "2号实训楼",
+        "实训楼2",
+        "实训2栋",
+        "智能制造学院"
+      ]
+    },
+    {
+      "id": "training-8",
+      "name": "实训8楼",
+      "category": "STUDY",
+      "aliases": [
+        "实训8",
+        "实8",
+        "实训8号楼",
+        "8号实训楼",
+        "实训楼8",
+        "实训8栋",
+        "智能制造学院"
+      ]
+    },
+    {
+      "id": "training-3",
+      "name": "实训3楼",
+      "category": "STUDY",
+      "aliases": [
+        "实训3",
+        "实3",
+        "实训3号楼",
+        "3号实训楼",
+        "实训楼3",
+        "实训3栋",
+        "商贸管理学院"
+      ]
+    },
+    {
+      "id": "training-6",
+      "name": "实训6楼",
+      "category": "STUDY",
+      "aliases": [
+        "实训6",
+        "实6",
+        "实训6号楼",
+        "6号实训楼",
+        "实训楼6",
+        "实训6栋",
+        "文化创意与旅游学院"
+      ]
+    },
+    {
+      "id": "training-7",
+      "name": "实训7楼",
+      "category": "STUDY",
+      "aliases": [
+        "实训7",
+        "实7",
+        "实训7号楼",
+        "7号实训楼",
+        "实训楼7",
+        "实训7栋",
+        "文化创意与旅游学院"
+      ]
+    },
+    {
+      "id": "science-1",
+      "name": "工科1",
+      "category": "STUDY",
+      "aliases": [
+        "工科一",
+        "工科1号楼",
+        "公共教学楼"
+      ]
+    },
+    {
+      "id": "science-2",
+      "name": "工科2",
+      "category": "STUDY",
+      "aliases": [
+        "工科二",
+        "工科2号楼",
+        "公共教学楼"
+      ]
+    },
+    {
+      "id": "science-3",
+      "name": "工科3",
+      "category": "STUDY",
+      "aliases": [
+        "工科三",
+        "工科3号楼",
+        "公共教学楼"
+      ]
+    },
+    {
+      "id": "science-4",
+      "name": "工科4",
+      "category": "STUDY",
+      "aliases": [
+        "工科四",
+        "工科4号楼",
+        "公共教学楼"
+      ]
+    },
+    {
+      "id": "humanities",
+      "name": "文科楼",
+      "category": "STUDY",
+      "aliases": [
+        "文科",
+        "公共教学楼"
+      ]
+    },
+    {
+      "id": "canteen-1",
+      "name": "食堂1",
+      "category": "FOOD",
+      "aliases": [
+        "第一食堂",
+        "一食堂",
+        "1食堂",
+        "一餐",
+        "食1"
+      ]
+    },
+    {
+      "id": "canteen-2",
+      "name": "食堂2",
+      "category": "FOOD",
+      "aliases": [
+        "第二食堂",
+        "二食堂",
+        "2食堂",
+        "二餐",
+        "食2"
+      ]
+    },
+    {
+      "id": "museum",
+      "name": "校史馆",
+      "category": "SERVICE",
+      "aliases": []
+    },
+    {
+      "id": "lecture-hall",
+      "name": "学术报告厅",
+      "category": "SERVICE",
+      "aliases": [
+        "报告厅"
+      ]
+    },
+    {
+      "id": "alumni-harbor",
+      "name": "校友港湾",
+      "category": "SERVICE",
+      "aliases": []
+    },
+    {
+      "id": "coffee",
+      "name": "书语咖啡",
+      "category": "SERVICE",
+      "aliases": []
+    },
+    {
+      "id": "service-hall",
+      "name": "师生服务大厅",
+      "category": "SERVICE",
+      "aliases": [
+        "服务大厅"
+      ]
+    },
+    {
+      "id": "activity-center",
+      "name": "师生活动中心",
+      "category": "SERVICE",
+      "aliases": [
+        "活动中心"
+      ]
+    },
+    {
+      "id": "mental-health",
+      "name": "心理健康教育示范基地",
+      "category": "SERVICE",
+      "aliases": [
+        "心理健康",
+        "心理中心"
+      ]
+    },
+    {
+      "id": "express-station",
+      "name": "快递驿站",
+      "category": "EXPRESS",
+      "aliases": [
+        "快递",
+        "驿站",
+        "取快递"
+      ]
+    },
+    {
+      "id": "fire-station",
+      "name": "小型消防站",
+      "category": "SERVICE",
+      "aliases": [
+        "消防站"
+      ]
+    },
+    {
+      "id": "safety-center",
+      "name": "安全体验馆",
+      "category": "SERVICE",
+      "aliases": [
+        "安全体验"
+      ]
+    },
+    {
+      "id": "training-store",
+      "name": "商贸实训超市",
+      "category": "SERVICE",
+      "aliases": [
+        "实训超市",
+        "超市"
+      ]
+    },
+    {
+      "id": "startup-center",
+      "name": "学生创业中心",
+      "category": "SERVICE",
+      "aliases": [
+        "创业中心"
+      ]
+    },
+    {
+      "id": "gym",
+      "name": "体育馆",
+      "category": "SPORT",
+      "aliases": [
+        "体"
+      ]
+    },
+    {
+      "id": "dorm-1",
+      "name": "1号楼",
+      "category": "DORM",
+      "aliases": [
+        "生1",
+        "学生公寓1",
+        "学生宿舍1",
+        "1号楼",
+        "1号宿舍",
+        "1号宿舍楼",
+        "1号公寓",
+        "学生公寓1号楼",
+        "学生宿舍1号楼",
+        "宿舍1",
+        "公寓1",
+        "生公1",
+        "1栋",
+        "学生宿舍1栋",
+        "学生公寓1栋",
+        "宿舍楼1",
+        "宿舍1号楼",
+        "第1宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-2",
+      "name": "2号楼",
+      "category": "DORM",
+      "aliases": [
+        "生2",
+        "学生公寓2",
+        "学生宿舍2",
+        "2号楼",
+        "2号宿舍",
+        "2号宿舍楼",
+        "2号公寓",
+        "学生公寓2号楼",
+        "学生宿舍2号楼",
+        "宿舍2",
+        "公寓2",
+        "生公2",
+        "2栋",
+        "学生宿舍2栋",
+        "学生公寓2栋",
+        "宿舍楼2",
+        "宿舍2号楼",
+        "第2宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-3",
+      "name": "3号楼",
+      "category": "DORM",
+      "aliases": [
+        "生3",
+        "学生公寓3",
+        "学生宿舍3",
+        "3号楼",
+        "3号宿舍",
+        "3号宿舍楼",
+        "3号公寓",
+        "学生公寓3号楼",
+        "学生宿舍3号楼",
+        "宿舍3",
+        "公寓3",
+        "生公3",
+        "3栋",
+        "学生宿舍3栋",
+        "学生公寓3栋",
+        "宿舍楼3",
+        "宿舍3号楼",
+        "第3宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-4",
+      "name": "4号楼",
+      "category": "DORM",
+      "aliases": [
+        "生4",
+        "学生公寓4",
+        "学生宿舍4",
+        "4号楼",
+        "4号宿舍",
+        "4号宿舍楼",
+        "4号公寓",
+        "学生公寓4号楼",
+        "学生宿舍4号楼",
+        "宿舍4",
+        "公寓4",
+        "生公4",
+        "4栋",
+        "学生宿舍4栋",
+        "学生公寓4栋",
+        "宿舍楼4",
+        "宿舍4号楼",
+        "第4宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-5",
+      "name": "5号楼",
+      "category": "DORM",
+      "aliases": [
+        "生5",
+        "学生公寓5",
+        "学生宿舍5",
+        "5号楼",
+        "5号宿舍",
+        "5号宿舍楼",
+        "5号公寓",
+        "学生公寓5号楼",
+        "学生宿舍5号楼",
+        "宿舍5",
+        "公寓5",
+        "生公5",
+        "5栋",
+        "学生宿舍5栋",
+        "学生公寓5栋",
+        "宿舍楼5",
+        "宿舍5号楼",
+        "第5宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-6",
+      "name": "6号楼",
+      "category": "DORM",
+      "aliases": [
+        "生6",
+        "学生公寓6",
+        "学生宿舍6",
+        "6号楼",
+        "6号宿舍",
+        "6号宿舍楼",
+        "6号公寓",
+        "学生公寓6号楼",
+        "学生宿舍6号楼",
+        "宿舍6",
+        "公寓6",
+        "生公6",
+        "6栋",
+        "学生宿舍6栋",
+        "学生公寓6栋",
+        "宿舍楼6",
+        "宿舍6号楼",
+        "第6宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-7",
+      "name": "7号楼",
+      "category": "DORM",
+      "aliases": [
+        "生7",
+        "学生公寓7",
+        "学生宿舍7",
+        "7号楼",
+        "7号宿舍",
+        "7号宿舍楼",
+        "7号公寓",
+        "学生公寓7号楼",
+        "学生宿舍7号楼",
+        "宿舍7",
+        "公寓7",
+        "生公7",
+        "7栋",
+        "学生宿舍7栋",
+        "学生公寓7栋",
+        "宿舍楼7",
+        "宿舍7号楼",
+        "第7宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-8",
+      "name": "8号楼",
+      "category": "DORM",
+      "aliases": [
+        "生8",
+        "学生公寓8",
+        "学生宿舍8",
+        "8号楼",
+        "8号宿舍",
+        "8号宿舍楼",
+        "8号公寓",
+        "学生公寓8号楼",
+        "学生宿舍8号楼",
+        "宿舍8",
+        "公寓8",
+        "生公8",
+        "8栋",
+        "学生宿舍8栋",
+        "学生公寓8栋",
+        "宿舍楼8",
+        "宿舍8号楼",
+        "第8宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-9",
+      "name": "9号楼",
+      "category": "DORM",
+      "aliases": [
+        "生9",
+        "学生公寓9",
+        "学生宿舍9",
+        "9号楼",
+        "9号宿舍",
+        "9号宿舍楼",
+        "9号公寓",
+        "学生公寓9号楼",
+        "学生宿舍9号楼",
+        "宿舍9",
+        "公寓9",
+        "生公9",
+        "9栋",
+        "学生宿舍9栋",
+        "学生公寓9栋",
+        "宿舍楼9",
+        "宿舍9号楼",
+        "第9宿舍楼"
+      ]
+    },
+    {
+      "id": "dorm-10",
+      "name": "10号楼",
+      "category": "DORM",
+      "aliases": [
+        "生10",
+        "学生公寓10",
+        "学生宿舍10",
+        "10号楼",
+        "10号宿舍",
+        "10号宿舍楼",
+        "10号公寓",
+        "学生公寓10号楼",
+        "学生宿舍10号楼",
+        "宿舍10",
+        "公寓10",
+        "生公10",
+        "10栋",
+        "学生宿舍10栋",
+        "学生公寓10栋",
+        "宿舍楼10",
+        "宿舍10号楼",
+        "第10宿舍楼"
+      ]
+    },
+    {
+      "id": "teacher-1",
+      "name": "教师公寓1号楼",
+      "category": "DORM",
+      "aliases": [
+        "师1",
+        "教师公寓1",
+        "教师宿舍1",
+        "教师公寓1栋",
+        "教师宿舍1号楼",
+        "教工宿舍1号楼"
+      ]
+    },
+    {
+      "id": "teacher-2",
+      "name": "教师公寓2号楼",
+      "category": "DORM",
+      "aliases": [
+        "师2",
+        "教师公寓2",
+        "教师宿舍2",
+        "教师公寓2栋",
+        "教师宿舍2号楼",
+        "教工宿舍2号楼"
+      ]
+    },
+    {
+      "id": "teacher-3",
+      "name": "教师公寓3号楼",
+      "category": "DORM",
+      "aliases": [
+        "师3",
+        "教师公寓3",
+        "教师宿舍3",
+        "教师公寓3栋",
+        "教师宿舍3号楼",
+        "教工宿舍3号楼"
+      ]
+    },
+    {
+      "id": "staff-1",
+      "name": "员1 · 员工宿舍",
+      "category": "DORM",
+      "aliases": [
+        "员1",
+        "员工宿舍",
+        "员工宿舍1",
+        "员工宿舍楼"
+      ]
+    },
+    {
+      "id": "sunken-plaza",
+      "name": "下沉广场",
+      "category": "SERVICE",
+      "aliases": [
+        "下沉",
+        "下沉式广场"
+      ]
+    },
+    {
+      "id": "campus-gate-north",
+      "name": "北门",
+      "category": "SERVICE",
+      "aliases": [
+        "北",
+        "校区北门",
+        "校园北门",
+        "学校北门"
+      ]
+    },
+    {
+      "id": "campus-gate-south",
+      "name": "南门",
+      "category": "SERVICE",
+      "aliases": [
+        "南",
+        "校区南门",
+        "校园南门",
+        "学校南门"
+      ]
+    },
+    {
+      "id": "custom-3545700a-0ca8-4738-9b1f-49ea3e46ea34",
+      "name": "实训2北门",
+      "category": "STUDY",
+      "aliases": []
+    },
+    {
+      "id": "custom-33c8a79f-1cf5-4b1a-95c0-adc669ea7123",
+      "name": "实训2南门",
+      "category": "STUDY",
+      "aliases": []
+    }
+  ],
+  "customPlaces": [
+    {
+      "id": "custom-3545700a-0ca8-4738-9b1f-49ea3e46ea34",
+      "name": "实训2北门",
+      "category": "STUDY",
+      "aliases": []
+    },
+    {
+      "id": "custom-33c8a79f-1cf5-4b1a-95c0-adc669ea7123",
+      "name": "实训2南门",
+      "category": "STUDY",
+      "aliases": []
+    }
+  ],
+  "hiddenIds": [
+    "alumni-harbor",
+    "coffee",
+    "fire-station",
+    "museum",
+    "safety-center",
+    "service-hall",
+    "staff-1",
+    "startup-center",
+    "training-store"
+  ],
+  "reference": {
+    "asset": "pingtan-reference.png",
+    "coordinateSystem": "normalized-image",
+    "width": 4822,
+    "height": 3470,
+    "sha256": "9694290a55c2b318048448ffc00a8db6ec6ff3118f499dbe6dd967434d5706f2",
+    "points": [
+      {
+        "id": "dorm-1",
+        "x": 0.2980877390326209,
+        "y": 0.20875684128225175
+      },
+      {
+        "id": "dorm-2",
+        "x": 0.3025871766029246,
+        "y": 0.2955433932759969
+      },
+      {
+        "id": "dorm-3",
+        "x": 0.375140607424072,
+        "y": 0.2759968725566849
+      },
+      {
+        "id": "dorm-4",
+        "x": 0.3683914510686164,
+        "y": 0.1962470680218921
+      },
+      {
+        "id": "dorm-5",
+        "x": 0.4431946006749156,
+        "y": 0.18686473807662235
+      },
+      {
+        "id": "dorm-6",
+        "x": 0.452755905511811,
+        "y": 0.2595777951524629
+      },
+      {
+        "id": "dorm-7",
+        "x": 0.5028121484814398,
+        "y": 0.17200938232994528
+      },
+      {
+        "id": "dorm-8",
+        "x": 0.5579302587176603,
+        "y": 0.1602814698983581
+      },
+      {
+        "id": "dorm-9",
+        "x": 0.5663667041619798,
+        "y": 0.24315871774824083
+      },
+      {
+        "id": "dorm-10",
+        "x": 0.5725534308211474,
+        "y": 0.3275996872556685
+      },
+      {
+        "id": "teacher-1",
+        "x": 0.21147356580427445,
+        "y": 0.2251759186864738
+      },
+      {
+        "id": "teacher-2",
+        "x": 0.2109111361079865,
+        "y": 0.2799061767005473
+      },
+      {
+        "id": "teacher-3",
+        "x": 0.2109111361079865,
+        "y": 0.3377638780297107
+      },
+      {
+        "id": "staff-1",
+        "x": 0.5163104611923509,
+        "y": 0.31352619233776385
+      },
+      {
+        "id": "training-1-north",
+        "x": 0.21766029246344207,
+        "y": 0.5426114151681001
+      },
+      {
+        "id": "construction",
+        "x": 0.20416197975253092,
+        "y": 0.5895230648944488
+      },
+      {
+        "id": "training-1-south",
+        "x": 0.21766029246344207,
+        "y": 0.6489444878811571
+      },
+      {
+        "id": "training-8",
+        "x": 0.21541057367829022,
+        "y": 0.7052384675527756
+      },
+      {
+        "id": "training-2",
+        "x": 0.21766029246344207,
+        "y": 0.7599687255668491
+      },
+      {
+        "id": "training-3",
+        "x": 0.2795275590551181,
+        "y": 0.8123534010946052
+      },
+      {
+        "id": "science-1",
+        "x": 0.2958380202474691,
+        "y": 0.5598123534010946
+      },
+      {
+        "id": "science-2",
+        "x": 0.3093363329583802,
+        "y": 0.6043784206411259
+      },
+      {
+        "id": "science-3",
+        "x": 0.33689538807649044,
+        "y": 0.6528537920250196
+      },
+      {
+        "id": "science-4",
+        "x": 0.35095613048368957,
+        "y": 0.691164972634871
+      },
+      {
+        "id": "training-6",
+        "x": 0.5697412823397076,
+        "y": 0.4440969507427678
+      },
+      {
+        "id": "training-7",
+        "x": 0.5731158605174353,
+        "y": 0.491790461297889
+      },
+      {
+        "id": "humanities",
+        "x": 0.5770528683914511,
+        "y": 0.5676309616888194
+      },
+      {
+        "id": "canteen-1",
+        "x": 0.3188976377952756,
+        "y": 0.40578577013291633
+      },
+      {
+        "id": "canteen-2",
+        "x": 0.5095613048368954,
+        "y": 0.36591086786551996
+      },
+      {
+        "id": "museum",
+        "x": 0.4026996625421822,
+        "y": 0.3666927286942924
+      },
+      {
+        "id": "lecture-hall",
+        "x": 0.45556805399325084,
+        "y": 0.3408913213448006
+      },
+      {
+        "id": "alumni-harbor",
+        "x": 0.4077615298087739,
+        "y": 0.328381548084441
+      },
+      {
+        "id": "coffee",
+        "x": 0.3678290213723285,
+        "y": 0.34792806880375293
+      },
+      {
+        "id": "service-hall",
+        "x": 0.4550056242969629,
+        "y": 0.2971071149335418
+      },
+      {
+        "id": "activity-center",
+        "x": 0.43532058492688414,
+        "y": 0.3612197028928851
+      },
+      {
+        "id": "mental-health",
+        "x": 0.44713160854893136,
+        "y": 0.22986708365910868
+      },
+      {
+        "id": "express-station",
+        "x": 0.4448818897637795,
+        "y": 0.2150117279124316
+      },
+      {
+        "id": "fire-station",
+        "x": 0.39707536557930256,
+        "y": 0.20953870211102424
+      },
+      {
+        "id": "safety-center",
+        "x": 0.3672665916760405,
+        "y": 0.16262705238467554
+      },
+      {
+        "id": "training-store",
+        "x": 0.3458942632170979,
+        "y": 0.15168100078186084
+      },
+      {
+        "id": "startup-center",
+        "x": 0.2542182227221597,
+        "y": 0.1704456606724003
+      },
+      {
+        "id": "gym",
+        "x": 0.6664791901012374,
+        "y": 0.5113369820172009
+      }
+    ]
+  }
+}

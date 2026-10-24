@@ -20,6 +20,8 @@ class ToolGlyph(context: Context,private val kind: String,color: Int) : Drawable
             "bag" -> {rect(4f,6f,20f,21f);path(8f,7f,8f,4f,16f,4f,16f,7f);val p=Path();p.moveTo(8f,10f);p.cubicTo(8f,15f,16f,15f,16f,10f);canvas.drawPath(p,paint)}
             "image" -> {rect(3f,3f,21f,21f);canvas.drawCircle(8f,8f,1.4f,paint);path(3f,17f,8f,12f,12f,16f,16f,12f,21f,17f)}
             "back" -> path(15f,5f,8f,12f,15f,19f)
+            "map" -> {path(3f,5f,9f,3f,15f,5f,21f,3f,21f,19f,15f,21f,9f,19f,3f,21f,3f,5f);path(9f,3f,9f,19f);path(15f,5f,15f,21f)}
+            "info" -> {canvas.drawCircle(12f,12f,9f,paint);path(12f,10f,12f,17f);canvas.drawCircle(12f,6.5f,.5f,paint)}
             "share" -> {path(7f,10f,4f,10f,4f,21f,20f,21f,20f,10f,17f,10f);path(12f,15f,12f,2f);path(8f,6f,12f,2f,16f,6f)}
             else -> {canvas.drawCircle(12f,12f,7f,paint);canvas.drawCircle(12f,12f,2.5f,paint);for(i in 0..7){canvas.save();canvas.rotate(i*45f,12f,12f);path(12f,2f,12f,4f);canvas.restore()}}
         }

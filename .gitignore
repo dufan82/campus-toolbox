@@ -38,8 +38,13 @@ local.properties
 !/docs/BUILD.md
 !/docs/CI.md
 !/docs/LINT.md
+!/docs/MAP.md
+!/docs/CAMPUS_CATALOG.md
 /app/src/test/java/cn/campuslife/assistant/express/verify-express.ps1
 /app/src/test/java/cn/campuslife/assistant/express/VERIFICATION.md
+
+# The supplied campus diagram has no confirmed public redistribution permission.
+/app/src/main/assets/pingtan-reference.png
 
 # Generated outputs and editor/OS state
 *.apk

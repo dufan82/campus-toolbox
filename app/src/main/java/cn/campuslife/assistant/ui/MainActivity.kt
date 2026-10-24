@@ -12,6 +12,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import cn.campuslife.assistant.express.*
+import cn.campuslife.assistant.map.CampusMapActivity
 
 class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +52,14 @@ class MainActivity : Activity() {
             quick.addView(tile,LinearLayout.LayoutParams(0,-2,1f))
         }
         content.addView(quick);content.addView(Ui.space(this,26))
+        content.addView(Ui.text(this,"校园生活",17f,bold=true));content.addView(Ui.space(this,12))
+        val campusMap=Ui.card(this)
+        val mapHeading=Ui.row(this)
+        mapHeading.addView(ImageView(this).apply { setImageDrawable(ToolGlyph(context,"map",Ui.blue));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO },LinearLayout.LayoutParams(Ui.dp(this,26),Ui.dp(this,26)).apply { marginEnd=Ui.dp(this@MainActivity,12) })
+        mapHeading.addView(Ui.text(this,"校园地图",17f,bold=true))
+        campusMap.addView(mapHeading);campusMap.addView(Ui.space(this,10));campusMap.addView(Ui.text(this,"平潭校区 · 看位置，找校园与附近地点",14f,Ui.muted))
+        campusMap.addView(Ui.space(this,16));campusMap.addView(Ui.button(this,"打开地图",true) { open(CampusMapActivity::class.java) }.apply { tag="open_campus_map" },LinearLayout.LayoutParams(-1,Ui.dp(this,50)))
+        content.addView(campusMap);content.addView(Ui.space(this,24))
         content.addView(Ui.text(this,"图片工具",17f,bold=true));content.addView(Ui.space(this,12))
         val watermark=Ui.card(this).apply { background=Ui.shape(context,Ui.pale,16,Ui.line) }
         val heading=Ui.row(this)
@@ -58,7 +67,7 @@ class MainActivity : Activity() {
         heading.addView(Ui.text(this,"活动照片水印",17f,bold=true))
         watermark.addView(heading);watermark.addView(Ui.space(this,14));watermark.addView(Ui.text(this,"添加校园信息，高清另存新照片。",14f,Ui.muted))
         watermark.addView(Ui.space(this,20));watermark.addView(Ui.button(this,"开始制作",true) { open(WatermarkActivity::class.java) },LinearLayout.LayoutParams(-1,Ui.dp(this,50)))
-        content.addView(watermark);content.addView(Ui.space(this,24));content.addView(Ui.text(this,"照片与资料，仅在本机处理",12f,Ui.muted))
+        content.addView(watermark);content.addView(Ui.space(this,24));content.addView(Ui.text(this,"照片与资料仅本机处理 · 地图需联网，定位可选",12f,Ui.muted))
     }
     private fun open(type: Class<out Activity>) { startActivity(Intent(this,type)) }
     private fun settings() {

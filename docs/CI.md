@@ -20,6 +20,8 @@
 
 JVM 测试通过不等于真机验收；云端不执行 connectedDebugAndroidTest，不运行旧 APK 覆盖升级夹具。设备权限、厂商相册、相机和第三方应用最终页面仍需人工验证。
 
+地图模块的 `AMAP_ANDROID_KEY` 是可选配置，CI没有这项凭据。CI编译出的地图页会提示未配置，不能用来验证真实底图或定位。校园原图也不在公开仓库里；缺图不影响构建。每次推送的结果以Actions对应提交为准，旧运行不代表新代码通过。
+
 ## 安全和安装边界
 
 - 仓库 token 仅 contents:read，checkout 不保留凭据；没有 pull_request_target，也不配置项目私钥或签名 secrets。

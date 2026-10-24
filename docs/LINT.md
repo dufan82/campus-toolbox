@@ -25,3 +25,33 @@
 根报告路径会被新构建覆盖，前述时间是首次读取记录，不把当前文件当作不可变的原件。本轮 --rerun-tasks 重新执行后本机为 42 条 Warning；云端 [run 39894551766](https://github.com/dufan82/campus-toolbox/actions/runs/39894551766) 的 XML 已下载核对，为 0 错误、45 条 Warning。
 
 云端仍是上述 8 类，GradleDependency 从 1 变为 4，其余数量与本机 42 条报告相同。新增的是 ExifInterface、AndroidX Test runner、Test JUnit 的更新提示；不是新增漏洞证明，不在本轮自动升级。不同更新检测结果不能相互冒充“新增业务缺陷”或“已修复警告”。
+
+## MAP-002 / 1.4.0 本机实际结果
+
+2026-10-23 `:app:lintDebug --offline -PuseChinaMirrors=true`（与 JVM/assemble 一起执行）成功，XML 为 0 错误、44 条 Warning，仍是上述 8 类。UseKtx 从 21 增至 23，其余数量与既有本机 42 相同；增加的是地图隐私存储的 API 简写建议，不是已证实安全缺陷。没有 baseline、全量 suppress 或为消除警告改变 commit 结果检查。证据为本机 `verification/map-002/production-build.log` 和 `app/build/reports/lint-results-debug.xml`；本轮未推送，因此没有 1.4.0 云端检查结果。
+## 1.4.1 公共地点测试版补充（2026-10-23）
+
+本轮最终正常ARM构建的 lintDebug 为0错误、45警告：UseKtx24、SetTextI18n12、ViewConstructor3、DrawAllocation2，以及AGP版本/依赖更新/OldTargetApi/DataExtractionRules各1。较MAP-002本机44警告增加1项UseKtx；没有新增错误、baseline或suppress。此45不是历史GitHub Actions的45，不代表本轮CI已经执行。证据：本机verification/map-006-final-arm-build.log及app/build/reports/lint-results-debug.xml。
+
+## 1.4.2 原图对照与标点版补充（2026-10-24）
+
+本轮无去库参数的 `:app:lintDebug` 实际成功，XML为0错误/47警告：UseKtx25、SetTextI18n12、ViewConstructor4、DrawAllocation2，以及AGP版本/依赖更新/OldTargetApi/DataExtractionRules各1。相比1.4.1增加2条：
+
+- `CampusReferenceView` 的ViewConstructor：新Canvas视图使用带回调构造器，由代码创建，不从XML加载；不是已复现的加载崩溃。未为消除建议添加无调用方构造器或suppress。
+- `CampusReferenceDialog` 的UseKtx：建议将ColorDrawable写法换成KTX简写，不是已证实业务缺陷，本轮不改动。
+
+原DrawAllocation仍为水印预览的2项，没有新增原图onDraw分配警告。工具链还提示SDK XML版本不同及供应方.so无法strip，Gradle将其原样打包并正常完成。证据：本机verification/map-007-final-arm-build.log及app/build/reports/lint-results-debug.xml；未推送或重跑云端CI。
+
+## 1.4.3 名称版（2026-10-24）
+
+无去库参数实际执行lintDebug/assembleDebug成功，仍为0错误/47警告，未新增baseline或suppress。证据verification/map-008-final-arm-build.log及当前XML；没有新的云端CI结果。供应方.so继续原样打包。
+
+## 1.5.0 自定义地图版（2026-10-24）
+
+正常ARM构建实际执行lintDebug成功，0错误/48警告：UseKtx26、SetTextI18n12、ViewConstructor4、DrawAllocation2，以及AndroidGradlePluginVersion/GradleDependency/OldTargetApi/DataExtractionRules各1。相对1.4.3增加1项：CampusMarkerLayer.kt:19建议用KTX createBitmap代替Bitmap.createBitmap，非已复现故障。本轮未新增依赖、baseline或suppress，不为简写而改绘制/持久化语义。
+
+现存onActivityResult、startActivityForResult及表单SOFT_INPUT_ADJUST_RESIZE等废弃API编译提示另行保留；供应方.so无法strip仍原样打包。最终审查修复后重建证据verification/map-009-reviewed-final-arm-build.log与app/build/reports/lint-results-debug.xml，首轮map-009-final-arm-build.log保留；未运行新云端CI。
+
+## 1.5.1 地图精简版（2026-10-24）
+
+实际正常ARM lintDebug/assembleDebug成功，仍0错误/48警告，未新增依赖、baseline或suppress。首轮证据verification/map-011-arm-build.log；审查修复后最终verification/map-011-final-arm-build.log及当前XML同为0/48。已随本轮移除地图文件导出的startActivityForResult/onActivityResult代码，不代表其他历史废弃API或48条警告均已修复；供应方.so继续原样打包。无本轮云端CI。
