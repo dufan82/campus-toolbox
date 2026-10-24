@@ -24,6 +24,8 @@ JVM 测试通过不等于真机验收；云端不执行 connectedDebugAndroidTes
 
 ## 安全和安装边界
 
+2026-10-24的1.5.1源码在[run 40104176320](https://github.com/dufan82/campus-toolbox/actions/runs/40104176320)（0622930）通过；报告实际为94项JVM、Lint0错误/51警告。构建入口10项与APK构建成功，没有运行设备测试。此次CI包无地图Key、无校园原图，不等同本机已交付的测试包。
+
 - 仓库 token 仅 contents:read，checkout 不保留凭据；没有 pull_request_target，也不配置项目私钥或签名 secrets。
 - 外部 Action 固定到已核对的完整提交 SHA，升级时需检查上游；Gradle 分发同时使用官方校验值。
 - PR 只读 Gradle 缓存；不上传用户照片、应用私有数据、SDK 或签名密钥。

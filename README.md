@@ -30,7 +30,7 @@
 
 ## 安装和编译
 
-仓库暂时只提供源码，没有公开下载的安装包。自行编译需要 Android Studio，或以下命令行环境：
+目前没有在Releases发布安装包。Actions只保留不带地图Key的临时测试构建。自行编译需要 Android Studio，或以下命令行环境：
 
 - JDK 17以上，本机使用JDK 21。
 - Android SDK Platform 36、Build Tools 35.0.0。

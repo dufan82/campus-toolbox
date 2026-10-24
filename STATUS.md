@@ -1,11 +1,11 @@
 # 开发进度
 
-更新时间：2026-10-24 22:46 +08:00
+更新时间：2026-10-24 22:53 +08:00
 
 ## 版本和分支
 
 - Android 1.5.1，versionCode11，包名 `cn.campuslife.assistant`。
-- 当前分支`main`，功能提交`fdac911`已从`feature/pingtan-map`快进合入；准备推送到GitHub。
+- 当前分支`main`，功能提交`fdac911`已合入；源码和说明推送到`0622930`，远程README哈希与本机一致。
 - 仓库：https://github.com/dufan82/campus-toolbox
 - 安装包仍保留在本机，没有GitHub Release。上一份1.5.1 APK的SHA-256为 `c83b7ec2399bbe83552b5907aa2b44118e39214eba05e4f20b986444920135a7`，本轮不重做交付包。
 
@@ -15,7 +15,7 @@ GIT-002：把1.5.1源码同步到GitHub，改写README、更新记录和仓库�
 
 ## 正在做什么
 
-公开副本检查已通过，接下来提交到main并查看Actions。本轮不上传原图、测试Key APK、签名或日志，也不添加项目许可证。专用模拟器已停止。
+GIT-002已完成：源码、README、更新记录和仓库简介已更新，[Actions 40104176320](https://github.com/dufan82/campus-toolbox/actions/runs/40104176320)成功。本次最后补记只改说明文件，没有业务改动。本轮没有上传原图、测试Key APK、签名或日志，也没添加项目许可证。专用模拟器已停止。
 
 ## 已完成
 
@@ -49,7 +49,8 @@ Kotlin2.0.21、Android Views/Canvas，`app`和`watermark-core`两个模块。Gra
 - 暂存区共116个文件，51个文件有变化；禁止路径、已知Key精确值和个人资料/凭据格式检查均为0命中。这是提交范围检查，不是完整安全审计。
 - 公开源码副本没有local.properties、Key或校园原图：94项JVM通过，Lint0错误/47警告，正常ARM构建成功；构建入口脚本10项通过。原图相关设备测试4项通过，缺图的尺寸测试1项明确跳过。
 - 缺图用例修改前先运行，实际因FileNotFound失败；只为此项补充本机素材前提，不关闭其他测试。日志在本机verification/github-sync-*.log。APK确认Key为空、原图未打包、两个ARM ABI的4个库仍在。
-- 尚未推送，本轮Actions未运行。
+- [Actions 40104176320](https://github.com/dufan82/campus-toolbox/actions/runs/40104176320)在提交`0622930`成功，下载报告核对：94项JVM、0失败，Lint0错误/51警告；构建入口10项检查和APK构建完成。云端没有运行设备测试。依赖/Gradle更新提示会受联网检查影响，不把云端51和本机47混用。
+- 远程README哈希与本机核对一致；远程文件树中地图源码和坐标在，原图/私有配置/安装包/日志/AI草稿不在。报告下载在本机E盘工具目录，不提交。
 
 ### 上一轮1.5.1本机验证
 
@@ -68,6 +69,6 @@ Kotlin2.0.21、Android Views/Canvas，`app`和`watermark-core`两个模块。Gra
 
 ## 下一步
 
-完成这轮推送和Actions核对。之后按[任务清单](TASKS.md)补真机测试，不继续增加页面选项。
+按[任务清单](TASKS.md)补真机测试，不继续增加页面选项。后续README和更新记录仍按简短的功能、用法、问题来写。
 
 接手开发先看[AGENTS](AGENTS.md)。本机交付和原始日志不在GitHub，进度文件也不是后台自动同步。

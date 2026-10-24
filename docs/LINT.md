@@ -59,3 +59,5 @@
 ## 公开源码副本检查（2026-10-24晚）
 
 公开范围不带地图Key和校园原图，实际构建的lint为0错误/47警告；不是上午本机含原图版本的48。没有为减少数量添加baseline或suppress。证据verification/github-sync-public-build.log及对应公开副本XML；Actions结果另看STATUS。
+
+公开提交0622930的Actions 40104176320报告已下载：0错误/51警告。联网更新提示与本机结果不同，不把这些数量差异当作新漏洞或修复；没有屏蔽警告，具体报告在Actions产物中。
