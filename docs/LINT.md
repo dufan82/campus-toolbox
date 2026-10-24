@@ -55,3 +55,7 @@
 ## 1.5.1 地图精简版（2026-10-24）
 
 实际正常ARM lintDebug/assembleDebug成功，仍0错误/48警告，未新增依赖、baseline或suppress。首轮证据verification/map-011-arm-build.log；审查修复后最终verification/map-011-final-arm-build.log及当前XML同为0/48。已随本轮移除地图文件导出的startActivityForResult/onActivityResult代码，不代表其他历史废弃API或48条警告均已修复；供应方.so继续原样打包。无本轮云端CI。
+
+## 公开源码副本检查（2026-10-24晚）
+
+公开范围不带地图Key和校园原图，实际构建的lint为0错误/47警告；不是上午本机含原图版本的48。没有为减少数量添加baseline或suppress。证据verification/github-sync-public-build.log及对应公开副本XML；Actions结果另看STATUS。
