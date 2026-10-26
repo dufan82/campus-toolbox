@@ -153,7 +153,7 @@ class CampusMapActivity: Activity() {
                 }
                 setOnMapLongClickListener { point -> maintenance?.review(GeoPoint(point.latitude,point.longitude)) }
             }
-            if(BuildConfig.DEBUG) coordinateData?.let { current ->
+            if(BuildConfig.LOCAL_MAP_EDITING) coordinateData?.let { current ->
                 maintenance=CampusMapMaintenance(this,CampusCoordinateStore(this),current,{ updated ->
                     coordinateData=updated;searchCampus()
                 },{ _ -> maintenanceTargetChanged() },{ id -> startReview(id) }).also { it.restoreState(saved) }
@@ -309,14 +309,14 @@ class CampusMapActivity: Activity() {
     }
 
     private fun privacyOptions() {
-        AlertDialog.Builder(this).setTitle("地图与隐私").setMessage("校园名称在本机搜索，缺失坐标不提供导航。底图和可选前台定位由高德提供，不与照片或校园身份资料关联。当前为测试用途。")
+        AlertDialog.Builder(this).setTitle("地图与隐私").setMessage("校园名称在本机搜索，缺失坐标不提供导航。底图和可选前台定位由高德提供，不与照片或校园身份资料关联。自定义地点只保存在本机。")
             .setPositiveButton("知道了",null).setNeutralButton("隐私政策") { _,_->openPolicy("https://lbs.amap.com/pages/privacy/") }
             .setNegativeButton("撤回地图同意") { _,_->withdrawConsent() }.show()
     }
 
     private fun showReference(id: String?) {
         referenceDialog?.dismiss()
-        val dialog=CampusReferenceDialog(this,id,BuildConfig.DEBUG && maintenance!=null,
+        val dialog=CampusReferenceDialog(this,id,BuildConfig.LOCAL_MAP_EDITING && maintenance!=null,
             coordinateData?.visiblePlaces ?: CampusCatalog.entries) { selectedId -> startReview(selectedId) }
         referenceDialog=dialog
         dialog.setOnDismissListener { if(referenceDialog===dialog) referenceDialog=null }

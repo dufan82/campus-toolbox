@@ -24,6 +24,7 @@ import java.io.File
 class UpdateScreenTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
     private val context get() = instrumentation.targetContext
+    private val nextCode get() = cn.campuslife.assistant.BuildConfig.VERSION_CODE.toLong() + 1
     @Test fun settingsCanCheckWithoutHidingExpressAndNoReleaseDoesNotClaimLatest() = isolated(null) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
@@ -49,14 +50,14 @@ class UpdateScreenTest {
             }
         }
     }
-    @Test fun ignoredUpdateDoesNotReappearAutomaticallyAfterActivityRecreation() = isolated(UpdatePackage(18, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
+    @Test fun ignoredUpdateDoesNotReappearAutomaticallyAfterActivityRecreation() = isolated(UpdatePackage(nextCode, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "合成更新说明", 123)) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             await { views().any { it.tag == "app_update_banner" && it.isShown } }
             instrumentation.runOnMainSync { views().first { it.tag == "app_update_banner" }.performClick() }
             await { views().filterIsInstance<Button>().any { it.text.toString() == "稍后再说" } }
             instrumentation.runOnMainSync { views().filterIsInstance<Button>().first { it.text.toString() == "稍后再说" }.performClick() }
-            await { context.getSharedPreferences("updates-v1", 0).getLong("ignored", 0) == 18L }
+            await { context.getSharedPreferences("updates-v1", 0).getLong("ignored", 0) == nextCode }
             scenario.recreate()
             instrumentation.waitForIdleSync()
             assertFalse(views().any { it.tag == "app_update_banner" && it.isShown })
@@ -64,7 +65,7 @@ class UpdateScreenTest {
     }
     @Test fun installRecheckFailureIsVisibleInsteadOfOldReadyMessage() = isolated(null) {
         org.junit.Assume.assumeTrue("Grant REQUEST_INSTALL_PACKAGES on the dedicated test device before this installer case; reset it after the runner exits", context.packageManager.canRequestPackageInstalls())
-        val info = UpdatePackage(18, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
+        val info = UpdatePackage(nextCode, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "合成说明", 123)
         val downloads = context.getSharedPreferences("update-download-v1", 0)
         val apk = File(context.filesDir, "updates/update_${info.versionCode}_${info.sha256}.apk")
@@ -144,7 +145,7 @@ class UpdateScreenTest {
             manager.remove(id); prefs.edit().clear().commit(); source.delete()
         }
     }
-    private fun fixture(notes: String) = UpdatePackage(18, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
+    private fun fixture(notes: String) = UpdatePackage(nextCode, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", notes, 123)
     private fun descendants(view: View): List<View> = listOf(view) + if (view is ViewGroup) (0 until view.childCount).flatMap { descendants(view.getChildAt(it)) } else emptyList()
     private fun views(): List<View> {

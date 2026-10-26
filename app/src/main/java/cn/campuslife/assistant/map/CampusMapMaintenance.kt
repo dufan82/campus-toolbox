@@ -7,7 +7,7 @@ import cn.campuslife.assistant.BuildConfig
 import cn.campuslife.assistant.ui.Ui
 import java.util.UUID
 
-/** Maintainer-only one-time coordinate review/export. Not part of ordinary users' setup. */
+/** Optional local place editing; never changes the bundled public catalog or uploads data. */
 class CampusMapMaintenance(
     private val activity: Activity,
     private val store: CampusCoordinateStore,
@@ -21,7 +21,7 @@ class CampusMapMaintenance(
         private set
 
     fun menu() {
-        if(!BuildConfig.DEBUG) return
+        if(!BuildConfig.LOCAL_MAP_EDITING) return
         AlertDialog.Builder(activity).setTitle("校园地点管理")
             .setItems(arrayOf("新增自定义地点","管理自定义地点","显示或隐藏地点","退出核对模式")) { _,index ->
                 when(index) { 0->edit(null);1->customMenu();2->visibility();else->setTarget(null) }
@@ -33,7 +33,7 @@ class CampusMapMaintenance(
     private fun setTarget(item: CampusLandmark?) { target=item;onTargetChanged(item) }
 
     fun select(id: String) {
-        if(BuildConfig.DEBUG) data.catalog.firstOrNull { it.id==id }?.let { setTarget(it) }
+        if(BuildConfig.LOCAL_MAP_EDITING) data.catalog.firstOrNull { it.id==id }?.let { setTarget(it) }
     }
 
     private fun persist(next: CampusCoordinateData): Boolean {
@@ -45,7 +45,7 @@ class CampusMapMaintenance(
     }
 
     private fun edit(item: CampusLandmark?,draftName: String=item?.name.orEmpty(),draftCategory: MapCategory=item?.category ?: MapCategory.STUDY) {
-        if(!BuildConfig.DEBUG) return
+        if(!BuildConfig.LOCAL_MAP_EDITING) return
         editor?.dismiss()
         editor=CampusPlaceEditor(activity,item?.id,draftName,draftCategory) { raw,category ->
             val name=raw.trim()
@@ -107,7 +107,7 @@ class CampusMapMaintenance(
     fun stop() { setTarget(null) }
 
     fun review(point: GeoPoint) {
-        if(!BuildConfig.DEBUG) return
+        if(!BuildConfig.LOCAL_MAP_EDITING) return
         val item=target ?: return
         if(MapRules.distanceMeters(data.center,point)>1000) { Ui.toast(activity,"该点超出校园核对范围，请重新选择。");return }
         AlertDialog.Builder(activity).setTitle("确认 ${item.name} 的位置？")
@@ -131,7 +131,7 @@ class CampusMapMaintenance(
         }
     }
     fun restoreState(saved: Bundle?) {
-        if(!BuildConfig.DEBUG) return
+        if(!BuildConfig.LOCAL_MAP_EDITING) return
         saved?.getString("campus_review_target")?.let { id -> setTarget(data.catalog.firstOrNull { it.id==id }) }
         if(saved?.getBoolean("campus_editor_open")==true) {
             val id=saved.getString("campus_editor_id")

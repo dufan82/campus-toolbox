@@ -12,6 +12,13 @@ val privateMapKey = (providers.environmentVariable("AMAP_ANDROID_KEY").orNull
 require(privateMapKey.isEmpty() || privateMapKey.matches(Regex("[a-fA-F0-9]{32}"))) {
     "AMAP_ANDROID_KEY must be empty or a valid 32-character Android Key. The value is not printed."
 }
+val releaseSigning = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD").associateWith {
+    providers.environmentVariable("CAMPUS_SIGNING_$it").orNull
+}
+val hasReleaseSigning = releaseSigning.values.any { it != null }
+require(!hasReleaseSigning || releaseSigning.values.all { !it.isNullOrBlank() }) {
+    "Provide all four CAMPUS_SIGNING_* environment values or none; no debug-signing fallback."
+}
 android {
     namespace = "cn.campuslife.assistant"
     compileSdk = 36
@@ -19,12 +26,25 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.7.0"
+        versionCode = 18
+        versionName = "1.7.1"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
+        buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }
+    if (hasReleaseSigning) {
+        val privateRelease = signingConfigs.create("privateRelease") {
+            storeFile = file(releaseSigning.getValue("STORE_FILE")!!)
+            storePassword = releaseSigning.getValue("STORE_PASSWORD")
+            keyAlias = releaseSigning.getValue("KEY_ALIAS")
+            keyPassword = releaseSigning.getValue("KEY_PASSWORD")
+        }
+        buildTypes.getByName("release").signingConfig = privateRelease
+    }
+    testBuildType = providers.gradleProperty("deviceTestBuildType").orElse("debug").get().also {
+        require(it in setOf("debug", "release")) { "deviceTestBuildType must be debug or release" }
+    }
     // Explicit headless-x86 UI test build only: it cannot render the ARM-only SDK.
     // Normal builds retain the real libraries; this flag must never be used for delivery.
     if (providers.gradleProperty("mapUiTestWithoutNative").orNull == "true") {

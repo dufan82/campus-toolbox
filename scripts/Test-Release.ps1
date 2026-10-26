@@ -190,6 +190,36 @@ try {
         }
     }
     $script:releaseToolFixture = @{ Badging=$badging; Certificates=$certificates; AaptExit=0; JavaExit=0 }
+    $legacySigner = 'f6b9669399e0f791f16542dff896474f803408645e84a07650bdcd98e0b83eb1'
+    $legacyCertificates = $certificates.Replace(('a' * 64),$legacySigner).Replace('CN=Campus Toolbox','CN=Android Debug')
+    Test-Case 'explicit legacy transition accepts only the pinned non-debuggable APK' {
+        $script:releaseToolFixture.Certificates = $legacyCertificates
+        $parameters = $base.Clone(); $parameters.ExpectedSignerSha256 = $legacySigner
+        $parameters.LegacyCompatibility = $true; $parameters.OutputDirectory = Join-Path $fixture 'legacy transition'
+        Invoke-ReleasePreparation @parameters | Out-Null
+        $info = Get-Content -LiteralPath (Join-Path $parameters.OutputDirectory 'update.json') -Raw | ConvertFrom-Json
+        Assert-True ($info.versionCode -eq 18 -and $info.sha256 -ceq $syntheticHash) 'Legacy transition metadata differs.'
+    }
+    Test-Case 'legacy opt-in never accepts a different debug certificate' {
+        $script:releaseToolFixture.Certificates = $certificates.Replace('CN=Campus Toolbox','CN=Android Debug')
+        $parameters = $base.Clone(); $parameters.LegacyCompatibility = $true
+        $parameters.OutputDirectory = Join-Path $fixture 'unknown legacy rejected'
+        Assert-Rejected $parameters 'only the pinned legacy certificate' -Boundary
+    }
+    Test-Case 'legacy opt-in does not bypass the explicit expected signer' {
+        $script:releaseToolFixture.Certificates = $legacyCertificates
+        $parameters = $base.Clone(); $parameters.LegacyCompatibility = $true
+        $parameters.OutputDirectory = Join-Path $fixture 'wrong legacy pin rejected'
+        Assert-Rejected $parameters 'only the pinned legacy certificate|signer does not match' -Boundary
+    }
+    Test-Case 'legacy opt-in still rejects a debuggable APK' {
+        $script:releaseToolFixture.Certificates = $legacyCertificates
+        $script:releaseToolFixture.Badging = $badging + "`napplication-debuggable"
+        $parameters = $base.Clone(); $parameters.ExpectedSignerSha256 = $legacySigner; $parameters.LegacyCompatibility = $true
+        $parameters.OutputDirectory = Join-Path $fixture 'debug legacy rejected'
+        Assert-Rejected $parameters 'debuggable' -Boundary
+    }
+    $script:releaseToolFixture = @{ Badging=$badging; Certificates=$certificates; AaptExit=0; JavaExit=0 }
     foreach ($name in @('campus-toolbox-1.7.1.apk','update.json','SHA256SUMS.txt')) {
         Test-Case ('differing ' + $name + ' blocks all writes') {
             $parameters = $base.Clone(); $parameters.OutputDirectory = Join-Path $fixture ('conflict-' + [guid]::NewGuid().ToString('N'))

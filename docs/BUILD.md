@@ -4,6 +4,8 @@
 
 ## 工程
 
+1.7.1可通过四个`CAMPUS_SIGNING_*`环境变量显式签署非debuggable Release，未提供则仍为未签名分析包，详见[RELEASING](RELEASING.md)。CI不提供这些变量，只产出临时Debug测试包。`-PdeviceTestBuildType=release`用于专用设备的非调试目标测试，默认debug；去ARM模拟器开关仍不得用于交付。
+
 - 原生 Kotlin 2.0.21、Android Views / Canvas，没有 Web 前端或云端构建要求。
 - `app` 负责 Android 界面、存储和系统集成；`watermark-core` 保存纯 Kotlin 水印模型与布局逻辑。
 - Gradle 8.14.3、Android Gradle Plugin 8.13.0；Java / Kotlin 编译目标 17。

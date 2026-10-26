@@ -9,7 +9,7 @@ import cn.campuslife.assistant.BuildConfig
 
 class UpdateDownloadsTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
-    private val info = UpdatePackage(18, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
+    private val info = UpdatePackage(BuildConfig.VERSION_CODE.toLong() + 1, "1.7.1", "v1.7.1", 26, "campus-toolbox-1.7.1.apk", 3,
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "合成说明", 123)
     private class Backend : UpdateDownloadBackend {
         var count = 0; val cancelled = mutableListOf<Long>(); var phase = UpdatePhase.DOWNLOADING

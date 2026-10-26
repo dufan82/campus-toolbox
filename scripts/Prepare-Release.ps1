@@ -16,6 +16,7 @@ param(
     [string]$SdkPath,
     [string]$BuildToolsPath,
     [string]$JavaHome,
+    [switch]$LegacyCompatibility,
     [string]$TempRoot = [IO.Path]::GetTempPath()
 )
 
@@ -38,6 +39,7 @@ function Invoke-ReleasePreparation {
         [string]$SdkPath,
         [string]$BuildToolsPath,
         [string]$JavaHome,
+        [switch]$LegacyCompatibility,
         [string]$TempRoot = [IO.Path]::GetTempPath()
     )
     $ErrorActionPreference = 'Stop'
@@ -127,7 +129,11 @@ function Invoke-ReleasePreparation {
         $actualSigner = $signerHashes[0].Groups[2].Value.ToLowerInvariant()
         $certificateName = $signerNames[0].Groups[2].Value
         $legacyDebugSigner = 'f6b9669399e0f791f16542dff896474f803408645e84a07650bdcd98e0b83eb1'
-        if ($certificateName -match '(?i)\bCN\s*=\s*"?Android\s+Debug\b' -or $actualSigner -ceq $legacyDebugSigner) {
+        if ($LegacyCompatibility) {
+            if ($actualSigner -cne $legacyDebugSigner -or $expectedSigner -cne $legacyDebugSigner) {
+                throw 'LegacyCompatibility accepts only the pinned legacy certificate; it is not a general debug-signing bypass.'
+            }
+        } elseif ($certificateName -match '(?i)\bCN\s*=\s*"?Android\s+Debug\b' -or $actualSigner -ceq $legacyDebugSigner) {
             throw 'Android Debug certificate is forbidden for formal artifacts, even when debuggable is false. See docs/RELEASING.md for the separate compatibility transition.'
         }
         if ($actualSigner -cne $expectedSigner) { throw 'APK signer does not match ExpectedSignerSha256; no signer replacement or debug fallback is allowed.' }

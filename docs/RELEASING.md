@@ -1,5 +1,15 @@
 # 本地发布准备
 
+## 1.7.1兼容过渡发布
+
+2026-10-26用户已明确批准同证书、关闭调试的兼容过渡版，以及GitHub安装包/元数据公开；同时确认本App高德公开使用和校园导览图分发许可。以下例外不是新正式证书配置，也不是允许任意调试包发行。
+
+签名构建读取四个环境变量`CAMPUS_SIGNING_STORE_FILE`、`CAMPUS_SIGNING_STORE_PASSWORD`、`CAMPUS_SIGNING_KEY_ALIAS`、`CAMPUS_SIGNING_KEY_PASSWORD`。必须全部提供或全部不提供；缺项报错，未提供仍生成未签名Release，CI不自动取得私钥。`deviceTestBuildType=release`仅显式选非调试设备测试目标，默认仍为debug；模拟器去ARM参数不能用于交付。
+
+准备已有签名包时显式传`-LegacyCompatibility`，且`-ExpectedSignerSha256`必须固定为历史证书`f6b9669399e0f791f16542dff896474f803408645e84a07650bdcd98e0b83eb1`。实际证书必须相同、签名有效且APK非debuggable；包名、整数版本增长、完整性、附件防覆盖等原有检查不变。默认不传此开关时继续拒绝所有Android Debug证书。客户端仍信任已安装证书，不从元数据取证书、不绕过系统安装。
+
+发布时先用审核源码创建draft，在同一Release上传APK、update.json、SHA256SUMS.txt并核对大小和哈希，再公开为非draft/非prerelease版本。Release标题及说明写“兼容过渡版”，说明可覆盖本机旧包、CI临时证书包不在兼容保证内，不要求用户卸载。下方正式证书策略适用于未启用兼容例外的正式模式，不再表示本次发布未获授权。
+
 `scripts/Prepare-Release.ps1` 仅把已经签好的正式 APK 验证并整理为本地附件。它没有网络、Gradle、Git、签名、密钥生成或上传步骤，不改变生产签名配置。环境、常规构建命令和实测边界见 [BUILD.md](BUILD.md)。
 
 ## 先区分现有过渡包和正式包
@@ -80,7 +90,7 @@ CI 的 Debug APK 仅供检查和测试，不能作为稳定频道附件。源码
 
 ## 人工授权后的公开发布
 
-本轮只完成本地工具，尚无创建 Release / 上传 APK 的授权。负责人取得单独授权且具备可用的正式签名、兼容过渡方案、源码与功能验收后，才可以在固定公开仓库 `dufan82/campus-toolbox` 创建稳定 Release：
+1.7.0时只完成本地工具，未获APK发布授权。1.7.1已获得本页开头所列的兼容过渡发布授权，实际进度与验收见STATUS；下列流程继续用于固定公开仓库 `dufan82/campus-toolbox`：
 
 1. 从可信历史核对 previous code 和固定正式证书，独立实跑准备器，核对三份附件、APK 版本和 ARM 库；不用去 ARM 原生库的模拟器包。
 2. Release tag 与 JSON 的 `tag`、APK versionName 精确对应，例如 `v1.7.1`；稳定版应为已公开的非 Draft、非 Prerelease Release，而不是只推一个 Git tag。

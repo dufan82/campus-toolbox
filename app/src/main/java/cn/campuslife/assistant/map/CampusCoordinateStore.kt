@@ -5,13 +5,12 @@ import cn.campuslife.assistant.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Bundled public data for everyone; optional maintainer drafts never modify student profiles. */
+/** Bundled public data plus local edits. Neither edits nor student profiles are uploaded. */
 class CampusCoordinateStore(private val context: Context) {
     private val preferences=context.getSharedPreferences("campus_coordinate_draft",Context.MODE_PRIVATE)
 
     fun load(): CampusCoordinateData {
         val bundled=context.assets.open("pingtan-coordinates.json").bufferedReader().use { decode(it.readText()) }
-        if(!BuildConfig.DEBUG) return bundled
         val draft=preferences.getString("public_coordinates_v1",null) ?: return bundled
         val restored=decode(draft)
         // Preserve old position snapshots, including deleted coordinates. Inherit only display defaults.
@@ -19,7 +18,7 @@ class CampusCoordinateStore(private val context: Context) {
     }
 
     fun save(data: CampusCoordinateData): Boolean {
-        check(BuildConfig.DEBUG) { "Campus maintenance is disabled" }
+        check(BuildConfig.LOCAL_MAP_EDITING) { "Local campus editing is disabled" }
         data.checked()
         return preferences.edit().putString("public_coordinates_v1",encode(data)).commit()
     }
