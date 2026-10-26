@@ -4,6 +4,8 @@
 
 正常ARM配置和不含Key/校园原图的公开文件副本均实际执行lintDebug成功，0错误/62警告，比1.6.4多2项UseKtx。当前分类：UseKtx38、SetTextI18n12、ViewConstructor5、DrawAllocation2，工具链/依赖版本、OldTargetApi、DataExtractionRules、StaticFieldLeak各1。没有baseline、suppress或关闭检查；不是已复现的62个业务故障。证据verification/v170-reviewed-normal-arm-build.log、v170-public-source-build.log与对应XML。GET_SIGNATURES等废弃API为Android26/27签名兼容路径的编译提示，不因此放弃旧系统检查。
 
+云端a380dbe的run40273645052报告已下载核对：0错误/65警告。这个数字不替代本机62条，没有新增baseline或隐藏提示；完整运行通过，链接见CI.md。
+
 ## 1.6.4 本机结果（2026-10-26）
 
 课表展示调整后实际执行正常ARM配置lintDebug，0错误/60条Warning，比1.6.3多1条ViewConstructor。指向ScheduleWeekView的带业务数据构造器；此控件仅由代码创建，不使用XML加载。未为消除提示添加无用途构造器、baseline或关闭检查。其余59条分类不变；证据：verification/schedule-ui-final-delivery-arm-build.log与本机Lint XML。

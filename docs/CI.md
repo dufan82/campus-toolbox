@@ -2,6 +2,12 @@
 
 配置：.github/workflows/android.yml。实际执行结果以对应 Actions run 为准，不把配置文件存在当成运行成功。
 
+## 1.7.0实际验收（2026-10-26）
+
+[a380dbe / run40273645052](https://github.com/dufan82/campus-toolbox/actions/runs/40273645052)全部通过。已下载XML核对216项JVM、失败/错误/跳过0；Lint0错误/65警告，构建入口10项、发布准备42项、Debug及未签名Release构建和测试产物上传成功，没有正式签名或Release发布。
+
+首次6d27f3f的run40254382037应用构建成功，但发布脚本39通过/3失败。自动选择的签名工具输出未被识别；CI改为显式使用已安装的Build Tools35.0.0后通过。保留失败记录和全部断言，不放宽证书要求，也不靠跳过脚本获得绿色。CI测试APK不包含本机地图Key和校园原图，不能代替用户的兼容安装包。
+
 ## 触发和检查
 
 每次 push、pull_request 或 Actions 页面手动运行时，在 Ubuntu 24.04 执行：

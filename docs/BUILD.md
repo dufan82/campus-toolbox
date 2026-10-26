@@ -110,6 +110,8 @@ SDK 目前只有 ARMv7 / ARM64 原生库。x86 专用模拟器可追加 `-PmapUi
 
 可用 `-SdkPath`、`-BuildToolsPath`、`-JavaHome` 和 `-TempRoot` 指定本次工具位置，不修改环境变量或签名配置。APK 和输出可有中文/空格；aapt 始终读取单独的 ASCII 临时副本。若使用者的 TEMP 含中文，需要指定一个已存在的 ASCII `-TempRoot`。详细解析顺序、JSON 协议、防覆盖行为和人工发布前置条件见 [发布准备说明](RELEASING.md)。
 
+CI的发布检查显式使用Build Tools35.0.0，避免被Runner预装的其他版本改变输出格式。若自动检测时提示无法完整识别签名，先显式指定已验证的工具版本，不修改证书或放宽校验。Windows35.0.0/36.0.0及Ubuntu24.04的35.0.0已有实际结果，不保证所有后续SDK工具的文本格式都兼容。
+
 创建稳定公开 GitHub Release、签名配置变更、生成密钥和上传 APK 需要人的单独授权；源码同步授权不包含这些操作。更新只读取固定公开仓库，不在 APK 放 GitHub PAT，不需要付费服务。学校课表与照片仍按应用自己的本机处理规则工作，发布准备脚本不会读取这些数据。
 
 ## 发布脚本验证与边界
@@ -126,4 +128,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Release.ps1
 
 2026-10-26 本轮实际验证：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Release.ps1` 为 42 通过、0 失败；`pwsh -NoProfile -File scripts/Test-Release.ps1 -BuildToolsPath 'E:\skill\android-sdk\build-tools\35.0.0' -JavaHome 'C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot'` 同样 42 通过、0 失败。前者自动发现本机 Build Tools 36.0.0，后者验证显式 35.0.0 与含空格 JDK 路径，两者均使用现有 JDK 21；这些绝对路径仅为本机测试记录，不是脚本默认值。`pwsh -NoProfile -File scripts/Test-Build.ps1` 为 10 通过、0 失败。先写测试时准备器尚不存在而失败；随后修复了测试夹具的变量遮蔽、5.1 空路径断言，以及相对输出误按进程目录解析的问题，最终两种 PowerShell 均通过。证据为命令 stdout / exit code，临时夹具不保留。本轮未运行 Gradle、模拟器或远端 CI，不据此声称应用构建或线上更新通过。
 
-没有可用的正式签名正例 APK：真实正式签名成功路径尚未验证。合成命令边界的成功测试只证明本地输出流程，不证明真实正式 APK 的签名或安装。主任务后续安排合成签名 APK 时应单独实跑准备器并核对附件；本轮不生成生产或测试密钥。Linux / macOS、磁盘写入失败及其他 JDK / SDK 组合未做实机验收。首次启用更新代码仍需先手动安装过渡版本；已有旧应用不会自动获得检查代码。没有稳定公开 Release 时的 404 应提示“暂无正式版本”，不能当成“已是最新版”。
+没有可用的正式签名正例 APK：真实正式签名成功路径尚未验证。合成命令边界的成功测试只证明本地输出流程，不证明真实正式 APK 的签名或安装。未生成生产或测试密钥。后续CI run40273645052在Ubuntu24.04/JDK21/SDK35.0.0实际完成42项发布脚本检查且全部通过；Windows PowerShell5.1修正后重跑同样42通过。此前云端自动工具选择产生3项失败，记录保留，详见CI.md。macOS、磁盘写入失败及其他工具组合仍未验证。首次启用更新代码仍需先手动安装过渡版本；已有旧应用不会自动获得检查代码。没有稳定公开Release时的404应提示“暂无正式版本”，不能当成“已是最新版”。
