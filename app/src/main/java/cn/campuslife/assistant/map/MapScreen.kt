@@ -101,7 +101,9 @@ class MapScreen(private val activity: Activity) {
         resultScroll.visibility=if(selected==null) View.GONE else View.VISIBLE
         if(selected==null) return
         resultBody.setPadding(Ui.dp(activity,16),Ui.dp(activity,12),Ui.dp(activity,16),Ui.dp(activity,12))
-        resultBody.addView(Ui.text(activity,selected.title,17f,bold=true))
+        val heading=Ui.row(activity)
+        heading.addView(Ui.text(activity,selected.title,17f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+        resultBody.addView(heading)
         origin?.let { resultBody.addView(Ui.text(activity,originLabel+" · "+MapRules.distanceLabel(MapRules.distanceMeters(it,selected.point)),12f,Ui.muted)) }
         resultBody.addView(Ui.space(activity,8))
         resultBody.addView(Ui.button(activity,"高德步行导航",true) { onNavigate(selected) }.apply { tag="map_navigate";minimumHeight=Ui.dp(context,48) },LinearLayout.LayoutParams(-1,-2))

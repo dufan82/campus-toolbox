@@ -23,6 +23,10 @@ class ToolGlyph(context: Context,private val kind: String,color: Int) : Drawable
             "map" -> {path(3f,5f,9f,3f,15f,5f,21f,3f,21f,19f,15f,21f,9f,19f,3f,21f,3f,5f);path(9f,3f,9f,19f);path(15f,5f,15f,21f)}
             "info" -> {canvas.drawCircle(12f,12f,9f,paint);path(12f,10f,12f,17f);canvas.drawCircle(12f,6.5f,.5f,paint)}
             "share" -> {path(7f,10f,4f,10f,4f,21f,20f,21f,20f,10f,17f,10f);path(12f,15f,12f,2f);path(8f,6f,12f,2f,16f,6f)}
+            "calendar" -> {rect(3f,5f,21f,21f);path(3f,10f,21f,10f);path(8f,3f,8f,7f);path(16f,3f,16f,7f);path(7f,14f,10f,14f);path(14f,14f,17f,14f);path(7f,18f,10f,18f)}
+            "check" -> {rect(3f,3f,21f,21f);path(7f,12f,10.5f,16f,17f,8f)}
+            "batch" -> {rect(6f,6f,21f,21f);path(3f,17f,3f,3f,17f,3f);path(7f,17f,12f,12f,16f,16f,18f,14f,21f,17f)}
+            "star" -> {val p=Path();for(i in 0..9) { val angle=Math.toRadians(-90.0+i*36);val r=if(i%2==0) 9 else 4;val x=(12+Math.cos(angle)*r).toFloat();val y=(12+Math.sin(angle)*r).toFloat();if(i==0)p.moveTo(x,y) else p.lineTo(x,y) };p.close();canvas.drawPath(p,paint)}
             else -> {canvas.drawCircle(12f,12f,7f,paint);canvas.drawCircle(12f,12f,2.5f,paint);for(i in 0..7){canvas.save();canvas.rotate(i*45f,12f,12f);path(12f,2f,12f,4f);canvas.restore()}}
         }
         canvas.restore()

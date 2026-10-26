@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    name: JVM tests, lint and debug APK
+    name: JVM tests, lint and APK checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -43,7 +43,11 @@ jobs:
         run: ./scripts/Test-Build.ps1
 
       - name: Run tests, lint and assemble
-        run: ./gradlew --no-daemon --console=plain :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+        run: ./gradlew --no-daemon --console=plain :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRelease
+
+      - name: Test local release preparation
+        shell: pwsh
+        run: ./scripts/Test-Release.ps1
 
       - name: Upload test and lint reports
         if: ${{ always() }}

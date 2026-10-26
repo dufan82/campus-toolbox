@@ -21,7 +21,7 @@ class ToolboxReleaseTest {
             scenario.onActivity { activity ->
                 val root=activity.window.decorView
                 val textViews=views(root).filterIsInstance<TextView>()
-                val image=textViews.single { it.text.toString()=="图片工具" }
+                val image=textViews.single { it.text.toString()=="我的常用工具" }
                 val imagePosition=IntArray(2);image.getLocationOnScreen(imagePosition)
                 for(label in listOf("拼多多包裹","拼多多身份码","抖音订单")) {
                     val shortcut=textViews.single { it.text.toString()==label }

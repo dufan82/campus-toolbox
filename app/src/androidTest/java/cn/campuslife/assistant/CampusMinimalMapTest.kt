@@ -52,8 +52,10 @@ class CampusMinimalMapTest {
             assertNull("Choices should collapse after selection",screen.root.findViewWithTag<View>("campus_place_canteen-1"))
             val bottom=screen.root.findViewWithTag<View>("map_results")
             assertEquals(View.VISIBLE,bottom.visibility)
-            val navigation=all(bottom).filterIsInstance<Button>()
+            val navigation=all(bottom).filterIsInstance<Button>().filter { it.tag=="map_navigate" }
             assertEquals(1,navigation.size)
+            assertNull("Favorites entry is retired",screen.root.findViewWithTag<View>("map_favorites"))
+            assertNull("Selected place must not offer favorites",bottom.findViewWithTag<View>("map_toggle_favorite"))
             var destination: MapPlace?=null
             screen.onNavigate={ destination=it };navigation.single().performClick()
             assertEquals("canteen-2",destination?.id)

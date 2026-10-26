@@ -9,8 +9,9 @@
 1. 获取代码，配置 JDK 21，校验 Gradle Wrapper。
 2. 安装 SDK Platform 36 和 Build Tools 35.0.0。
 3. 运行通用构建脚本回归。
-4. 运行核心 JVM、应用 JVM、Android lint 和 debug APK 构建。
-5. 上传测试 / lint 报告；失败时也尝试保留报告。全部成功后保存 CI debug APK。
+4. 运行核心 JVM、应用 JVM、Android lint、debug与未签名release构建。
+5. 用真实调试/未签名包和命令边界夹具验证本地发布准备脚本，不签名或发布。
+6. 上传测试 / lint 报告；失败时也尝试保留报告。全部成功后只保存CI debug APK，未签名release不上传。
 
 同一分支的新推送会取消仍运行的旧任务，单次最多 25 分钟。报告和 APK 构建产物保留 7 天，不产生 GitHub Release 或商店发行版。
 

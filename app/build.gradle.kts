@@ -19,8 +19,8 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.5.1"
+        versionCode = 17
+        versionName = "1.7.0"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

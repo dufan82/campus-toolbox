@@ -53,6 +53,8 @@ class CampusMapActivity: Activity() {
     private var maintenance: CampusMapMaintenance?=null
     private var referenceDialog: CampusReferenceDialog?=null
     private var locationStyle: MyLocationStyle?=null
+    private var pendingPlaceId: String?=null
+    private var pendingPlaceReason=VisitReason.USER_SELECTION
     private val staleFixCheck=object: Runnable {
         override fun run() {
             if(!foreground) return
@@ -68,6 +70,8 @@ class CampusMapActivity: Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         preferences=MapPreferences(this)
+        pendingPlaceId=if(savedInstanceState!=null) savedInstanceState.getString("pending_place_id") else intent.getStringExtra("campus_place_id")
+        pendingPlaceReason=if(savedInstanceState!=null) VisitReason.entries.find { it.name==savedInstanceState.getString("pending_place_reason") } ?: VisitReason.RESTORE else VisitReason.USER_SELECTION
         try { coordinateData=CampusCoordinateStore(this).load() }
         catch(_: Exception) { coordinateError=true }
         savedInstanceState?.let { saved ->
@@ -173,6 +177,7 @@ class CampusMapActivity: Activity() {
                 campus=MapPlace("campus-pingtan",MapRules.CAMPUS_QUERY,"麒麟大道西段1号",data.center)
                 showPoint(data.center,16.4f)
                 searchCampus()
+                pendingPlaceId?.let { id -> pendingPlaceId=null;openPlaceId(id,pendingPlaceReason) }
             } ?: run { searchCampus();lookupCampus() }
         } catch(_: Exception) { unavailable("地图未能启动，请检查网络和地图配置后重新进入。");disposeMap() }
           catch(_: LinkageError) { unavailable("地图原生库未能加载，此设备暂不兼容。其他工具仍可使用。");disposeMap() }
@@ -248,12 +253,20 @@ class CampusMapActivity: Activity() {
         layer.render(surface,items,scope,selected?.id,screen?.viewport?.width ?: 0,screen?.viewport?.height ?: 0)
     }
 
-    private fun selectPlace(place: MapPlace) {
+    private fun selectPlace(place: MapPlace,reason: VisitReason=VisitReason.USER_SELECTION) {
         selected=place;showPoint(place.point,17.5f)
         markerLayer?.select(place.id,screen?.viewport?.width ?: 0,screen?.viewport?.height ?: 0)
         val origin=resultOrigin ?: fix?.takeIf { it.isFresh(SystemClock.elapsedRealtime()) }?.point ?: campus?.point
         val label=if(resultOrigin!=null) resultOriginLabel else if(fix?.isFresh(SystemClock.elapsedRealtime())==true) "我的位置" else "校区中心"
         screen?.campusResults(campusMatches,place,origin,label)
+    }
+
+    private fun openPlaceId(id: String,reason: VisitReason=VisitReason.USER_SELECTION) {
+        val data=coordinateData
+        if(data==null || PlaceHistory.availability(id,data)!=PlaceAvailability.AVAILABLE) { Ui.toast(this,"地点已隐藏、删除或尚无坐标，暂不可定位");return }
+        val item=data.visiblePlaces.single { it.id==id }
+        screen?.query?.setText("");queryText="";searchCampus()
+        selectPlace(MapPlace(id,item.name,item.category.label,data.points.getValue(id)),reason)
     }
 
     private fun showPoint(point: GeoPoint,zoom: Float) {
@@ -350,6 +363,8 @@ class CampusMapActivity: Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("pending_place_id",pendingPlaceId ?: selected?.id)
+        outState.putString("pending_place_reason",if(pendingPlaceId!=null) pendingPlaceReason.name else VisitReason.RESTORE.name)
         outState.putString("map_query",screen?.query?.text?.toString() ?: queryText)
         outState.putInt("map_scope",scope.ordinal);outState.putInt("map_category",category.ordinal)
         outState.putBoolean("map_wants_location",wantsLocation)

@@ -46,10 +46,34 @@ class CampusReferenceDialogTest {
         for(orientation in listOf(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)) {
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 scenario.onActivity { it.requestedOrientation=orientation }
-                instrumentation.waitForIdleSync()
+                val expected=if(orientation==ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                    android.content.res.Configuration.ORIENTATION_LANDSCAPE else android.content.res.Configuration.ORIENTATION_PORTRAIT
+                var oriented=false
+                val rotationDeadline=SystemClock.uptimeMillis()+5000
+                while(!oriented && SystemClock.uptimeMillis()<rotationDeadline) {
+                    instrumentation.waitForIdleSync()
+                    scenario.onActivity { activity ->
+                        val root=activity.window.decorView
+                        oriented=activity.resources.configuration.orientation==expected && root.isLaidOut &&
+                            root.hasWindowFocus() && if(expected==android.content.res.Configuration.ORIENTATION_LANDSCAPE)
+                            root.width>root.height else root.height>root.width
+                    }
+                    if(!oriented) SystemClock.sleep(40)
+                }
+                assertTrue("Activity rotation did not finish",oriented)
                 var dialog: CampusReferenceDialog?=null
                 scenario.onActivity { activity -> dialog=CampusReferenceDialog(activity,"dorm-2",true) {};dialog!!.show() }
-                instrumentation.waitForIdleSync()
+                var laidOut=false
+                val layoutDeadline=SystemClock.uptimeMillis()+5000
+                while(!laidOut && SystemClock.uptimeMillis()<layoutDeadline) {
+                    instrumentation.waitForIdleSync()
+                    scenario.onActivity {
+                        val root=dialog!!.window!!.decorView
+                        laidOut=dialog!!.isShowing && root.isLaidOut && root.findViewWithTag<Button>("ref_close").height>0
+                    }
+                    if(!laidOut) SystemClock.sleep(40)
+                }
+                assertTrue("Reference dialog has not completed layout",laidOut)
                 if(InstrumentationRegistry.getArguments().getString("captureReferenceVisuals")=="true") {
                     var loaded=false
                     val deadline=SystemClock.uptimeMillis()+5000

@@ -213,7 +213,14 @@ class CampusMapFlowTest {
     }
 
     @Test fun homeKeepsThreeExpressShortcutsAndAddsNativeMapEntry() {
-        ActivityScenario.launch(MainActivity::class.java).use { scenario -> scenario.onActivity { activity ->
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            val until=SystemClock.uptimeMillis()+5000
+            var ready=false
+            while(!ready && SystemClock.uptimeMillis()<until) {
+                scenario.onActivity { ready=it.window.decorView.findViewWithTag<View>("open_campus_map")!=null }
+                if(!ready) SystemClock.sleep(30)
+            }
+            scenario.onActivity { activity ->
             val root=activity.window.decorView
             assertNotNull(root.findViewWithTag<View>("shortcut_pdd_packages"))
             assertNotNull(root.findViewWithTag<View>("shortcut_pdd_code"))

@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <queries>
         <intent><action android:name="android.media.action.IMAGE_CAPTURE" /></intent>
         <package android:name="com.xunmeng.pinduoduo" />
@@ -21,8 +24,22 @@
         </activity>
         <activity android:name=".ui.WatermarkActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.ProfileActivity" android:exported="false" />
+        <activity android:name=".home.ToolManagementActivity" android:exported="false" />
+        <activity android:name=".update.UpdateActivity" android:exported="false" />
+        <activity android:name=".schedule.ScheduleActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".schedule.ScheduleTransferActivity" android:exported="false" android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <activity android:name=".planner.PlannerActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".express.ExpressActivity" android:exported="false" />
         <activity android:name=".map.CampusMapActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <receiver android:name=".reminder.PlannerReminderReceiver" android:exported="false" />
+        <receiver android:name=".reminder.PlannerRescheduleReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.files"
             android:exported="false" android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />

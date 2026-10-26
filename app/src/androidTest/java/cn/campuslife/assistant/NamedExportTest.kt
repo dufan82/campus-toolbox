@@ -23,19 +23,26 @@ class NamedExportTest {
         val bitmap=Bitmap.createBitmap(600,400,Bitmap.Config.ARGB_8888).apply { eraseColor(Color.LTGRAY) }
         source.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
         val original=source.readBytes();val asset=PhotoLoader(context).loadFile(source)
+        val baseName="测试班_测试同学_05_${System.nanoTime()}"
+        val outputs=mutableListOf<android.net.Uri>()
+        val caches=mutableListOf<File>()
         try {
             val exporter=PhotoExporter(context)
-            val first=exporter.toCache(asset,listOf("姓名：测试同学"),WatermarkStyle(),ExportFormat.PNG,baseName="测试班_测试同学_05")
+            val first=exporter.toCache(asset,listOf("姓名：测试同学"),WatermarkStyle(),ExportFormat.PNG,baseName=baseName).also { caches+=it }
             val firstBytes=first.readBytes()
-            val second=exporter.toCache(asset,listOf("姓名：另一位测试同学"),WatermarkStyle(),ExportFormat.PNG,baseName="测试班_测试同学_05")
-            assertEquals("测试班_测试同学_05.png",first.name);assertEquals(first.name,second.name)
+            val second=exporter.toCache(asset,listOf("姓名：另一位测试同学"),WatermarkStyle(),ExportFormat.PNG,baseName=baseName).also { caches+=it }
+            assertEquals("$baseName.png",first.name);assertEquals(first.name,second.name)
             assertNotEquals(first.canonicalPath,second.canonicalPath);assertArrayEquals(firstBytes,first.readBytes())
-            val one=exporter.saveToGallery(first);val two=exporter.saveToGallery(second);assertNotEquals(one,two)
+            val one=exporter.saveToGallery(first).also { outputs+=it };val two=exporter.saveToGallery(second).also { outputs+=it };assertNotEquals(one,two)
             for(uri in listOf(one,two)) context.contentResolver.query(uri,arrayOf(MediaStore.Images.Media.WIDTH,MediaStore.Images.Media.HEIGHT,MediaStore.Images.Media.MIME_TYPE),null,null,null)!!.use {
                 assertTrue(it.moveToFirst());assertEquals(600,it.getInt(0));assertEquals(400,it.getInt(1));assertEquals("image/png",it.getString(2))
             }
             assertArrayEquals(original,source.readBytes())
-        } finally { asset.preview.recycle() }
+        } finally {
+            outputs.forEach { context.contentResolver.delete(it,null,null) }
+            caches.forEach { it.delete();it.parentFile?.delete() }
+            asset.preview.recycle();source.delete()
+        }
     }
     @Test fun namingPreferencesStoreOnlyTheOrderedFieldIdentifiers() {
         val name="test_naming_${System.nanoTime()}";val store=LocalStore(context,name)

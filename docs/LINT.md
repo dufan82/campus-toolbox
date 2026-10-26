@@ -1,5 +1,33 @@
 # QA-003 · 既有 Lint 警告分类
 
+## 1.7.0 本机结果（2026-10-26）
+
+正常ARM配置和不含Key/校园原图的公开文件副本均实际执行lintDebug成功，0错误/62警告，比1.6.4多2项UseKtx。当前分类：UseKtx38、SetTextI18n12、ViewConstructor5、DrawAllocation2，工具链/依赖版本、OldTargetApi、DataExtractionRules、StaticFieldLeak各1。没有baseline、suppress或关闭检查；不是已复现的62个业务故障。证据verification/v170-reviewed-normal-arm-build.log、v170-public-source-build.log与对应XML。GET_SIGNATURES等废弃API为Android26/27签名兼容路径的编译提示，不因此放弃旧系统检查。
+
+## 1.6.4 本机结果（2026-10-26）
+
+课表展示调整后实际执行正常ARM配置lintDebug，0错误/60条Warning，比1.6.3多1条ViewConstructor。指向ScheduleWeekView的带业务数据构造器；此控件仅由代码创建，不使用XML加载。未为消除提示添加无用途构造器、baseline或关闭检查。其余59条分类不变；证据：verification/schedule-ui-final-delivery-arm-build.log与本机Lint XML。
+
+## 1.6.3 本机结果（2026-10-25）
+
+登录字段、API路径与认证修复后实际运行lintDebug及正常ARM构建，0错误/59条Warning。没有新增依赖、baseline或关闭检查。证据：verification/school-protocol-final-arm-build.log及本机Lint报告。
+
+## 1.6.2 本机结果（2026-10-25）
+
+自动读取当前学期修改后重新运行lintDebug：0错误、59条Warning，与1.6.1相同，没有baseline或关闭检查。证据：verification/current-term-final-lint.log及本机报告；下面保留历史记录。
+
+## 1.6.1 本机结果（2026-10-25）
+
+本轮实际运行正常ARM配置的lintDebug：0错误、59条Warning，与1.6.0相同。没有加baseline、suppress或关闭检查；新增学校导入文件没有Lint警告。新增设备测试对受保护回调使用测试侧反射，没有为测试开放业务接口。证据为verification/school-final-arm-build.log及本机XML；下方1.6.0分类保留作历史。
+
+## 1.6.0 本机结果（2026-10-25）
+
+正常ARM构建实际运行lintDebug，0错误/59条Warning：UseKtx36、SetTextI18n12、ViewConstructor4、DrawAllocation2，另有工具链版本、依赖版本、OldTargetApi、DataExtractionRules、StaticFieldLeak各1。没有新增baseline、suppress或关闭检查。
+
+新增StaticFieldLeak指向BatchSessions的进程级BatchSession。当前唯一创建处显式传applicationContext，未保存Activity；页面回调在onStop解绑，预览在离开后释放。保留这条提示供后续内存观察，不把静态检查提示直接认定为已复现Activity泄漏，也不宣称已完成长时间真机内存测试。其余新增主要为KTX简写建议，没有为压低数量改变持久化语义。
+
+证据：本机verification/v160-final-arm-build.log与当前app/build/reports/lint-results-debug.xml。没有推送或运行本轮GitHub Actions。以下是历史分类，数量不能当作当前结果。
+
 2026-10-23 只读分析，业务源码未修改；下表来自已有 XML，不冒充本轮重新执行 Lint。
 
 证据：本机 app/build/reports/lint-results-debug.xml（10:13，0 错误 / 42 警告）及 verification/github-source-check-20261023-1032/app/build/reports/lint-results-debug.xml（10:30，0 错误 / 41 警告）。这些本机原始文件不上传 Git。
