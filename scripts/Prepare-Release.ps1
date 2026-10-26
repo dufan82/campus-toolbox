@@ -121,7 +121,9 @@ function Invoke-ReleasePreparation {
         $signerCounts = [regex]::Matches($signature.Text, '(?m)^Number of signers: ([0-9]+)\r?$')
         $signerHashes = [regex]::Matches($signature.Text, '(?m)^Signer #([0-9]+) certificate SHA-256 digest: ([0-9a-fA-F]{64})\r?$')
         $signerNames = [regex]::Matches($signature.Text, '(?m)^Signer #([0-9]+) certificate DN: ([^\r\n]+)\r?$')
-        if ($signerCounts.Count -ne 1 -or $signerCounts[0].Groups[1].Value -cne '1' -or $signerHashes.Count -ne 1 -or $signerNames.Count -ne 1 -or $signerHashes[0].Groups[1].Value -cne '1' -or $signerNames[0].Groups[1].Value -cne '1') { throw 'Expected exactly one signer with a complete certificate identity.' }
+        if ($signerCounts.Count -ne 1 -or $signerCounts[0].Groups[1].Value -cne '1' -or $signerHashes.Count -ne 1 -or $signerNames.Count -ne 1 -or $signerHashes[0].Groups[1].Value -cne '1' -or $signerNames[0].Groups[1].Value -cne '1') {
+            throw "Expected exactly one signer with a complete certificate identity (count records=$($signerCounts.Count), digest records=$($signerHashes.Count), name records=$($signerNames.Count))."
+        }
         $actualSigner = $signerHashes[0].Groups[2].Value.ToLowerInvariant()
         $certificateName = $signerNames[0].Groups[2].Value
         $legacyDebugSigner = 'f6b9669399e0f791f16542dff896474f803408645e84a07650bdcd98e0b83eb1'

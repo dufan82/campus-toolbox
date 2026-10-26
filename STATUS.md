@@ -1,6 +1,6 @@
 # 开发进度
 
-更新时间：2026-10-26 09:23 +08:00
+更新时间：2026-10-26 13:21 +08:00
 
 ## 版本与范围
 
@@ -24,6 +24,8 @@
 ## 本轮任务与文件
 
 UPD-001、LEAN-001本机实现和针对性验证完成；GIT-003正在做公开清单和远程自动检查。
+
+源码6d27f3f已同步到远程main（常规Git线路失败后，通过官方Git数据库API同步并核对完全相同的tree和commit SHA，无强制覆盖）。[首次CI 40254382037](https://github.com/dufan82/campus-toolbox/actions/runs/40254382037)的应用测试/Lint/Debug及未签名Release构建成功；发布脚本39通过/3失败，失败为真实Debug证书输出未被完整识别，不能写成CI通过。当前把CI发布检查固定到明确安装并已在本机验证的Build Tools35.0.0，保留全部断言，并增加不含证书内容的解析计数以便进一步定位；修正后远端验证待执行。未修改应用代码或安装包。
 
 主要变化：新增 `update/` 与对应JVM/设备测试；调整MainActivity、home、map、planner、reminder、Manifest和FileProvider路径。新增本地发布准备/验证脚本、docs/RELEASING.md，维护BUILD/CI/LINT及四个管理文件。README仅介绍功能用途。此前1.6.x课表等未提交源码一并保留、核对后同步，不覆写其他任务。
 
