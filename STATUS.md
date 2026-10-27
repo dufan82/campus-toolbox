@@ -1,16 +1,20 @@
 # 开发进度
 
-更新时间：2026-10-27 08:53 +08:00
+更新时间：2026-10-27 09:02 +08:00
 
 ## 当前版本与分支
 
-- 1.7.4 / versionCode 21已在CNB发布为最新稳定版：Release ID 2114875750033051648，draft=false、prerelease=false、is_latest=true。仅升版本，三个附件均已匿名完整下载，准备文件/服务器/下载文件摘要一致。实际旧1.7.3已检测到新版并显示首页入口和版本弹窗。
-- 1.7.4为78,841,838字节 / 75.189 MiB，SHA256 `7a9888fe941921b63a0f8fadcccd8cb5e9ee514a443c3ca9982448bc1ee7b2a9`，相对1.7.3同配置增长0。保留历史证书、双ARM、地图配置及校园图，关闭调试，无存储变更。用户现已授权同步GitHub源码及同一组三附件，正在执行GIT-005；以下1.7.1为此前GitHub发布记录。
+- 1.7.4 / versionCode 21已在CNB和GitHub发布为最新稳定版，均非草稿或预发布。CNB Release ID 2114875750033051648；GitHub Release ID 424923845。实际旧1.7.3已通过国内源检测到新版并显示首页入口和版本弹窗，手机系统安装全程仍待用户验收。
+- 本机分支feature/v1.6.0。生产源码提交`647dfaf9d2331df48edf0058a1183baaf78cae77`已推送GitHub main，tag v1.7.4精确指向此提交；后续仅进度文档提交不改变安装包。
+- 1.7.4为78,841,838字节 / 75.189 MiB，SHA256 `7a9888fe941921b63a0f8fadcccd8cb5e9ee514a443c3ca9982448bc1ee7b2a9`，相对1.7.3同配置增长0。保留历史证书、双ARM、地图配置及校园图，关闭调试，无存储变更。GitHub三附件服务器摘要与CNB一致，不重新构建或签名。
+- [GitHub下载页](https://github.com/dufan82/campus-toolbox/releases/tag/v1.7.4)；[源码提交的自动检查](https://github.com/dufan82/campus-toolbox/actions/runs/40429235039)已成功：242JVM、Lint0错误/65警告、构建入口10项、发布准备46项、Debug及未签名Release构建均通过，实际报告已下载核对。
 - [当前国内下载页](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.7.4)。用户手机保持1.7.3，在设置中点“检查更新”验证国内下载与系统覆盖安装，不要先卸载。
+
+### 旧版本记录
 - 1.7.3 / versionCode 20为上一国内公开版本，由用户上传三附件并完成当时匿名下载和客户端核验；保留历史附件和本地交付，不覆盖。
 - 1.7.3为78,841,838字节 / 75.189 MiB，SHA256 `746c1529090543101770d9564536784748c7052f29805e84e1f304aab47ea364`。默认绑定campus-toolbox/campus-toolbox，国内源优先、GitHub备用；当前CNB附件和元数据有效。断VPN手机/系统安装全程尚未验收。
 - 已发布1.7.1 / versionCode 18，包名cn.campuslife.assistant，安装名仍为“校园生活助手”。
-- 本机分支feature/v1.6.0。发布源码253e150547b19e338841f445d58ed1b82562c971已同步main；tag v1.7.1精确指向它，后续文档提交不改变APK。
+- 1.7.1当时的发布源码253e150547b19e338841f445d58ed1b82562c971已同步main；tag v1.7.1精确指向它，后续文档提交不改变APK。
 - [下载页](https://github.com/dufan82/campus-toolbox/releases/tag/v1.7.1)：已公开、非Draft、非Prerelease，Release ID 423918487。
 - APK：campus-toolbox-1.7.1.apk，78,841,838字节 / 75.189 MiB。
 - SHA256：dd9c8b09ce287cad39135417709f91f1e7f04a28413495498fb2d98ca6a8b95a。
@@ -19,16 +23,18 @@
 
 ## 当前目标与正在执行
 
-GIT-005：用户已明确授权把本机源码、1.7.4同一安装包及更新元数据同步到GitHub。公开白名单检查、只读审查与无私有配置干净构建已通过，准备提交/推送并创建稳定Release，再核对实际CI和匿名附件。保留现有证书/许可证及全部本地资料，不上传Key、私钥、校园图源文件或交付历史。Git单次HTTP/1.1查询已成功，不改全局网络设置。
+GIT-005已完成：源码已推送main，GitHub v1.7.4已公开为最新稳定版，tag与源码提交一致；main源码CI通过并核对实际报告。三个附件均已匿名完整下载，大小/SHA与准备文件、GitHub服务器及CNB一致。未上传Key、私钥、校园图源文件、用户数据或交付历史，未修改许可证。后续只补进度文档，不重签APK；手机验收仍归UPD-003/004/005。
 
-## GitHub同步准备 · 2026-10-27
+## GitHub同步验证 · 2026-10-27
 
 - 公开源码快照222个文件（含15个新增文件），不含本机配置、签名文件、原图、交付或验证记录。针对凭据和敏感路径的检查未发现候选；不是全量安全审计。
 - 干净快照实际执行JVM、Debug Lint及Debug/未签名Release构建：242项JVM通过，0失败/错误/跳过；Lint0错误/61警告；两种APK构建成功。日志`verification/github174-public-build.log`。此构建没有私有地图Key和原图，产物不作为公开安装包。
 - 同一快照的构建入口10项、发布准备46项检查通过，日志`verification/github174-build-script.log`及`verification/github174-release-script.log`。正常正式证书正例未验证，仍按用户同意的历史证书兼容过渡版发布。
 - 独立只读审查了更新下载链路及倒计时相关改动，未发现阻止发布的问题。本轮没有重跑设备测试，也不改变此前手机验收缺口。
 - 国内发布助手离线检查25项通过；首次补跑误传Markdown说明给要求JSON的参数，检查失败，改用原有JSON后通过，没有修改脚本或联网发布。失败与正确重跑日志分别保留为`github174-cnb-script-argument-error.log`和`github174-cnb-script.log`。
-- 三个待上传附件已重新核对大小和SHA，与CNB公开版一致。GitHub实际CI、tag及匿名下载核验待发布后记录。
+- 三附件重新核对后上传到GitHub草稿，确认服务器大小/SHA一致才公开并设为最新。tag v1.7.4指向647dfaf；main CI 40429235039成功且实际报告已核对，242JVM/0失败错误跳过、Lint0错误65警告、脚本10+46通过。CI与本机Lint警告数分别记录，不混为相同环境；未关闭任何检查。
+- 三个GitHub附件已免登录完整下载到`E:/skill/campus-toolbox-public/github-v1.7.4`，大小/SHA与准备文件、服务器及CNB逐项一致；下载的update.json包名/code21/版本/tag/大小与APK摘要一致。证据`verification/github174-public-assets-check.json`。同字节APK沿用此前已核对的非调试/双ARM/旧证书，不冒充新一轮真机安装测试。
+- 网络诊断：Git默认连接重置，单次HTTP/1.1推送成功；GitHub草稿不能按公开tag入口读取，改用已登录的Release列表按tag确认后核对三附件。curl匿名下载部分连接重置/超时，update.json重试成功，其余两个文件改用无认证Invoke-WebRequest完整下载成功；未更改全局代理或网络设置。
 
 UPD-005：国内1.7.4发布、匿名文件核验和实际旧1.7.3发现更新已完成；余下用户ARM手机关闭VPN后的系统下载/安装及资料保留验收，继续与UPD-003/004跟踪。新令牌具备Release读写后已成功，不再要求用户重复创建或调整权限。凭据仅用于本次固定仓库API，不写入源码、App、环境变量或交付文件；未上传私钥或用户资料。
 
