@@ -12,6 +12,11 @@ val privateMapKey = (providers.environmentVariable("AMAP_ANDROID_KEY").orNull
 require(privateMapKey.isEmpty() || privateMapKey.matches(Regex("[a-fA-F0-9]{32}"))) {
     "AMAP_ANDROID_KEY must be empty or a valid 32-character Android Key. The value is not printed."
 }
+val domesticUpdateRepository = (providers.environmentVariable("CAMPUS_CNB_REPOSITORY").orNull
+    ?: privateMapProperties.getProperty("CAMPUS_CNB_REPOSITORY", "campus-toolbox/campus-toolbox")).trim()
+require(domesticUpdateRepository.isEmpty() || domesticUpdateRepository.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,99}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}"))) {
+    "CAMPUS_CNB_REPOSITORY must be empty or a fixed public owner/repository path."
+}
 val releaseSigning = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD").associateWith {
     providers.environmentVariable("CAMPUS_SIGNING_$it").orNull
 }
@@ -26,10 +31,11 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.7.1"
+        versionCode = 21
+        versionName = "1.7.4"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
+        buildConfigField("String", "CNB_REPOSITORY", "\"$domesticUpdateRepository\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { buildConfig = true }

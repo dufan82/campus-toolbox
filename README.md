@@ -2,7 +2,7 @@
 
 给福建信息职业技术学院平潭校区同学用的日常工具。
 
-[下载安装包](https://github.com/dufan82/campus-toolbox/releases/latest)
+[下载安装包（国内）](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases) · [GitHub 备用](https://github.com/dufan82/campus-toolbox/releases/latest)
 
 在下载页选择 `.apk` 文件安装。升级时直接覆盖安装，不要先卸载，保留已保存的课表和资料。
 
@@ -26,7 +26,7 @@
 
 ## 倒计时
 
-记下考试、比赛、假期或纪念日，查看还有多少天、已经过去多少天。支持每年重复，也可以开启提醒。
+生日、纪念日、体测、考试、比赛和假期可以直接选，也可以自己写标题。日期点日历选择，查看还有多少天、已经过去多少天；点记录可以修改或删除。支持每年重复和可选提醒，提醒时间也可以直接选择。
 
 ## 应用更新
 

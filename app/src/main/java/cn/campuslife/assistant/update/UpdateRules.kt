@@ -5,10 +5,14 @@ import java.io.OutputStream
 import java.io.IOException
 import java.net.URI
 import java.security.MessageDigest
+import cn.campuslife.assistant.BuildConfig
 
+enum class UpdateSource { GITHUB, CNB }
 data class UpdatePackage(val versionCode: Long, val versionName: String, val tag: String, val minSdk: Int,
-    val assetName: String, val size: Long, val sha256: String, val notes: String, val releaseId: Long) {
-    val url get() = "https://github.com/dufan82/campus-toolbox/releases/download/$tag/$assetName"
+    val assetName: String, val size: Long, val sha256: String, val notes: String, val releaseId: Long,
+    val source: UpdateSource = UpdateSource.GITHUB, val repository: String = "") {
+    val url get() = if (source == UpdateSource.CNB) "https://cnb.cool/$repository/-/releases/download/$tag/$assetName"
+        else "https://github.com/dufan82/campus-toolbox/releases/download/$tag/$assetName"
 }
 data class ApkIdentity(val packageName: String, val versionCode: Long, val minSdk: Int, val signers: Set<String>, val debuggable: Boolean)
 
@@ -20,15 +24,36 @@ object UpdateRules {
         info.tag == "v${info.versionName}" && info.minSdk in 1..1000 &&
         info.assetName.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,100}\\.apk")) &&
         info.size in 1..(512L * 1024 * 1024) && info.sha256.matches(Regex("[a-f0-9]{64}")) &&
-        info.notes.length <= 6000 && info.releaseId > 0
+        info.notes.length <= 6000 && info.releaseId > 0 &&
+        (if (info.source == UpdateSource.CNB) cnbRepository(info.repository) else info.repository.isEmpty())
 
-    fun available(info: UpdatePackage, installed: Long, sdk: Int) = valid(info) && info.versionCode > installed && sdk >= info.minSdk
+    fun trusted(info: UpdatePackage) = valid(info) && (info.source == UpdateSource.GITHUB || info.repository == BuildConfig.CNB_REPOSITORY)
+    fun available(info: UpdatePackage, installed: Long, sdk: Int) = trusted(info) && info.versionCode > installed && sdk >= info.minSdk
     fun assetUrl(url: String, tag: String, name: String): Boolean = runCatching {
         val uri = URI(url)
         uri.scheme == "https" && uri.rawAuthority == "github.com" && uri.rawQuery == null && uri.rawFragment == null &&
             uri.rawPath == "/dufan82/campus-toolbox/releases/download/$tag/$name" &&
             tag.matches(Regex("v[A-Za-z0-9][A-Za-z0-9._-]{0,39}")) && name.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,104}"))
     }.getOrDefault(false)
+
+    internal fun cnbRepository(repository: String) = repository.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,99}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}"))
+    internal fun cnbAssetUrl(url: String, repository: String, tag: String, name: String): Boolean = runCatching {
+        val uri = URI(url)
+        cnbRepository(repository) && uri.scheme == "https" && uri.rawAuthority == "cnb.cool" && uri.rawQuery == null && uri.rawFragment == null &&
+            uri.rawPath == "/$repository/-/releases/download/$tag/$name" &&
+            tag.matches(Regex("v[A-Za-z0-9][A-Za-z0-9._-]{0,39}")) && name.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,104}"))
+    }.getOrDefault(false)
+
+    internal fun attachmentRedirect(url: String, source: UpdateSource): Boolean = runCatching {
+        val uri = URI(url)
+        uri.scheme == "https" && uri.userInfo == null && uri.fragment == null && (uri.port == -1 || uri.port == 443) &&
+            uri.host in (if (source == UpdateSource.CNB) setOf("asset.cnb.cool")
+                else setOf("release-assets.githubusercontent.com", "objects.githubusercontent.com")) &&
+            !uri.rawPath.isNullOrEmpty() && uri.rawPath.startsWith("/") && url.none(Char::isISOControl)
+    }.getOrDefault(false)
+
+    internal fun downloadUrl(info: UpdatePackage) = trusted(info) && if (info.source == UpdateSource.CNB)
+        cnbAssetUrl(info.url, BuildConfig.CNB_REPOSITORY, info.tag, info.assetName) else assetUrl(info.url, info.tag, info.assetName)
 
     fun shouldCheck(now: Long, attempted: Long, retryAt: Long, manual: Boolean): Boolean {
         if (retryAt > now && retryAt - now <= 7 * INTERVAL) return false

@@ -27,6 +27,7 @@ class UpdateDownloads(context: Context, private val backend: UpdateDownloadBacke
     private val context = context.applicationContext
     private val directory get() = File(context.filesDir, "updates")
     private fun info(): UpdatePackage? = prefs.getString("info", null)?.let(UpdateJson::cached)
+    private fun source(info: UpdatePackage) = prefs.getString("source", null) ?: info.url
     private fun file(info: UpdatePackage) = File(directory, "update_${info.versionCode}_${info.sha256}.apk").also {
         require(it.canonicalFile.parentFile == directory.canonicalFile) { "安装包路径无效" }
     }
@@ -48,11 +49,11 @@ class UpdateDownloads(context: Context, private val backend: UpdateDownloadBacke
         val id = prefs.getLong("id", 0)
         if (id <= 0) return@synchronized UpdateDownloadState(info, if (prefs.getString("error", "").isNullOrEmpty()) UpdatePhase.NONE else UpdatePhase.FAILED, message = prefs.getString("error", "") ?: "")
         val status = backend.query(id)
-        if (status.phase != UpdatePhase.FAILED && status.source != info.url) throw IOException("下载任务与发布信息不一致")
+        if (status.phase != UpdatePhase.FAILED && status.source != source(info)) throw IOException("下载任务与发布信息不一致")
         UpdateDownloadState(info, status.phase, status.downloaded.coerceAtLeast(0), info.size, status.message)
     }
     fun start(info: UpdatePackage): Unit = synchronized(lock) {
-        require(UpdateRules.valid(info) && info.versionCode > BuildConfig.VERSION_CODE && UpdateRules.assetUrl(info.url, info.tag, info.assetName)) { "更新信息无效或版本已安装" }
+        require(UpdateRules.downloadUrl(info) && info.versionCode > BuildConfig.VERSION_CODE) { "更新信息无效或版本已安装" }
         val current = state()
         if (current.phase in setOf(UpdatePhase.DOWNLOADING, UpdatePhase.PAUSED, UpdatePhase.DOWNLOADED, UpdatePhase.READY)) {
             require(current.info == info) { "已有更新任务，请先取消后再下载其他版本" }
@@ -62,11 +63,16 @@ class UpdateDownloads(context: Context, private val backend: UpdateDownloadBacke
         if (previous > 0) {
             val previousInfo = current.info ?: throw IOException("下载记录损坏")
             val status = backend.query(previous)
-            if (status.source.isNotEmpty() && status.source != previousInfo.url) throw IOException("下载记录不一致")
+            if (status.source.isNotEmpty() && status.source != source(previousInfo)) throw IOException("下载记录不一致")
             backend.cancel(previous)
         }
         val id = backend.enqueue(info)
-        try { save(prefs.edit().putString("info", UpdateJson.encode(info).toString()).putLong("id", id).putBoolean("ready", false).remove("error")) }
+        try {
+            val actualSource = backend.query(id).source
+            require(actualSource == info.url || (info.source == UpdateSource.CNB && UpdateRules.attachmentRedirect(actualSource, UpdateSource.CNB))) { "下载任务地址不属于更新来源" }
+            save(prefs.edit().putString("info", UpdateJson.encode(info).toString()).putString("source", actualSource)
+                .putLong("id", id).putBoolean("ready", false).remove("error"))
+        }
         catch (error: Exception) { runCatching { backend.cancel(id) }; throw error }
     }
     fun cancel(): Unit = synchronized(lock) {
@@ -74,13 +80,13 @@ class UpdateDownloads(context: Context, private val backend: UpdateDownloadBacke
         val id = prefs.getLong("id", 0)
         if (id > 0) {
             val status = backend.query(id)
-            if (status.source.isNotEmpty() && status.source != info.url) throw IOException("下载任务不一致，未删除文件")
+            if (status.source.isNotEmpty() && status.source != source(info)) throw IOException("下载任务不一致，未删除文件")
             backend.cancel(id)
         }
         listOf(file(info), partial(info)).forEach { owned ->
             if (owned.exists() && !owned.delete()) throw IOException("安装包暂时无法移除")
         }
-        save(prefs.edit().putLong("id", 0).putBoolean("ready", false).remove("error"))
+        save(prefs.edit().putLong("id", 0).putBoolean("ready", false).remove("error").remove("source"))
     }
     fun verifyDownloaded(): File = synchronized(lock) {
         val info = info() ?: throw IOException("没有更新任务")
@@ -123,11 +129,12 @@ private class SystemUpdateDownloads(context: Context) : UpdateDownloadBackend {
     private val context = context.applicationContext
     private val manager get() = context.getSystemService(DownloadManager::class.java) ?: throw IOException("系统下载服务不可用")
     override fun enqueue(info: UpdatePackage): Long {
-        require(UpdateRules.assetUrl(info.url, info.tag, info.assetName))
+        require(UpdateRules.downloadUrl(info))
+        val url = if (info.source == UpdateSource.CNB) CnbReleaseClient().resolveApk(info) else info.url
         val folder = context.getExternalFilesDir("updates") ?: throw IOException("下载目录不可用")
         if (!folder.isDirectory && !folder.mkdirs()) throw IOException("无法创建下载目录")
         if (StatFs(folder.absolutePath).availableBytes < info.size + 16L * 1024 * 1024) throw IOException("下载空间不足")
-        val request = DownloadManager.Request(Uri.parse(info.url)).setTitle("校园工具箱更新")
+        val request = DownloadManager.Request(Uri.parse(url)).setTitle("校园工具箱更新")
             .setDescription(info.versionName).setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(context, "updates", "${UUID.randomUUID()}.apk")

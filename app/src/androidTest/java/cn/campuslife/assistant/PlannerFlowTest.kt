@@ -4,7 +4,10 @@ import android.app.Activity
 import android.content.Intent
 import android.view.View
 import android.view.ViewGroup
+import android.view.inspector.WindowInspector
+import android.widget.DatePicker
 import android.widget.EditText
+import android.widget.ListView
 import android.widget.TextView
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
@@ -14,6 +17,7 @@ import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
+import java.time.LocalDate
 
 /** Run only on a dedicated emulator. Fixture data is restored even after a failure. */
 class PlannerFlowTest {
@@ -60,8 +64,34 @@ class PlannerFlowTest {
         }
         fail("Delete confirmation not found")
     }
-    private fun input(activity: Activity, tag: String, value: String) = instrumentation.runOnMainSync {
-        (find(activity.window.decorView) { it.tag==tag } as EditText).setText(value)
+    private fun input(activity: Activity, tag: String, value: String) {
+        if(tag=="planner-date") {
+            val date=LocalDate.parse(value)
+            instrumentation.runOnMainSync { find(activity.window.decorView) { it.tag==tag }!!.performClick() }
+            instrumentation.runOnMainSync {
+                val picker=WindowInspector.getGlobalWindowViews().firstNotNullOfOrNull { find(it) { view -> view is DatePicker } } as DatePicker
+                picker.updateDate(date.year,date.monthValue-1,date.dayOfMonth)
+                WindowInspector.getGlobalWindowViews().asReversed().firstNotNullOf { it.findViewById<View>(android.R.id.button1) }.performClick()
+            }
+        } else {
+            var custom=false
+            instrumentation.runOnMainSync { custom=find(activity.window.decorView) { it.tag==tag }!=null }
+            if(!custom) {
+                instrumentation.runOnMainSync { find(activity.window.decorView) { it.tag=="planner-preset" }!!.performClick() }
+                instrumentation.runOnMainSync {
+                    val item=WindowInspector.getGlobalWindowViews().asReversed().firstNotNullOf { root ->
+                        find(root) { it is TextView && it.text.toString()=="自定义" }
+                    }
+                    val list=generateSequence(item.parent) { it.parent }.filterIsInstance<ListView>().first()
+                    val position=list.getPositionForView(item)
+                    assertTrue(list.performItemClick(item,position,list.getItemIdAtPosition(position)))
+                }
+            }
+            instrumentation.runOnMainSync { (find(activity.window.decorView) { it.tag==tag } as EditText).setText(value) }
+        }
+    }
+    private fun edit(activity: Activity,id: String) = instrumentation.runOnMainSync {
+        find(activity.window.decorView) { it.tag=="countdown-$id" }!!.performClick()
     }
     private fun awaitState(predicate: (PlannerState)->Boolean) {
         val stop = System.nanoTime()+5_000_000_000
@@ -102,7 +132,7 @@ class PlannerFlowTest {
         }
     }
     @Test fun countdownCrudAndEditDraftSurviveRecreation() {
-        assumeTrue(android.os.Build.HARDWARE in setOf("ranchu","goldfish"))
+        assumeTrue(android.os.Build.VERSION.SDK_INT>=29 && android.os.Build.HARDWARE in setOf("ranchu","goldfish"))
         val context=instrumentation.targetContext
         val file=File(context.filesDir,"planner-v1.json")
         val backup=if(file.exists()) file.readBytes() else null
@@ -113,20 +143,20 @@ class PlannerFlowTest {
             activity=instrumentation.startActivitySync(Intent(context,PlannerActivity::class.java).putExtra("tab",1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             awaitUi(activity,"新增倒计时"); click(activity,"新增倒计时")
             input(activity,"planner-title","Fixture countdown"); input(activity,"planner-date","2030-01-31")
-            click(activity,"保存"); awaitState { it.countdowns.size==1 }; awaitUi(activity,"编辑")
+            click(activity,"保存"); awaitState { it.countdowns.size==1 }; awaitUi(activity,"新增倒计时")
             val id=PlannerStore(context).read().countdowns.single().id
-            click(activity,"编辑"); input(activity,"planner-title","Fixture countdown edited"); input(activity,"planner-date","2020-02-29")
+            edit(activity,id); input(activity,"planner-title","Fixture countdown edited"); input(activity,"planner-date","2020-02-29")
             activity=recreate(activity); awaitUi(activity,"保存")
             instrumentation.runOnMainSync {
-                assertEquals("2020-02-29",(find(requireNotNull(activity).window.decorView) { it.tag=="planner-date" } as EditText).text.toString())
+                assertTrue((find(requireNotNull(activity).window.decorView) { it.tag=="planner-date" } as TextView).text.contains("2020年2月29日"))
             }
-            click(activity,"保存"); awaitState { it.countdowns.singleOrNull()?.title=="Fixture countdown edited" }; awaitUi(activity,"删除")
+            click(activity,"保存"); awaitState { it.countdowns.singleOrNull()?.title=="Fixture countdown edited" }; awaitUi(activity,"新增倒计时")
             assertEquals(id,PlannerStore(context).read().countdowns.single().id)
             instrumentation.runOnMainSync { requireNotNull(activity).finish() }
             activity=instrumentation.startActivitySync(Intent(context,PlannerActivity::class.java).putExtra("tab",1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            awaitUi(activity,"编辑")
+            awaitUi(activity,"新增倒计时")
             instrumentation.runOnMainSync { assertNotNull(find(requireNotNull(activity).window.decorView) { it is TextView && it.text.startsWith("已过 ") }) }
-            click(activity,"删除"); confirmDelete(); awaitState { it.countdowns.isEmpty() }
+            edit(activity,id); click(activity,"删除这条记录"); confirmDelete(); awaitState { it.countdowns.isEmpty() }
             assertEquals(listOf(legacy),PlannerStore(context).read().todos)
         } finally {
             activity?.let { instrumentation.runOnMainSync { it.finish() } }
