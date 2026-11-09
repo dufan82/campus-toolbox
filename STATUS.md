@@ -1,16 +1,57 @@
 # 开发进度
 
-更新时间：2026-10-27 09:02 +08:00
+## UI-010 / UI-011 · 1.8.0 界面更新
+
+2026-11-09 10:15 +08:00：用户已确认六屏预览，已完成原生Views改造：固定快递区、紧凑工具、首页真实本地课表摘要、首页/课表/我的底部导航；课表详情和管理、地图浮动搜索/单地点导航、水印图片优先和三栏样式、倒数日主卡/列表及集中设置。原包名、四个工具ID、本地存储、已标坐标、登录/合并/备份、原图导出和更新逻辑保留，不加回进出校/收藏/待办/批量入口。
+
+本次JVM：core29、app251通过；普通字体27项专用断网模拟器测试通过，双倍字体3项检查通过（含横竖屏）；Debug和Release Lint均0错误/63警告，正常签名Release构建通过。初期新增测试暴露的窗口坐标、日期选择事件时序与旧按钮文案断言已修正后重跑通过；未关闭测试。模拟器只验证非SDK流程，真实ARM地图、学校登录/课表差异、REDMI相册和真实旧包覆盖仍待手机验收。没有实现每周自动联网同步课表。
+
+交付：1.8.0/code27，78,907,462字节，比1.7.9-test同配置增加32,792字节。SHA256 `dc27a776737860fe5e10f211f8ede601e5838292aaa05a65cd1223ee4827b10d`。旧兼容证书、非调试、包名/minSdk、双ARM四个so、校园原图和无微信SDK已检查，无新增生产依赖/权限。项目 `交付/安装包/校园工具箱-1.8.0.apk` 与桌面 `E:\Desktop\校园工具箱安装包\校园工具箱-1.8.0.apk` 哈希一致。三发布附件在 `交付/发布附件/v1.8.0-r1`。
+
+GitHub/CNB同步进行中：CNB已通过内置浏览器建立1.8.0预发布、上传三附件，尚未核验并转稳定latest；GitHub源码及正式附件尚待推送。未经最终检查不将“上传中”写成发布成功。原始源码和SHA在verification/ui-native-20261108/before.zip与before-sha256.json，实际日志和原生截图同目录。原型资料仍保留在交付/界面重设计/20261108。
+
+## 当前工作 · 照片水印和课表更新
+
+1.7.9-test/code26本机试用：水印优先系统照片选择器，拖动和黑白字、横竖、透明或半透明背景、字号可选；同一渲染器预览导出。保留已保存样式和图片草稿。旧系统或选择器不可用时回退系统文件选择器；JPEG/PNG以外仍有格式限制。
+
+课表保留WebView会话并提供清除入口，成功学校导入记录时间；进入课表按情况提醒检查。手动读取学校课表后可预览并仅更新今日及未来，历史与受保护课程保留、写前备份；无来源旧课默认保护，需用户逐项确认。已被修改/删除过的学校课程、学期或作息不一致时安全拒绝合并。尚未实现每周自动联网检查或后台自动更新，学校登录、真机课表来源与合并需现场验证。
+
+2026-11-07 本机执行 :watermark-core:test 29项、:app:testDebugUnitTest 246项通过；本轮专用断网模拟器33项通过；Release Lint 0错63警告、签名Release构建通过。试用APK `交付/测试包/校园工具箱-1.7.9-本机试用.apk`，78,874,670字节，较1.7.8增长16,392字节；包名、versionCode26、原兼容签名、非调试及双ARM库已检查。手机真实覆盖安装、登录会话、相册与用户数据保留未验证。未推送、未公开发布，国内源仍为1.7.8。原文件及SHA备份在verification/watermark-20261107-170937和verification/schedule-*-backup-20261107；模拟器结果verification/watermark-schedule-20261107-device-results.xml。
+
+## GATE-009 · 1.7.8 国内更新
+
+已移除首页和普通工具列表的快捷进出校入口；保留原代码、其他工具和用户数据。本机1.7.8/code25沿用历史兼容证书、关闭调试，大小78,858,278字节，与1.7.7同配置增长0。SHA256 `7f792ade6cebacc7a2c7bee9382653009ee2017d7040517c9e426f240db2ec7b`。
+
+App JVM 226项通过，Release Lint 0错61警告，Release构建与Android测试代码编译通过；watermark-core测试复用缓存。无设备，未进行真机升级和数据保留验收。CNB三附件匿名完整下载并与本机SHA一致，已设为稳定最新版，latest接口返回1.7.8。源码未提交或推送GitHub。
+
+本机备份和原始SHA在 `verification/rollback-20261030-194556/`，若恢复本轮前文件应从该目录逐项复制。CNB Release的源代码压缩包是国内入口页仓库，不是Android源码快照。
+
+更新时间：2026-11-07 17:55 +08:00
+
+## GATE-003 微信平台实查 · 2026-10-30 11:18 +08:00
+
+- 已在用户登录的微信开放平台「管理中心 → 移动应用」检查：列表为「暂无数据」，创建按钮帮助提示「个人主体暂不支持创建新应用，如需创建，请新注册非个人类型的平台账号」。当前账号不能按既有个人账号申请路径新建本App；10月27日从通用文档推导的“个人账号可直接新建”不适用于当前平台实际状态，已更正接入说明。
+- 当前仍无可用的本App移动AppID；OpenWebview.Req 对本App的准入条件和真实 Android 微信网页打开结果仍未确认。非个人主体账号也不等于该接口必然开放，不以付费认证作为已证实解决办法。
+- 本轮只更新交接文档，保留1.7.7/code24及现有分享/扫码功能；未创建应用、付费、访问学校登记接口、修改业务源码、生成APK、提交、推送或发布。未运行应用测试（无代码变更）。
+- 下一步：仅在有真实、获授权的非个人主体账号或本App已有合法移动AppID时继续核对准入，再进行固定普通网页的微信真机验证。不能以其他AppID、接口返回true或分享页代替直达验收。
+
+## 1.7.7 国内更新 · 2026-10-30
+
+- 已发布 CNB 稳定版 1.7.7/code24，包含东门、北门四入口；沿用历史证书，非调试包，未推送 GitHub。发布前预发布上传三附件并匿名完整下载逐个比对 SHA256，随后设为最新版。CNB latest 返回 200，版本、稳定标志和三个附件信息正确，APK Range 返回 206。
+- 签名 Release 78,858,278 字节，较 1.7.6 同配置增长 0；SHA256 498bf292acb5c2f315458dd59e204c6654e4c57d29fe35ae681a66936c3aa75d。本轮 app JVM 225 通过、Release Lint 0 错误/61 警告、构建成功；watermark-core 测试由 Gradle 复用缓存。手机更新弹窗、下载、覆盖安装及现场通行尚未验证。
+- CNB tag 指向国内入口页面仓库提交，并不是 Android 源码快照；本地源码尚未提交。历史 1.7.6 和用户数据保留。
 
 ## 当前版本与分支
 
-- 1.7.4 / versionCode 21已在CNB和GitHub发布为最新稳定版，均非草稿或预发布。CNB Release ID 2114875750033051648；GitHub Release ID 424923845。实际旧1.7.3已通过国内源检测到新版并显示首页入口和版本弹窗，手机系统安装全程仍待用户验收。
+- 此前CNB稳定版为1.7.6/code23，Release ID 2115015918551482368；匿名latest及三个附件完整下载、大小/SHA均已核验。该版只提供微信分享/现场扫码备用方案，不代表已实现一键直达学校通行页。
+- 19:52另生成本机Debug网页验证包，未发布；20:16只核查申请条件、整理接入说明，没有重新构建或修改1.7.6/code23稳定包、版本或签名配置。没有提交或推送Git源码；GitHub最后核实为1.7.4，本轮未同步或重新查询。手机更新、微信能力和实际通行仍待用户验收。
 - 本机分支feature/v1.6.0。生产源码提交`647dfaf9d2331df48edf0058a1183baaf78cae77`已推送GitHub main，tag v1.7.4精确指向此提交；后续仅进度文档提交不改变安装包。
 - 1.7.4为78,841,838字节 / 75.189 MiB，SHA256 `7a9888fe941921b63a0f8fadcccd8cb5e9ee514a443c3ca9982448bc1ee7b2a9`，相对1.7.3同配置增长0。保留历史证书、双ARM、地图配置及校园图，关闭调试，无存储变更。GitHub三附件服务器摘要与CNB一致，不重新构建或签名。
 - [GitHub下载页](https://github.com/dufan82/campus-toolbox/releases/tag/v1.7.4)；[源码提交的自动检查](https://github.com/dufan82/campus-toolbox/actions/runs/40429235039)已成功：242JVM、Lint0错误/65警告、构建入口10项、发布准备46项、Debug及未签名Release构建均通过，实际报告已下载核对。
-- [当前国内下载页](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.7.4)。用户手机保持1.7.3，在设置中点“检查更新”验证国内下载与系统覆盖安装，不要先卸载。
+- [当前国内下载页](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.7.6)。支持国内源的旧版可在设置点“检查更新”，安装时不要先卸载；已安装本机1.7.6/code23的不重复提示同版。
 
 ### 旧版本记录
+- CNB 1.7.5/code22为上一公开版本，Release ID 2114930916815982592；历史附件及本机文件保留。
 - 1.7.3 / versionCode 20为上一国内公开版本，由用户上传三附件并完成当时匿名下载和客户端核验；保留历史附件和本地交付，不覆盖。
 - 1.7.3为78,841,838字节 / 75.189 MiB，SHA256 `746c1529090543101770d9564536784748c7052f29805e84e1f304aab47ea364`。默认绑定campus-toolbox/campus-toolbox，国内源优先、GitHub备用；当前CNB附件和元数据有效。断VPN手机/系统安装全程尚未验收。
 - 已发布1.7.1 / versionCode 18，包名cn.campuslife.assistant，安装名仍为“校园生活助手”。
@@ -22,6 +63,123 @@
 - 本机安装包：交付/安装包/校园生活助手-1.7.1-兼容更新版.apk，与公开附件相同；历史文件保留。
 
 ## 当前目标与正在执行
+
+GATE-008已完成本地开发、离线验收及用户批准的CNB入口页同步。其后已发布1.7.7/code24到CNB；未提交本地App仓库或推送GitHub。
+
+### 东门、北门四入口 · 2026-10-29
+
+- GateRoute固定四条用户提供的URL：东入10066/1、东出10067/2、北入10062/1、北出10063/2。GateActivity按东门/北门分组，入校绿、出校蓝；GateLauncher保持原微信分享和现场扫码备用流程。首页gate ID和既有排序/隐藏数据不变。
+- gate-web同步四个原生链接；离线夹具发送前替换全部四条地址，未知残留即拒绝，测试不请求学校。CNB保留east-gate.md原路径兼容收藏：https://cnb.cool/campus-toolbox/campus-toolbox/-/blob/main/east-gate.md 。只提交这份文档，提交b9f870650314b97eb083cdab3bae761d3005449b；本机匿名无代理HTTP200，170649字节，0.507560秒，四目标与标签核对一致。Sites站点本轮未发布。
+- 先建立失败证据：App新精确映射测试3项中1失败；网页新增四入口检查10项中6失败。实现后253 JVM（App225/Core28）和11网页检查通过。专用emulator-5582断网、拦截外部Intent运行15项相关设备测试通过；font_scale=2另2项通过，含横屏滚动、四按钮、返回重建不重发。非真机通行验收。
+- Debug/Release Lint各0错误、61警告（现有兼容API等告警保留）。完整双ARM Debug构建成功；无新增依赖、权限或存储迁移。APK从79,833,722变为79,850,106字节，净增16,384字节（16KiB），代码压缩增量和打包对齐共同影响净值；原生库、校园图、Manifest与基线逐项一致。SHA256 f9da4689b27723bafb8ba95e847ee8dc963f3453fe22c9f75abd20aa999110f8。
+- 本机测试包：交付/测试包/校园工具箱-东门北门四入口-Debug-20261029.apk。是Debug测试包，非国内源正式更新，不保证覆盖现有正式安装；不要卸载旧版。截图verification/gate008-page.png已查看，四按钮显示完整。
+- 浏览器先因Edge连接无法核实而中止；用户改用内置浏览器并完成登录后恢复。首次会话绑定异常重置后恢复；Monaco普通fill只替换可视输入，预览发现旧尾部残留，改为编辑器全选粘贴，确认恰好四入口后才提交。无需新增插件或提取凭据。
+- 初次Gradle默认缓存未配置，Wrapper试图下载；已取消并切到现有E:/skill/gradle-cache完成离线构建。第一次截图时设备测试清理了App，后重新在该专用模拟器安装去ARM测试构建取图；交付始终使用完整双ARM包。
+- 验证日志gate008-check.log、gate008-device.log、gate008-device-large-font.log、gate008-web-green.log、gate008-final-package.log；汇总verification/gate008-result.json。本轮只复核已有测试证据与未变代码，没有把它们写成本次重新运行。备份历史归档/gate008-20261029-182635，差异verification/gate008-source.diff。
+- 待验证：微信内北门认证与真实方向/通行结果；CNB外链确认仍在。未修改学校流程或实际访问任何通行登记地址。
+
+### 上轮状态
+
+GATE-006已完成本地修复、网页发布和本机国内直连检查；GATE-007等待手机微信现场验收。本轮不改Android源码、版本、签名或APK。用户已授权公开测试页及修复国内可达性，发布范围只有两条公开入口与必要说明。
+
+### 微信入口修复和国内入口 · 2026-10-28
+
+- 用户明确反馈“微信里按钮没反应”。代码确认旧版两个按钮初始disabled、依赖两份JS解锁，并有UA/isTrusted/onLine门槛；脚本缺失时不存在原生导航。这是已验证设计缺陷，但没有手机运行日志，不能声称唯一根因已证实。
+- v2改成两个固定HTTPS原生链接，移除脚本依赖和客户端环境阻断，CSS失败仍有文字链接。保持绿色入校/蓝色出校，静态提示微信内现场使用。不再有脚本防连点；只点一次并等待，不自动请求/预取/重试，也不显示通行成功。
+- 国内简洁入口：https://cnb.cool/campus-toolbox/campus-toolbox/-/blob/main/east-gate.md 。现有登录发布仅新增east-gate.md，CNB提交fe3a2e7a15db4ffa721d7ae0df356d33d1e5d5f3；README、APK Release、更新元数据不变。页面带CNB外框，外链经cnb.cool/110提示，不是完整HTML托管，不绕过提示。
+- 国内实测：curl.exe --noproxy '*' 匿名请求上述页面HTTP200，164504字节，0.524秒；HTML含两条正确URL及10066/1、10067/2参数。未访问或预检这两条学校接口，也没有加载CNB外链跳转页。手机网络及微信中转表现待用户确认，不保证所有运营商/地区。
+- 原Sites地址也已更新：https://campus-toolbox-east-gate.leafymite67.chatgpt.site/?v=2 。部署appgdep_6ae19f50af2081919bf684336c9808b5 succeeded；版本appgprj_6ae0c3ab890481919958e9cefff0ef6c~appgver_6018fc8071f081919e5cebc25631ac34；源提交ea3d9e5a3fe139329d690487140c4cd0714d55d3。此域名仍不作为国内主入口。经现有代理匿名获取HTML/CSS为200，作者HTML前缀一致、CSS哈希一致；托管商仍可能附加自己的脚本。
+- 实测node --test gate-web/tests/*.test.cjs：9通过，0失败/跳过。修改前新增回归检查7项中5失败/2通过，日志已保留；旧17项测试和JS实现一起备份归档，因新版本完全无JS控制器而替换为原生链接和隔离夹具检查。Edge在/offline-check分别点击入/出，实际到达对应本机结果页，返回保持入口页；没有以DOM静态检查冒充真实点击。
+- 网页仅HTML/CSS两文件共6263字节，上一版11324字节；App相关187个已记录文件SHA全部未变，APK体积/依赖/权限无变化。未跑无关Android构建。git diff --check通过。未提交/推送Android或GitHub仓库，未创建Release。
+- Edge网页操作每次约20秒导致短超时、随后旧标签调试脱离；已用更长调用窗口完成CNB发布，不能因此声称浏览器全局问题已修复。Sites短期源凭据过期后按同一站点正常更新；一次工具非JSON错误后重试成功，凭据未写入源或日志。
+- 证据：verification/gate006-regression-before.log、gate006-tests.log、gate006-browser-clicks.txt、gate006-cnb-entry.html、gate006-cnb-entry.headers、gate006-cnb-published.png、gate006-result.json。备份：历史归档/gate006-20261028-143716。交付说明：交付/微信东门入口/使用说明.md。
+
+### 上一轮记录
+
+GATE-005在本次前完成v1脚本版公开网页，17项离线检查通过，但本机Sites直连连接重置、代理200；证据gate005-*保留。用户随后反馈微信内按钮无反应，已由本轮v2替换。不能再把v1的普通浏览器禁止跳转、防连点测试当作v2行为。
+
+补记后续研究：登录后已读2019年iOS OpenWebviewReq讨论，微信官方用户回复当时未开放；这是历史iOS证据，不能直接断言当前Android情况。2025年另一iOS讨论仍无明确解决方案。官方咨询尚未成功发布，草稿保留；不再以申请AppID为已经证实的解决办法。以下20:16“未读正文”保留为当时记录，现已被本条补充。
+
+GATE-004本地开发和离线验收已完成：仅Debug可见的“微信网页验证”，固定普通腾讯首页，缺AppID不创建SDK或发送。现有东门两按钮、Release依赖、版本/签名与用户数据不变。GATE-003真实通行仍待自有AppID、平台能力和真机链路，未冒充完成。
+
+### 微信申请条件核查 · 2026-10-27 20:16
+
+- 读取[创建移动应用](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/guideline/create.html)、[应用审核规范](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/operation.html)、[开发者须知](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/FAQ/Required_Developer_Knowledge.html)官方正文。腾讯客服注册示例含个人主体；官方说明未认证账号也可创建移动应用，常规创建与付费资质认证不能混为一步，不要求用户先付费。认证帮助页配图显示300元审核费用，不能据旧截图保证当前费用或开通网页接口。
+- 常规申请需准备官网、图标、流程材料以及准确包名/签名；未在应用商店上架应如实选未上架。GitHub/CNB的APK直链不符合官方应用商店下载链接要求。未上架应用有能力限制，不能冒充已上架；是否通过最终由微信审核。
+- 官方[移动应用微信登录指南](https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Development_Guide.html)要求独立申请微信登录权限；给本App授权不等于学校认证。尚未找到证明OpenWebview.Req对本App可用的官方说明。OpenBusinessWebview支付权限文档不是该接口的通用授权证明。被GitHub作者引用的社区帖子实际重定向到扫码登录/协议页面，未读取正文，未接受协议或绕过登录。
+- 仅更新本机接入说明和STATUS/TASKS，无业务源码/依赖/权限/版本/签名修改，无学校接口请求、新APK、测试执行、提交推送或发布。保留19:52测试包；既有测试数字是历史结果，不算本轮重跑。下一步是先核实平台对OpenWebview.Req的准入条件，再准备自有移动AppID与无副作用网页的Android真机验证；不承诺注册即成功。申请材料及可复制的官方咨询问题见本机`交付/说明/微信接入准备.md`。
+
+### Debug验证入口交付 · 2026-10-27 19:52
+
+- `app/src/debug`新增验证页、主线程控制器和腾讯SDK适配器；Gradle仅增加debugImplementation。GateActivity只加BuildConfig.DEBUG条件入口，没有替换既有学校URL或改动首页规则。测试页只打开https://www.qq.com/，不接受任意URL、不请求校门接口。无配置/未安装/注册调用失败时不发网页请求，返回true只显示SDK调用结果；有20秒未知状态、重复点击/陈旧回调保护，重建不重发。
+- 先运行新增入口设备用例，实际因旧版无按钮失败；实现后当前20项断网设备用例通过（新增5、原有回归15），0失败/错误/跳过。专用API36 read-only模拟器，无微信安装；外部校门Intent被拦截，SDK适配测试使用注入接口，不访问真实微信或学校服务。
+- 实际运行App JVM224项通过（新增8），Debug/Release Lint均0错误62警告，完整双ARM Debug和未签名Release构建通过。没有重跑watermark-core单元测试，不把其历史结果算本轮。ReleaseRuntimeClasspath无微信SDK、Release Manifest无验证Activity；不是已发布新版本。
+- 同配置完整Debug基线79,755,899字节，最终干净构建79,833,722字节（76.135 MiB），增长77,823字节（约76 KiB）。增量打包原包81,934,183字节中存在额外空隙；保存包/报告后核实app/build路径，仅清理生成目录并重建，去除2,100,461字节空隙。四个地图.so SHA与基线一致，无新图片/生产依赖/权限。未测同配置签名Release体积增量。
+- 本机`交付/测试包/校园工具箱-微信网页验证-Debug.apk`，SHA256 `b4083d6289ce7a3d690ed1e4ea4615c34059fbfda0fe40b77825967a662aef30`，code23/debuggable=true/双ARM，签名SHA与历史兼容版一致。真实手机覆盖安装未验证，不要求卸载清数据；不上传稳定更新源。已查看实际模拟器截图，布局和缺AppID提示正常。
+- 命令/日志：本机E:/skill/campus-official-app-analysis内gate004-red.log、gate004-build.log、gate004-device-final.log、gate004-final-build.log、gate004-delivery-build.log、gate004-clean-build.log；XML副本在gate004-reports，图为gate004-page.png。最初Wrapper误用空缓存触发下载，已只停止该次进程并复用已有缓存；截图首次因Gradle卸载测试包取不到缓存，改为shell临时截图后成功，不是业务成功证据。
+- 本轮无Git提交/推送/Release、无版本/正式签名配置变化、无用户数据迁移。下一步见本机`交付/说明/微信网页验证测试包说明.md`：取得本App合适AppID并核实平台能力后，先真人测试普通网页，再由用户现场主动验收东门官方认证与通行，不承诺注册即成功。
+
+UPD-007已完成：用户确认先更新试用后，复用现有1.7.6/code23兼容包发布CNB，先建草稿上传三附件，服务器摘要一致后公开为latest。匿名latest/元数据、三个附件完整下载及APK Range预检均通过；没有重跑应用测试、改签名、推送GitHub或请求学校登记接口。
+
+GATE-003阻塞（原因已更新）：GitHub原生源码和腾讯SDK6.8.40实际制品确认有`OpenWebview.Req`，此前误查`WXOpenWebview.Req`而漏掉该API，相关否定结论已纠正。现有两个学校网址已够确定目标；用户确认尚无本App微信开放平台移动应用AppID。当前待办是本应用接入配置、网页打开能力是否获准及Android微信真机验证，不是再索要学校网址。1.7.6/code23仍只是分享/扫码备用版，不算实现。无数字福信依赖，不借用其他AppID、不改签名、不伪装认证。先用无副作用页面验证SDK，再由用户在东门主动验收真实学校流程，不能承诺注册即成功。
+
+### GitHub与SDK纠错验证 · 2026-10-27 18:54
+
+- 已读[expo-wechat原生Kotlin](https://github.com/likeSo/expo-wechat/blob/b9e2dfb536c342ae205d8d1bd6c3d8efdd32a573/android/src/main/java/expo/modules/wechat/ExpoWechatModule.kt#L597-L618)及[fluwx原生Kotlin](https://github.com/OpenFlutter/fluwx/blob/aa89699635f24947f036b9139336beaedb7a8271/packages/_shared/android/src/main/kotlin/com/jarvan/fluwx/FluwxPlugin.kt)：真实类名OpenWebview.Req，url字段、type12，IWXAPI.sendReq。无需引入它们的Expo/Flutter框架。
+- [expo-wechat Issue10](https://github.com/likeSo/expo-wechat/issues/10)记录iOS bad_param及作者未找到可用结论；这是风险证据，不是本项目Android验收。SDK接口存在不证明平台对本App开放；不建议为未核实能力先付费认证。
+- 本机API36只读专用模拟器断网运行SDK请求对象探针，EAST_IN/EAST_OUT两例通过（精确URL、HTTPS、域名/参数、type12/checkArgs），0次dispatch。初次JDK直接运行因SDK StackMap不兼容失败，改为Android DEX/ART正常运行；未禁用校验。模拟器已关闭，无APK安装、微信启动、OAuth或学校通行测试。
+- apksigner重新验证现有1.7.6签名退出0；公开包名/证书MD5和后续步骤写入本机`交付/说明/微信接入准备.md`，无私钥/AppSecret。SDK仅放E:/skill分析目录，未加生产依赖，无新APK或实际体积增量测试。
+- 本轮新增离线探针和核查记录，维护STATUS/TASKS并纠正此前结论。没有生产源码/权限/版本/签名改动，没有提交推送或发布。详情`docs/东门直达核查-20261027.md`是本机说明，受既有gitignore排除；根目录摘要保留GitHub源码链接供后续同步。
+
+### 官方App直达线索核查 · 2026-10-27 18:24
+
+- 从学校官网实际链接找到“数字福信”官方下载页，并按页面公开配置下载官方APK作只读静态分析。确认com.supwisdom.fjpit、1.0.44/code10054、129814741字节，SHA256 `7ca8fe7f6c343a4eff30428aa95046f5bb99be5cfa19f5f0e3748223f88e2a2e`。
+- Manifest确认有公开Scheme及通用路由处理，但未找到东门业务入口或服务ID；未验证它与微信通行的认证兼容性。不能把打开官方App当成东门通行完成，也不猜路由或越过官方权限检查。
+- 用户随后明确不能要求同学另装数字福信，已排除该产品依赖，不再要求安装或为此提供截图。核查详情和命令结果见`docs/东门直达核查-20261027.md`。
+- 本轮仅新增核查记录并维护STATUS/TASKS；业务源码、版本、签名及1.7.6安装包均未更改。无新构建/测试/发布，不复用历史测试冒充本轮通过。未请求学校登记/登录/通行结果接口，未安装或运行官方APK。
+- 18:35的SDK检查误用了WXOpenWebview类名；该类确实不存在，但不能据此断言真正的OpenWebview API不存在。此处原否定结论及“缺学校业务入口”的阻塞描述已由18:54的GitHub/SDK核查纠正，见上节；保留历史检查证据，不作为当前结论。
+
+## 1.7.6国内发布验证 · 2026-10-27 17:37—17:49
+
+- 用户明确要求先更新试用；仅公开固定仓库campus-toolbox/campus-toolbox的APK、update.json、SHA256SUMS.txt，不公开本地配置、私钥或用户资料，不提交/推送GitHub。发布说明明确微信分享是备用方案，尚非一键通行。
+- 发布前重新核对现有三个文件摘要、APK包名/code23/minSdk26、双ARM及固定历史签名，未改变包字节或签名。复用现有Publish-CnbPlan官方API流程：创建草稿、上传、核对服务器三摘要，再设为非draft/非prerelease的latest。Release ID 2115015918551482368，发布助手正常退出；没有覆盖旧版本附件。
+- 匿名完整下载三附件到`E:/skill/campus-toolbox-public/cnb-v1.7.6`，文件大小/SHA与本机准备文件、元数据及服务器记录逐项一致。APK为78,858,278字节，SHA256 `d23b4a9efcbc9423c39291148107f85a0b85fbcab114d3d2c39a6f669d62424a`；较1.7.5同配置增加28字节，属此前构建增量，本轮发布增量为0。
+- 无认证读取latest返回v1.7.6、id和稳定标志正确；update.json为code23且大小/SHA正确。以客户端User-Agent请求公开APK Range 0-0，返回HTTP206、Content-Range bytes 0-0/78858278、Content-Length 1，最终主机asset.cnb.cool。此为公开链路验证，不冒充手机系统下载/安装或App自动更新弹窗测试。
+- 本轮只核对既有产物和实际发布链路，不重跑历史216项app JVM、15项断网模拟器或双Lint，也不把旧记录当成新测试。证据见`verification/cnb-publish-176-public-check.json`。临时发布进程已退出，JS会话已重置，凭据未写入源码、App、命令参数、环境变量或本机文件。
+- 下一步：旧版在设置手动检查更新并直接覆盖，不卸载清资料；同为code23不会重复提示。用户在东门按校规验证微信分享和官方结果，GATE-003一键直达研究仍未完成。
+
+## 微信入口备用方案 · 2026-10-27
+
+- `GateLauncher.kt`改为标准ACTION_SEND/text/plain，限定微信包名、仅携带对应原始URL，由用户自行选择接收方并确认发送；不调用微信内部Activity、不伪装UA、不读登录资料。另以公开Launcher Intent打开微信，供现场扫码。不回退普通浏览器。
+- `GateActivity.kt`增加操作说明、分享失败时由用户确认复制并打开微信、未安装微信提示；保留重复点击/恢复/重建防护。Manifest只增加微信可见性查询，没有新增权限或生产依赖；首页三处快递入口和旧布局ID不变。
+- 用户两张现场二维码在本机离线解码，分别为xmdm=10066&crlx=1入校、xmdm=10067&crlx=2出校，与配置完全一致；未上传照片、未请求学校登记地址。
+- 回归先运行新Intent断言，旧代码因ACTION_VIEW而失败（`verification/gate176-red.log`），改为分享后通过。实际运行 `gradlew.bat --offline --no-daemon -PmapUiTestWithoutNative=true :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` 成功，app 216项JVM通过、0失败/跳过。本轮未重跑watermark-core测试，不将历史28项算作本轮通过。
+- 专用只读API36模拟器开启飞行模式并关闭Wi-Fi/数据，执行 `:app:connectedDebugAndroidTest`，参数为 `-PmapUiTestWithoutNative=true` 和带引号的 `-Pandroid.testInstrumentationRunnerArguments.class=cn.campuslife.assistant.gate.GateFlowTest,cn.campuslife.assistant.HomeAndFavoritesFlowTest,cn.campuslife.assistant.HomeRepositoryDeviceTest,cn.campuslife.assistant.ToolboxReleaseTest`：15项通过、0失败/错误/跳过。外部VIEW/SEND及微信MAIN均被拦截；覆盖URL、无微信/启动受限、恢复/重建、连续点击、横屏、旧布局和固定快递入口。首次未给含点Gradle参数加引号而失败，纠正参数后通过，非业务故障。
+- 手动从首页打开新页并查看运行截图`verification/gate176-page.png`，未安装微信时查看实际备用弹窗`gate176-fallback.png`。这不是已安装微信的真机测试；不证明分享界面、学校认证、权限认可或通行成功。
+- 完整双ARM同证书非debuggable构建 `gradlew.bat --offline --no-daemon :app:assembleRelease :app:lintRelease` 成功；Debug/Release Lint均0错误、62警告，未屏蔽警告。发布准备脚本核对包名、code23/minSdk26及固定历史证书后生成本地三附件，不联网发布。
+- 本机交付 `交付/安装包/校园生活助手-1.7.6-微信入口修正版.apk` 为78,858,278字节（75.205 MiB），较1.7.5同配置78,858,250字节增加28字节；SHA256 `d23b4a9efcbc9423c39291148107f85a0b85fbcab114d3d2c39a6f669d62424a`。四个地图.so与校园图逐文件SHA与1.7.5一致；净增量受DEX和打包对齐共同影响，不等于新增代码仅28字节。没有存储迁移或清数据操作。
+- 本段为1.7.6发布前的本机验证记录，后续国内发布见上方UPD-007。仍需先确认学校是否提供允许外部App唤起的官方入口，再决定直达方案；仅凭当前二维码URL不能承诺一键进入微信网页。真实手机应在东门按学校规定测试，北门仍未接入。
+
+UPD-006已完成：1.7.5/code22已公开为CNB最新稳定版，发布助手核对服务器三附件摘要，匿名latest和三附件完整下载核验通过。真机更新和学校东门现场仍待用户验证，未访问学校登记地址。
+
+GATE-001已完成本地开发和离线验证：新增“快捷进出校”，只提供平潭校区东门两个原始二维码入口，用户点击后交Android系统处理；旧首页布局和三个固定快递入口保留。1.7.5/code22已发布CNB，签名配置未变，源码未提交或推送。GATE-002待现场确认：学校是否允许直接打开、浏览器/微信登录状态和实际通行结果；若要求微信扫码，继续扫描现场二维码。北门等待用户提供二维码。
+
+## 1.7.5 更新准备 · 2026-10-27
+
+- 本机兼容包 `交付/发布准备/1.7.5/campus-toolbox-1.7.5.apk` 为78,858,250字节，较1.7.4增加16,412字节；包名、code22、minSdk26、非debuggable、双ARM及历史证书经发布准备器核验。三附件已上传CNB。
+- 本轮 `gradlew.bat --offline --no-daemon :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleRelease` 成功；应用216项测试实际执行，水印28项沿用缓存；Lint 0错误、63警告。上一轮断网模拟器13项通过，不代表本轮真机安装验证。
+- 浏览器连接超时后，用户运行 `交付/发布工具/Publish-1.7.5.cmd` 并在本机隐藏输入令牌，发布助手报告CNB Release 2114930916815982592已发布且服务器附件摘要匹配；匿名latest与update.json现已确认1.7.5。手机更新尚未测试，未运行学校通行网络请求。
+- 匿名完整下载三个附件到 `E:/skill/campus-toolbox-public/cnb-v175-check-d613fb00d6f54f0693285080ab4a3581`，APK 78,858,250字节，SHA256 `f0ecce03a646c2276b54106682d4bfa53c6b80c4525023c5b7b4d679adc7db79`；文件大小、元数据和SHA256SUMS均一致。
+
+## 东门快捷入口 · 2026-10-27
+
+- `gate/GateRoute.kt`固定两条用户提供的学校HTTPS原始地址；`GateLauncher.kt`仅创建系统ACTION_VIEW，处理无应用或系统拒绝；`GateActivity.kt`提供入校/出校、连续点击保护和现场扫码提示，不自动触发或声称通行成功。
+- `home/ToolCatalog.kt`、`ToolNavigation.kt`、`ui/ToolGlyph.kt`及Manifest接入普通工具；复用旧布局归一化，新增ID为gate，不修改其他ID/存储。`GateRouteTest.kt`、`GateFlowTest.kt`、`HomeLayoutTest.kt`及两个首页设备测试覆盖链接、迁移和交互。
+- 本轮实际运行 `gradlew.bat --offline --no-daemon :watermark-core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` 成功；另执行 `:watermark-core:test --rerun :app:assembleDebug` 确保水印模块测试实际重跑。JVM共244项（app 216、水印28），0失败/错误/跳过。最终又运行 `:app:lintDebug :app:packageDebug --rerun :app:assembleDebug` 成功；Lint 0错误、63警告，其中新入口1项是Uri.parse的KTX建议。
+- 专用只读emulator-5582启用飞行模式、关闭Wi-Fi和移动数据后，运行 `:app:connectedDebugAndroidTest -PmapUiTestWithoutNative=true -Pandroid.testInstrumentationRunnerArguments.class=cn.campuslife.assistant.gate.GateFlowTest,cn.campuslife.assistant.HomeAndFavoritesFlowTest,cn.campuslife.assistant.HomeRepositoryDeviceTest,cn.campuslife.assistant.ToolboxReleaseTest`：13项通过，0失败/跳过。测试拦截所有ACTION_VIEW，未请求学校通行地址；覆盖入/出各自Intent、无处理应用、快速点击、恢复/重建、横屏、旧布局及三个快递入口。去ARM的模拟器构建不作为交付或地图真机验证。
+- 实际从首页进入页面并查看模拟器截图 `verification/gate-ui-check.png`；首次使用run-as直启非导出页面被系统拒绝，随后通过首页正常打开。未连接或测试真实手机。
+- 同配置完整双ARM Debug基线79,751,647字节，最终79,751,726字节，增加79字节；新源码DEX有变化，APK打包对齐会影响净差值。增量打包曾留下填充，最终重打包；四个地图原生库和校园图与基线内容一致，无新增依赖或权限。基线全仓归档时Windows tar无法处理中文文档路径，随后使用ASCII应用/构建文件重新生成基线并成功构建。
+- 本地测试包：`交付/安装包/校园生活助手-1.7.4-东门快捷入口-Debug测试.apk`，SHA256 `9172f138dbb9a1fd8deeecbf5c6d6f4406fcf11f8f6b5791495d95e260fedd1f`。这是Debug包，同versionCode21；未做真机覆盖安装，不应先卸载旧版。过程中的增量草稿移入`交付/历史记录`，历史发布包未改。
 
 GIT-005已完成：源码已推送main，GitHub v1.7.4已公开为最新稳定版，tag与源码提交一致；main源码CI通过并核对实际报告。三个附件均已匿名完整下载，大小/SHA与准备文件、GitHub服务器及CNB一致。未上传Key、私钥、校园图源文件、用户数据或交付历史，未修改许可证。后续只补进度文档，不重签APK；手机验收仍归UPD-003/004/005。
 

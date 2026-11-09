@@ -2,7 +2,9 @@ package cn.campuslife.assistant
 
 import android.content.Context
 import android.graphics.Rect
+import android.os.SystemClock
 import android.view.View
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Button
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +21,16 @@ import org.junit.runner.RunWith
 class PositionAndPlainContentTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
+
+    private fun tapText(text: String) {
+        val deadline=SystemClock.uptimeMillis()+10000
+        while(SystemClock.uptimeMillis()<deadline) {
+            val node=instrumentation.uiAutomation.rootInActiveWindow?.findAccessibilityNodeInfosByText(text)?.firstOrNull { it.isClickable }
+            if(node!=null && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return
+            SystemClock.sleep(100)
+        }
+        fail("Could not click $text")
+    }
 
     private fun legacyStore(name: String,style: WatermarkStyle): LocalStore {
         val store=LocalStore(context,name)
@@ -60,22 +72,25 @@ class PositionAndPlainContentTest {
                 instrumentation.waitForIdleSync()
                 scenario.onActivity { activity ->
                     val root=activity.window.decorView
-                    val button=root.findViewWithTag<Button>("watermark_position")
-                    assertNotNull("Position choice belongs below the field chips",button)
+                    assertNull("A permanent position row is no longer needed",root.findViewWithTag<Button>("watermark_position"))
+                    val button=root.findViewWithTag<Button>("watermark_styles")
+                    assertNotNull(button)
                     button.requestRectangleOnScreen(Rect(0,0,button.width,button.height),true)
                     button.performClick()
                 }
                 instrumentation.waitForIdleSync()
-                val root=instrumentation.uiAutomation.rootInActiveWindow
-                val topLeft=root.findAccessibilityNodeInfosByText("左上").single()
-                assertTrue(topLeft.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK))
+                tapText("快捷位置")
+                instrumentation.waitForIdleSync()
+                tapText("左上")
+                instrumentation.waitForIdleSync()
+                tapText("完成")
                 instrumentation.waitForIdleSync()
                 scenario.onActivity { activity ->
                     val preview=activity.window.decorView.findViewWithTag<WatermarkPreview>("watermark_preview")
                     assertEquals(Position.TOP_LEFT,preview.config.style.position)
                     assertEquals(setOf(FieldKey.NAME),preview.config.enabled)
                     preview.onMoved!!.invoke(.6,.3)
-                    assertTrue(activity.window.decorView.findViewWithTag<Button>("watermark_position").text.contains("自由移动"))
+                    assertEquals(Position.CUSTOM,preview.config.style.position)
                 }
                 scenario.recreate()
                 scenario.onActivity { activity ->

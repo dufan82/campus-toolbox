@@ -130,7 +130,6 @@ class BatchWatermarkActivity : Activity() {
         preview.onMoved = { x, y -> if (session.editable) {
             configure(session.options.copy(config = session.options.config.copy(style = session.options.config.style.copy(
                 position = Position.CUSTOM, anchorX = x, anchorY = y))))
-            contentPanel.refreshPosition()
         } }
         body.addView(preview, LinearLayout.LayoutParams(-1, Ui.dp(this, 320)))
         render()

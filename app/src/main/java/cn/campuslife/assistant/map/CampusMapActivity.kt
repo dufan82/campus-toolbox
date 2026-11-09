@@ -28,6 +28,7 @@ class CampusMapActivity: Activity() {
     private val gate=RequestGate()
     private lateinit var preferences: MapPreferences
     private var screen: MapScreen?=null
+    private var mapChrome: CampusMapChrome?=null
     private var mapView: MapView?=null
     private var map: AMap?=null
     private var sdk: MapSdk?=null
@@ -125,6 +126,7 @@ class CampusMapActivity: Activity() {
             MapSdk.initialize(applicationContext,BuildConfig.AMAP_ANDROID_KEY,preferences.hasConsent())
             sdk=MapSdk(applicationContext)
             val views=MapScreen(this);screen=views
+            val chrome=CampusMapChrome(this,views);mapChrome=chrome
             views.query.setText(queryText)
             views.onSearch={ search() }
             views.onLocate={ locate() };views.onCampus={
@@ -159,7 +161,7 @@ class CampusMapActivity: Activity() {
                 },{ _ -> maintenanceTargetChanged() },{ id -> startReview(id) }).also { it.restoreState(saved) }
                 views.onMaintenance={ maintenance?.menu() }
             }
-            views.addMapControls()
+            chrome.addMapControls()
             locationStyle=MyLocationStyle().myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER)
                 .radiusFillColor(0x225995ec).strokeColor(0x665995ec).strokeWidth(1f)
             map?.myLocationStyle=locationStyle
@@ -377,6 +379,7 @@ class CampusMapActivity: Activity() {
     private fun disposeMap() {
         gate.invalidate();handler.removeCallbacksAndMessages(null)
         val previousMap=map;val previousSource=locationSource;val previousView=mapView
+        mapChrome?.close();mapChrome=null
         maintenance?.close();markerLayer?.close();markerLayer=null
         // Drop references before provider calls, so partial failure/re-entry is safe.
         map=null;mapView=null;locationSource=null;sdk=null;screen=null;fix=null;locationStyle=null;mapShown=false;mapLoaded=false;maintenance=null

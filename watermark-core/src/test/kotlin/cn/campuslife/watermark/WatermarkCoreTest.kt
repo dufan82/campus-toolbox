@@ -4,6 +4,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WatermarkCoreTest {
+    @Test fun compactStyleChoicesPreserveOtherSettings() {
+        val initial=WatermarkStyle(position=Position.CUSTOM,anchorX=.2,anchorY=.7,fontRatio=.04)
+        val styled=WatermarkChoices.background(WatermarkChoices.text(initial,true),WatermarkChoices.Background.NONE)
+        val horizontal=WatermarkChoices.horizontal(styled,true)
+        assertEquals(0xff000000.toInt(),horizontal.textColor)
+        assertEquals(0.0,horizontal.backgroundOpacity,0.0)
+        assertFalse(horizontal.multiline)
+        assertEquals(Position.CUSTOM,horizontal.position)
+        assertEquals(.2,horizontal.anchorX,0.0)
+        assertEquals(.7,horizontal.anchorY,0.0)
+        assertEquals(.04,horizontal.fontRatio,0.0)
+        assertEquals("甲 · 乙",LayoutEngine.layout(2000.0,1000.0,listOf("甲","乙"),horizontal,metrics).lines.single().text)
+        assertEquals(-1,WatermarkChoices.text(horizontal,false).textColor)
+        assertTrue(WatermarkChoices.background(horizontal,WatermarkChoices.Background.DARK).backgroundOpacity>0.0)
+    }
     private val metrics = object : TextMeasurer {
         override fun width(text: String, fontSize: Double, bold: Boolean) = text.codePointCount(0, text.length) * fontSize
         override fun metrics(fontSize: Double, bold: Boolean) = FontMetrics(-fontSize * 0.8, fontSize * 0.2)

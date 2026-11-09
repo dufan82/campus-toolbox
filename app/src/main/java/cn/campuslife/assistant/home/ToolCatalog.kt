@@ -5,9 +5,9 @@ data class ToolboxTool(val id: String,val title: String,val subtitle: String,val
 object ToolCatalog {
     val tools=listOf(
         ToolboxTool("map","校园地图","平潭校区 · 搜楼栋","map"),
-        ToolboxTool("schedule","个人课程表","本周安排与今日课程","calendar"),
+        ToolboxTool("schedule","课程表","本周安排与今日课程","calendar"),
         ToolboxTool("watermark","照片水印","单张制作 · 高清另存","image"),
-        ToolboxTool("planner","倒计时","记录重要日期与纪念日","check")
+        ToolboxTool("planner","倒数日","记录重要日期与纪念日","clock")
     )
 }
 

@@ -72,71 +72,52 @@ class WatermarkActivity : Activity() {
 
     private fun buildPage() {
         val root=Ui.page(this)
-        val header=Ui.header(this,"活动照片水印")
-        (header.getChildAt(0) as LinearLayout).addView(Ui.button(this,"更换照片") {
+        val header=Ui.header(this,"照片水印")
+        photoControls=Ui.row(this)
+        photoControls.addView(Ui.textButton(this,"更换照片") {
             if(!busy) AlertDialog.Builder(this).setTitle("导入照片").setItems(arrayOf("从相册选择","拍照")) { _,index ->if(index==0)selectPhoto() else capturePhoto() }.setNegativeButton("取消",null).show()
-        }.apply { background=android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT);textSize=12f })
+        }.apply { tag="change_photo" })
+        (header.getChildAt(0) as LinearLayout).addView(photoControls)
         root.addView(header)
-        photoControls=Ui.row(this).apply { setPadding(Ui.dp(context,18),0,Ui.dp(context,18),Ui.dp(context,8)) }
-        listOf("从相册选择" to { selectPhoto() },"拍照" to { capturePhoto() }).forEach { (label,action) ->
-            photoControls.addView(Ui.button(this,label,onClick=action),LinearLayout.LayoutParams(0,Ui.dp(this,48),1f).apply { marginEnd=Ui.dp(this@WatermarkActivity,4) })
-        }
-        root.addView(photoControls)
         preview=WatermarkPreview(this).apply { tag="watermark_preview" }
         preview.onMoved={ x,y -> config=config.copy(style=config.style.copy(position=Position.CUSTOM,anchorX=x,anchorY=y)); changed() }
-        status=Ui.text(this,"选择照片后，在上方点选水印内容。",12f,Ui.muted).apply {
-            setPadding(Ui.dp(context,18),Ui.dp(context,7),Ui.dp(context,18),Ui.dp(context,7)); maxLines=3
+        val photoFrame=FrameLayout(this).apply {
+            background=Ui.shape(context,Ui.line,16);clipToOutline=true
+            addView(preview,FrameLayout.LayoutParams(-1,-1))
         }
+        root.addView(photoFrame,LinearLayout.LayoutParams(-1,0,1f).apply {
+            setMargins(Ui.dp(this@WatermarkActivity,16),Ui.dp(this@WatermarkActivity,12),Ui.dp(this@WatermarkActivity,16),0)
+        })
+        status=Ui.text(this,"更换照片后，点选下方水印内容。",12f,Ui.muted).apply {
+            setPadding(Ui.dp(context,18),Ui.dp(context,8),Ui.dp(context,18),Ui.dp(context,8)); maxLines=2
+        }
+        root.addView(status)
         panelHost=Ui.column(this)
-        lateinit var footer: LinearLayout
-        // Keep the options above the image; cap their height so short/landscape
-        // screens still have an actual preview. The fields remain scrollable.
+        // The photo owns the flexible area. Only the compact controls scroll on
+        // short screens or with larger fonts; save/share never leave the footer.
         panel=object: ScrollView(this) {
             override fun onMeasure(widthMeasureSpec: Int,heightMeasureSpec: Int) {
-                footer.measure(widthMeasureSpec,View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED))
-                status.measure(widthMeasureSpec,View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED))
-                val remaining=View.MeasureSpec.getSize(heightMeasureSpec)-footer.measuredHeight-status.measuredHeight-Ui.dp(context,96)
-                val cap=minOf(remaining.coerceAtLeast(Ui.dp(context,48)),(resources.displayMetrics.heightPixels*.44).toInt())
+                val cap=minOf(View.MeasureSpec.getSize(heightMeasureSpec),(resources.displayMetrics.heightPixels*.30f).toInt())
                 super.onMeasure(widthMeasureSpec,View.MeasureSpec.makeMeasureSpec(cap,View.MeasureSpec.AT_MOST))
             }
         }.apply { addView(panelHost);isFillViewport=false }
         root.addView(panel,LinearLayout.LayoutParams(-1,-2))
-        root.addView(preview,LinearLayout.LayoutParams(-1,0,1f))
-        root.addView(status)
-        footer=Ui.column(this).apply { setPadding(Ui.dp(context,18),Ui.dp(context,8),Ui.dp(context,18),Ui.dp(context,10)); setBackgroundColor(android.graphics.Color.WHITE) }
+        val footer=Ui.column(this).apply {
+            tag="watermark_export_actions"
+            setPadding(Ui.dp(context,18),Ui.dp(context,10),Ui.dp(context,18),Ui.dp(context,12))
+            setBackgroundColor(android.graphics.Color.WHITE)
+        }
         progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply { isIndeterminate=true; visibility=View.GONE }
         footer.addView(progress,LinearLayout.LayoutParams(-1,Ui.dp(this,4)))
         val actions=Ui.row(this)
         saveButton=Ui.button(this,"保存照片",true) { export(false) }.apply { tag="save_photo" }
         shareButton=Ui.iconButton(this,"share","分享照片") { export(true) }.apply { tag="share_photo";background=Ui.shape(context,android.graphics.Color.WHITE,12,Ui.line) }
-        actions.addView(shareButton,LinearLayout.LayoutParams(Ui.dp(this,52),Ui.dp(this,52)).apply { marginEnd=Ui.dp(this@WatermarkActivity,10) })
-        actions.addView(saveButton,LinearLayout.LayoutParams(0,Ui.dp(this,52),1f))
+        saveButton.minimumHeight=Ui.dp(this,52)
+        actions.addView(saveButton,LinearLayout.LayoutParams(0,-2,1f))
+        actions.addView(shareButton,LinearLayout.LayoutParams(Ui.dp(this,52),Ui.dp(this,52)).apply { marginStart=Ui.dp(this@WatermarkActivity,10) })
         footer.addView(actions)
         root.addView(footer)
         showPanel(); updatePreview()
-        // On short phones the fixed toolbar, picker and preview otherwise consume
-        // all resized space above the IME. Keep the actual editor available instead.
-        val visibleFrame=android.graphics.Rect()
-        var typing=false
-        root.viewTreeObserver.addOnGlobalLayoutListener {
-            root.getWindowVisibleDisplayFrame(visibleFrame)
-            val keyboardOpen=window.decorView.height-visibleFrame.bottom>Ui.dp(this,140)
-            if(keyboardOpen!=typing) {
-                typing=keyboardOpen
-                listOf(header,photoControls,preview,status).forEach { it.visibility=if(typing || (it===photoControls && !showPhotoControls())) View.GONE else View.VISIBLE }
-                if(typing) panel.post {
-                    currentFocus?.takeIf { it is EditText && it.isDescendantOf(panel) }?.let { field ->
-                        field.requestRectangleOnScreen(android.graphics.Rect(0,0,field.width,field.height),true)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun View.isDescendantOf(parent: View): Boolean {
-        var ancestor=this.parent
-        while(ancestor is View) { if(ancestor===parent) return true; ancestor=ancestor.parent }
-        return false
     }
 
     private fun showPanel() {
@@ -161,12 +142,11 @@ class WatermarkActivity : Activity() {
         if (!::preview.isInitialized) return
         preview.exportFormat=format
         preview.update(photo,texts(),config)
-        (panelHost.getChildAt(0) as? ContentPanel)?.refreshPosition()
         if(!busy) {
             val asset=photo
             status.setTextColor(if(preview.failure!=null) 0xffb91c1c.toInt() else Ui.muted)
             status.text=preview.failure ?: when {
-                asset==null -> "选择照片后，在上方点选水印内容。"
+                asset==null -> "点右上角选择照片，再点选下方水印内容。"
                 texts().isEmpty() -> "${asset.width} × ${asset.height} px · 填写校园资料或拍摄时间，选择显示字段。"
                 preview.layout?.reduced==true -> "内容较多，已适当缩小字号以完整显示。"
                 else -> "${asset.width} × ${asset.height} px · 原尺寸输出 · 可拖动水印"
@@ -174,20 +154,15 @@ class WatermarkActivity : Activity() {
         }
         saveButton.isEnabled=!busy && photo!=null && preview.failure==null
         shareButton.isEnabled=saveButton.isEnabled
-        photoControls.visibility=if(showPhotoControls())View.VISIBLE else View.GONE
     }
-
-    private fun showPhotoControls() = photo==null && resources.configuration.orientation!=android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     private fun selectPhoto() {
         if(busy) return
-        val intent=Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-            addCategory(Intent.CATEGORY_OPENABLE); type="image/*"
-            putExtra(Intent.EXTRA_MIME_TYPES,arrayOf("image/jpeg","image/png"))
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        try { startActivityForResult(intent,100) }
-        catch(_: Exception) { Ui.toast(this,"未找到系统相册或文件选择器，请检查设备设置") }
+        try { startActivityForResult(PhotoPickerIntents.primary(Build.VERSION.SDK_INT),100) }
+        catch(_: android.content.ActivityNotFoundException) {
+            try { startActivityForResult(PhotoPickerIntents.fallback(),100) }
+            catch(_: Exception) { Ui.toast(this,"未找到系统相册或文件选择器，请检查设备设置") }
+        } catch(_: SecurityException) { Ui.toast(this,"无法打开系统照片选择器，请检查设备设置") }
     }
     private fun capturePhoto() {
         if(busy) return
@@ -244,7 +219,7 @@ class WatermarkActivity : Activity() {
         if(busy || preview.failure!=null || exportDialog?.isShowing==true) return
         val lines=texts()
         if(lines.isEmpty()) {
-            AlertDialog.Builder(this).setTitle("尚未填写水印内容").setMessage("请点上方“编辑资料”填写校园资料，或填写拍摄时间，再点选要显示的字段。")
+            AlertDialog.Builder(this).setTitle("尚未填写水印内容").setMessage("请在“更多字段”里编辑校园资料或填写拍摄时间，再点选要显示的字段。")
                 .setPositiveButton("去填写") { _,_-> openProfile() }.setNegativeButton("取消",null).show()
             return
         }

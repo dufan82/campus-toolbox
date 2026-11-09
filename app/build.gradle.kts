@@ -31,8 +31,8 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.7.4"
+        versionCode = 27
+        versionName = "1.8.0"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
         buildConfigField("String", "CNB_REPOSITORY", "\"$domesticUpdateRepository\"")
@@ -71,6 +71,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.exifinterface:exifinterface:1.4.1")
     implementation("com.amap.api:3dmap-location-search:11.3.100_loc11.3.101_sea9.8.1")
+    // Capability probe only. Release builds must not package the WeChat SDK.
+    debugImplementation("com.tencent.mm.opensdk:wechat-sdk-android:6.8.40")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

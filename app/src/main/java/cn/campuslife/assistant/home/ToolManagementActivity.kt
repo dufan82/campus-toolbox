@@ -26,16 +26,19 @@ class ToolManagementActivity: Activity() {
         val ordered=state.normalized().order
         ordered.forEachIndexed { index,id ->
             val tool=ToolCatalog.tools.single { it.id==id }
-            val card=Ui.card(this);card.addView(Ui.text(this,tool.title,17f,bold=true));card.addView(Ui.text(this,tool.subtitle,13f,Ui.muted))
+            val card=Ui.row(this).apply { background=Ui.shape(context,android.graphics.Color.WHITE,14,Ui.line);setPadding(Ui.dp(context,14),Ui.dp(context,10),Ui.dp(context,8),Ui.dp(context,10));minimumHeight=Ui.dp(context,78) }
+            val labels=Ui.column(this);labels.addView(Ui.text(this,tool.title,15f,bold=true));labels.addView(Ui.space(this,6));labels.addView(Ui.text(this,if(manage && id in state.hidden) "已隐藏" else tool.subtitle,11f,Ui.muted))
+            card.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
             if(manage) {
-                val row=Ui.row(this)
                 val hide=id !in state.hidden
                 listOf("上移" to { change { it.move(id,-1) } },"下移" to { change { it.move(id,1) } },(if(hide) "隐藏" else "恢复") to { change { it.hide(id,hide) } }).forEachIndexed { actionIndex,(label,action) ->
-                    row.addView(Ui.button(this,label) { action() }.apply { tag="tool_${id}_$actionIndex";isEnabled=!failed && !(actionIndex==0 && index==0) && !(actionIndex==1 && index==ordered.lastIndex) },LinearLayout.LayoutParams(0,-2,1f).apply { marginEnd=Ui.dp(this@ToolManagementActivity,6) })
+                    card.addView(Ui.textButton(this,label) { action() }.apply { textSize=12f;setPadding(0,Ui.dp(context,6),0,Ui.dp(context,6));tag="tool_${id}_$actionIndex";isEnabled=!failed && !(actionIndex==0 && index==0) && !(actionIndex==1 && index==ordered.lastIndex) },LinearLayout.LayoutParams(Ui.dp(this,44),-2))
                 }
-                card.addView(Ui.space(this,8));card.addView(row)
-            } else card.addView(Ui.button(this,"打开") { ToolNavigation.open(this,id) }.apply { tag="all_tool_$id" })
-            body.addView(Ui.space(this,12));body.addView(card)
+            } else {
+                card.isClickable=true;card.isFocusable=true;card.tag="all_tool_$id";card.contentDescription=tool.title+"，"+tool.subtitle;card.setOnClickListener { ToolNavigation.open(this,id) }
+                card.addView(android.widget.ImageView(this).apply { setImageDrawable(cn.campuslife.assistant.ui.ToolGlyph(context,"next",Ui.muted));importantForAccessibility=android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO },LinearLayout.LayoutParams(Ui.dp(this,18),Ui.dp(this,18)))
+            }
+            body.addView(Ui.space(this,10));body.addView(card)
         }
         if(manage && !failed) { body.addView(Ui.space(this,20));body.addView(Ui.button(this,"恢复默认布局") {
             AlertDialog.Builder(this).setTitle("恢复默认布局？").setMessage("只恢复普通工具顺序和显示，不影响资料、课程或照片。")

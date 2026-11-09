@@ -64,7 +64,7 @@ class CountdownLayoutTest {
                         instrumentation.waitForIdleSync()
                         scenario.onActivity {
                             ready=it.resources.configuration.orientation==(if(landscape) Configuration.ORIENTATION_LANDSCAPE else Configuration.ORIENTATION_PORTRAIT) &&
-                                find(it.window.decorView) { view -> view is Button && view.text.toString()=="新增倒计时" && view.isEnabled }!=null
+                                find(it.window.decorView) { view -> view is Button && view.tag=="planner-add-header" && view.isEnabled }!=null
                         }
                         if(!ready) Thread.sleep(40)
                     }
@@ -73,13 +73,13 @@ class CountdownLayoutTest {
                     var scale=""
                     scenario.onActivity { activity ->
                         scale=activity.resources.configuration.fontScale.toString()
-                        val add=requireNotNull(find(activity.window.decorView) { it is Button && it.text.toString()=="新增倒计时" })
+                        val add=requireNotNull(find(activity.window.decorView) { it is Button && it.tag=="planner-add-header" })
                         val rect=Rect(); assertTrue(add.getGlobalVisibleRect(rect))
                         assertEquals("Add button must stay above system bars",add.height,rect.height())
                         assertEquals(add.width,rect.width())
                     }
                     capture("list-$orientation-font$scale.png")
-                    scenario.onActivity { activity -> find(activity.window.decorView) { it is Button && it.text.toString()=="新增倒计时" }!!.performClick() }
+                    scenario.onActivity { activity -> find(activity.window.decorView) { it is Button && it.tag=="planner-add-header" }!!.performClick() }
                     instrumentation.waitForIdleSync()
                     scenario.onActivity { activity ->
                         for(tag in listOf("planner-preset","planner-date")) {

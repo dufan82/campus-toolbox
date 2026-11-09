@@ -48,45 +48,12 @@ class ExpressActivity : Activity() {
     }
 
     private fun buildScreen() {
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-        @Suppress("DEPRECATION")
-        window.statusBarColor = backgroundColor
-        @Suppress("DEPRECATION")
-        window.navigationBarColor = backgroundColor
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setBackgroundColor(backgroundColor)
-            setOnApplyWindowInsetsListener { view, insets ->
-                if (Build.VERSION.SDK_INT >= 30) {
-                    val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-                    view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-                } else {
-                    @Suppress("DEPRECATION")
-                    view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
-                        insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
-                }
-                insets
-            }
-        }
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(8), dp(16), dp(8))
-        }
-        header.addView(button("返回", false) { finish() }, LinearLayout.LayoutParams(dp(80), -2))
-        header.addView(text("快递快捷入口", 22, ink, true).apply {
-            setPadding(dp(12), 0, 0, 0)
-        }, LinearLayout.LayoutParams(0, -2, 1f))
-        root.addView(header)
+        val root=cn.campuslife.assistant.ui.Ui.page(this)
+        root.addView(cn.campuslife.assistant.ui.Ui.header(this,"快递入口设置"))
         val scroll = ScrollView(this).apply { isFillViewport = true; clipToPadding = false }
         content = column().apply { setPadding(dp(16), dp(8), dp(16), dp(24)) }
         val intro = card()
-        intro.addView(text("取件少找一步", 21, ink, true))
-        intro.addView(text("3 个快捷入口 · 首页可直接打开 · 设置仅在本机", 14, muted), spaced(8))
-        intro.addView(text("本模块不读取短信，不上传任何数据。打开后由第三方 App 处理链接，可能需要登录或联网。", 14, muted), spaced(8))
+        intro.addView(text("首页三个快递入口保持固定，链接设置只保存在本机。", 13, muted))
         feedback = text("", 14, ink).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             setPadding(dp(12), dp(12), dp(12), dp(12))
@@ -97,7 +64,6 @@ class ExpressActivity : Activity() {
         ExpressCatalog.entries.forEach { addEntry(it) }
         scroll.addView(content)
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
-        setContentView(root)
         root.requestApplyInsets()
     }
 

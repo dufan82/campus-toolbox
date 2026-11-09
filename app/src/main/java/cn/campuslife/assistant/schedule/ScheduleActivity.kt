@@ -2,6 +2,8 @@ package cn.campuslife.assistant.schedule
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
+import android.graphics.Color
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
@@ -43,7 +45,7 @@ class ScheduleActivity : Activity() {
     // A narrow baseline: settings plus only the course being edited, never unrelated records.
     private var draftBase: ScheduleData? = null
     private var editor: AlertDialog? = null
-    private var prompt: AlertDialog? = null
+    private var prompt: Dialog? = null
     private var editorBody: LinearLayout? = null
     private var editorError: TextView? = null
     private var mode = "week"
@@ -128,11 +130,12 @@ class ScheduleActivity : Activity() {
 
     private fun render() {
         page.removeAllViews()
-        val header = Ui.header(this, "课程表")
-        (header.getChildAt(0) as LinearLayout).addView(quietButton("管理") { openSettings() }.apply { isEnabled = ready }, LinearLayout.LayoutParams(-2, -2))
+        page.setBackgroundColor(Color.WHITE)
+        val header = Ui.row(this).apply { setPadding(dp(18), dp(5), dp(12), dp(5)) }
+        header.addView(Ui.text(this, "课程表", 23f, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(quietButton("管理") { openSettings() }.apply { isEnabled = ready; tag = "schedule.manage" })
         page.addView(header)
-        val body = Ui.column(this).apply { setPadding(dp(12), 0, dp(12), dp(24)) }
-        page.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
+        val body = Ui.column(this).apply { setPadding(dp(12), 0, dp(12), dp(16)) }
         val data = session.data
         val status = when {
             session.readError -> "课程表读取失败，原文件已保留。请勿卸载应用；可退出后重试。"
@@ -140,50 +143,75 @@ class ScheduleActivity : Activity() {
             session.work.busy -> session.work.label
             else -> session.notice
         }
-        if (status.isNotEmpty()) body.addView(Ui.text(this, status, 14f, Ui.muted))
-        val direct = Ui.row(this)
-        direct.addView(Ui.button(this, "周课表", mode == "week") { mode = "week"; render() }.apply { isEnabled = data?.semester != null },
-            LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(8) })
-        direct.addView(Ui.button(this, "今日", mode == "today") {
-            mode = "today"; render()
-        }.apply { isEnabled = data?.semester != null }, LinearLayout.LayoutParams(0, -2, 1f))
-        body.addView(direct)
-        body.addView(Ui.space(this, 10))
-        if (data != null) {
-            val semester = data.semester
-            if (semester == null) body.addView(Ui.text(this, "请先设置学期", 17f, bold = true))
-            else {
-                val position = ScheduleCalendar.position(semester, LocalDate.now())
-                body.addView(Ui.text(this, when (position.phase) {
-                    SemesterPhase.BEFORE -> "学期尚未开始"
-                    SemesterPhase.ACTIVE -> "今天是第${position.week}周 · ${days[LocalDate.now().dayOfWeek.value - 1]}"
-                    SemesterPhase.AFTER -> "本学期已结束"
-                }, 13f, Ui.muted))
-                if (selectedWeek == 0) selectedWeek = position.week ?: if (position.phase == SemesterPhase.BEFORE) 1 else semester.totalWeeks
-                selectedWeek = selectedWeek.coerceIn(1, semester.totalWeeks)
-                if (mode == "today") {
-                    val courses = ScheduleCalendar.today(data, LocalDate.now())
-                    if (courses.isEmpty()) body.addView(Ui.text(this, "今日暂无课程", 17f))
-                    courses.forEach { course -> courseCard(body, course, data) }
-                } else {
-                    val paging = Ui.row(this)
-                    paging.addView(quietButton("上一周") { selectedWeek--; render() }.apply { isEnabled = selectedWeek > 1 },
-                        LinearLayout.LayoutParams(0, -2, 1f))
-                    paging.addView(Ui.text(this, "第${selectedWeek}周", 19f, bold = true).apply { gravity = Gravity.CENTER }, LinearLayout.LayoutParams(0, -2, 1f))
-                    paging.addView(quietButton("下一周") { selectedWeek++; render() }.apply { isEnabled = selectedWeek < semester.totalWeeks },
-                        LinearLayout.LayoutParams(0, -2, 1f))
-                    body.addView(paging)
-                    val weekInfo = Ui.row(this)
-                    val from = semester.startMonday.plusWeeks((selectedWeek - 1).toLong()); val to = from.plusDays(6)
-                    weekInfo.addView(Ui.text(this, "${from.monthValue}/${from.dayOfMonth} — ${to.monthValue}/${to.dayOfMonth}", 12f, Ui.muted), LinearLayout.LayoutParams(0, -2, 1f))
-                    weekInfo.addView(quietButton("回本周") { selectedWeek = position.week ?: if (position.phase == SemesterPhase.BEFORE) 1 else semester.totalWeeks; render() })
-                    body.addView(weekInfo)
-                    val courses = ScheduleCalendar.week(data, selectedWeek)
-                    if (courses.isEmpty()) body.addView(Ui.text(this, "本周暂无课程", 17f))
-                    weekGrid(body, data)
-                }
-            }
+        if (status.isNotEmpty()) body.addView(Ui.text(this, status, 14f, Ui.muted).apply {
+            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        })
+        if (SchoolImportReminder.needsInitialCheck(this, data?.semester != null)) {
+            body.addView(Ui.text(this, "尚未记录更新时间，建议检查学校课表", 13f, Ui.muted))
+        } else if (data != null && SchoolImportReminder.isDue(this)) {
+            body.addView(Ui.text(this, "距上次学校导入已满7天，可在管理中检查。不会自动更新。", 13f, Ui.muted))
         }
+        val semester = data?.semester
+        if (data != null && semester != null) {
+            val today = LocalDate.now()
+            val position = ScheduleCalendar.position(semester, today)
+            val currentWeek = position.week ?: if (position.phase == SemesterPhase.BEFORE) 1 else semester.totalWeeks
+            if (selectedWeek == 0) selectedWeek = currentWeek
+            selectedWeek = selectedWeek.coerceIn(1, semester.totalWeeks)
+            if (position.phase != SemesterPhase.ACTIVE) body.addView(Ui.text(this,
+                if (position.phase == SemesterPhase.BEFORE) "学期尚未开始" else "本学期已结束", 13f, Ui.muted))
+            val paging = Ui.row(this).apply { tag = "schedule.week.header" }
+            paging.addView(quietButton("上一周") { selectedWeek--; render() }.apply { isEnabled = selectedWeek > 1 },
+                LinearLayout.LayoutParams(-2, -2))
+            paging.addView(Ui.text(this, "第${selectedWeek}周", 20f, bold = true).apply { gravity = Gravity.CENTER },
+                LinearLayout.LayoutParams(0, -2, 1f))
+            paging.addView(quietButton("下一周") { selectedWeek++; render() }.apply { isEnabled = selectedWeek < semester.totalWeeks },
+                LinearLayout.LayoutParams(-2, -2))
+            body.addView(paging)
+            val from = semester.startMonday.plusWeeks((selectedWeek - 1).toLong())
+            body.addView(Ui.text(this, if (mode == "today") "${today.monthValue}月${today.dayOfMonth}日 · ${days[today.dayOfWeek.value - 1]}"
+                else "${from.monthValue}.${from.dayOfMonth} – ${from.plusDays(6).monthValue}.${from.plusDays(6).dayOfMonth}", 13f, Ui.muted).apply {
+                setPadding(dp(4), dp(4), dp(4), dp(4)); tag = "schedule.date"
+            })
+            body.addView(Ui.row(this).apply {
+                addView(quietButton(if (position.week == selectedWeek) "本周" else "回本周") {
+                    selectedWeek = currentWeek; render()
+                }, LinearLayout.LayoutParams(0, -2, 1f))
+                addView(Ui.row(this@ScheduleActivity).apply {
+                    background = Ui.shape(this@ScheduleActivity, Ui.background, 12)
+                    setPadding(dp(3), dp(3), dp(3), dp(3))
+                    fun modeButton(label: String, value: String) = quietButton(label) { mode = value; render() }.apply {
+                        isSelected = mode == value
+                        setTextColor(if (isSelected) Ui.ink else Ui.muted)
+                        if (isSelected) background = Ui.shape(this@ScheduleActivity, Color.WHITE, 9, Ui.line)
+                    }
+                    addView(modeButton("周课表", "week"), LinearLayout.LayoutParams(-2, -2))
+                    addView(modeButton("今日", "today"), LinearLayout.LayoutParams(-2, -2))
+                })
+            })
+            body.addView(Ui.space(this, 8))
+            if (mode == "today") {
+                val courses = ScheduleCalendar.today(data, today)
+                if (courses.isEmpty()) body.addView(Ui.text(this, "今日暂无课程", 19f, bold = true).apply {
+                    gravity = Gravity.CENTER; setPadding(dp(16), dp(36), dp(16), dp(36))
+                })
+                courses.forEach { course -> courseCard(body, course, data) }
+            } else {
+                if (ScheduleCalendar.week(data, selectedWeek).isEmpty())
+                    body.addView(Ui.text(this, "本周暂无课程", 16f, Ui.muted))
+                weekGrid(body, data)
+            }
+        } else if (data != null) {
+            body.addView(Ui.text(this, "请先设置学期", 20f, bold = true).apply { setPadding(dp(8), dp(28), dp(8), dp(12)) })
+            body.addView(Ui.text(this, "从管理中导入学校课表，或设置学期后添加课程。", 15f, Ui.muted))
+        }
+        page.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
+        val footer = Ui.row(this).apply { setPadding(dp(16), 0, dp(12), 0) }
+        footer.addView(Ui.text(this, if (semester != null) "已保存到本机" else "本机课表", 12f, Ui.muted),
+            LinearLayout.LayoutParams(0, -2, 1f))
+        footer.addView(quietButton("检查变动") { startActivity(Intent(this, ScheduleTransferActivity::class.java)) }.apply { isEnabled = ready })
+        page.addView(footer)
+        page.addView(Ui.bottomNavigation(this, "schedule").apply { Ui.enabled(this, !session.work.busy) })
         editorBody?.let { Ui.enabled(it, ready) }
         editor?.let { dialog ->
             val canCommit = ready && (draft?.getString("type") == "list" || draftBase != null)
@@ -213,14 +241,35 @@ class ScheduleActivity : Activity() {
         actions.add("学期设置" to { openSemester() })
         actions.add("节次设置" to { openPeriods() })
         actions.add("全部课程" to { draft = Bundle().apply { putString("type", "list") }; showEditor() })
-        showPrompt(AlertDialog.Builder(this).setTitle("课程表管理")
-            .setItems(actions.map { it.first }.toTypedArray()) { _, index ->
-                if (ready) actions[index].second()
-            }.setNegativeButton("取消", null))
+        prompt?.dismiss()
+        val sheet = Ui.bottomSheet(this, "课程表管理") { content, dialog ->
+            val list = object : ListView(this) {
+                override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                    super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(Int.MAX_VALUE shr 2, View.MeasureSpec.AT_MOST))
+                }
+            }.apply {
+                divider = android.graphics.drawable.ColorDrawable(Ui.line); dividerHeight = dp(1)
+                adapter = object : ArrayAdapter<String>(this@ScheduleActivity, android.R.layout.simple_list_item_1, actions.map { it.first }) {
+                    override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View =
+                        Ui.text(this@ScheduleActivity, getItem(position).orEmpty(), 16f).apply {
+                            gravity = Gravity.CENTER_VERTICAL; minimumHeight = dp(56)
+                            setPadding(dp(4), dp(14), dp(4), dp(14))
+                        }
+                }
+                setOnItemClickListener { _, _, index, _ ->
+                    dialog.dismiss()
+                    if (ready) actions[index].second()
+                }
+            }
+            content.addView(list, LinearLayout.LayoutParams(-1, -2))
+            content.addView(quietButton("取消") { dialog.dismiss() }, LinearLayout.LayoutParams(-1, -2))
+        }
+        prompt = sheet
+        sheet.setOnDismissListener { if (prompt === sheet) prompt = null }
     }
 
     private fun weekGrid(body: LinearLayout, data: ScheduleData) {
-        body.addView(ScheduleWeekView(this, data, selectedWeek, ready) { choices ->
+        body.addView(redesignedScheduleWeekView(this, data, selectedWeek, ready) { choices ->
             if (choices.size == 1) openCourseDetails(choices.single())
             else showPrompt(AlertDialog.Builder(this).setTitle("选择重叠的课程")
                 .setItems(choices.map { "${it.name} · ${SchedulePresentation.periodRange(it)}" }.toTypedArray()) { _, index -> openCourseDetails(choices[index]) }
@@ -236,19 +285,29 @@ class ScheduleActivity : Activity() {
         }
         detailCourseId = course.id
         displayedCourse = course
-        val body = Ui.column(this).apply { setPadding(dp(22), dp(10), dp(22), dp(12)) }
-        body.addView(Ui.text(this, course.name, 21f, bold = true))
-        body.addView(Ui.space(this, 10)); body.addView(Ui.text(this, SchedulePresentation.periodRange(course), 15f, Ui.blue, true))
-        body.addView(Ui.space(this, 22)); body.addView(Ui.text(this, "教室", 12f, Ui.muted)); body.addView(Ui.space(this, 4))
-        body.addView(Ui.text(this, course.classroom.ifBlank { "未填写" }, 17f))
-        body.addView(Ui.space(this, 18)); body.addView(Ui.text(this, "教师", 12f, Ui.muted)); body.addView(Ui.space(this, 4))
-        body.addView(Ui.text(this, course.teacher.ifBlank { "未填写" }, 17f))
-        showPrompt(AlertDialog.Builder(this).setTitle("课程详情").setView(Ui.scroll(this, body))
-            .setPositiveButton("关闭", null).setNeutralButton("编辑课程") { _, _ ->
-                detailCourseId = null
-                session.data?.courses?.find { it.id == course.id }?.let { openCourse(it) }
+        val dialog = Ui.bottomSheet(this, "课程详情") { body, sheet ->
+            body.tag = "schedule.details"
+            body.addView(Ui.text(this, course.name, 23f, bold = true))
+            fun detail(label: String, value: String) {
+                body.addView(Ui.space(this, 18))
+                body.addView(Ui.text(this, label, 13f, Ui.muted))
+                body.addView(Ui.space(this, 5))
+                body.addView(Ui.text(this, value.ifBlank { "未填写" }, 17f))
+            }
+            detail("教室", course.classroom)
+            detail("教师", course.teacher)
+            detail("节次", SchedulePresentation.periodRange(course))
+            body.addView(Ui.space(this, 24))
+            body.addView(Ui.row(this).apply {
+                addView(quietButton("关闭") { sheet.dismiss() }, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(10) })
+                addView(Ui.button(this@ScheduleActivity, "编辑课程") {
+                    detailCourseId = null
+                    sheet.dismiss()
+                    session.data?.courses?.find { it.id == course.id }?.let { openCourse(it) }
+                }, LinearLayout.LayoutParams(0, -2, 1f))
             })
-        val dialog = prompt!!
+        }
+        prompt = dialog
         dialog.setOnDismissListener {
             if (prompt === dialog) {
                 prompt = null; displayedCourse = null
@@ -258,10 +317,13 @@ class ScheduleActivity : Activity() {
     }
     private fun courseCard(body: LinearLayout, course: Course, data: ScheduleData) {
         if (draft?.getString("type") != "list") {
-            action(body, "${course.name}\n${SchedulePresentation.periodRange(course)} · ${course.classroom.ifBlank { "教室未填写" }}", ready) { openCourseDetails(course) }.apply {
+            action(body, "${course.name}\n${course.classroom.ifBlank { "教室未填写" }}\n${SchedulePresentation.periodRange(course)}", ready) { openCourseDetails(course) }.apply {
+                tag = "schedule.today.${course.id}"
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setTextColor(Ui.ink); setPadding(dp(16), dp(14), dp(16), dp(14))
-                background = Ui.shape(this@ScheduleActivity, android.graphics.Color.WHITE, 14, Ui.line)
+                textSize = 17f
+                setTextColor(Ui.ink); setPadding(dp(18), dp(16), dp(18), dp(16))
+                background = Ui.shape(this@ScheduleActivity, Ui.pale, 14)
+                contentDescription = "${course.name}，教室：${course.classroom.ifBlank { "未填写" }}，${SchedulePresentation.periodRange(course)}，点击查看详情"
             }
             return
         }
@@ -524,9 +586,9 @@ class ScheduleActivity : Activity() {
             isEnabled = enabled
             body.addView(this, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6); bottomMargin = dp(6) })
         }
-    private fun quietButton(label: String, click: () -> Unit) = Ui.button(this, label, onClick = click).apply {
+    private fun quietButton(label: String, click: () -> Unit) = Ui.textButton(this, label, click).apply {
         stateListAnimator = null; elevation = 0f
-        background = android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x220c6b58), Ui.shape(this@ScheduleActivity, android.graphics.Color.TRANSPARENT, 10), null)
+        minWidth = dp(48); minimumWidth = dp(48)
     }
     private fun patternLabel(pattern: WeekPattern) = when (pattern) { WeekPattern.EVERY -> "每周"; WeekPattern.ODD -> "单周"; WeekPattern.EVEN -> "双周" }
     private fun dp(value: Int) = Ui.dp(this, value)

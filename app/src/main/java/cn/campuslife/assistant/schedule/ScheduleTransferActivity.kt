@@ -2,6 +2,7 @@ package cn.campuslife.assistant.schedule
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -34,10 +35,15 @@ class ScheduleTransferActivity : Activity() {
         var stage = Stage.HOME
         var authorization: String? = null
         var autoImportAttempted = false
-        var webSessionStarted = false
+        var clearingLogin = false
         var terms = emptyList<SchoolTerm>()
         var candidate: ScheduleData? = null
+        var schoolPreview = false
         var baseline: ScheduleData? = null
+        var baselineSnapshot: ScheduleSnapshot? = null
+        var previewDifference: ScheduleUpdateDifference? = null
+        var previewDate: LocalDate? = null
+        val selectedLegacy = mutableSetOf<String>()
         var warnings = emptyList<String>()
         var source = ""
         var notice = ""
@@ -50,7 +56,7 @@ class ScheduleTransferActivity : Activity() {
     private var status: TextView? = null
     private var readButton: View? = null
     private var web: WebView? = null
-    private var dialog: AlertDialog? = null
+    private var dialog: Dialog? = null
     private var back: android.window.OnBackInvokedCallback? = null
     private val loginHandler = Handler(Looper.getMainLooper())
     private var resumed = false
@@ -62,7 +68,7 @@ class ScheduleTransferActivity : Activity() {
             loginHandler.postDelayed(this, 1500)
         }
     }
-    private val ready get() = session.data != null && !session.work.busy
+    private val ready get() = session.data != null && !session.work.busy && !session.clearingLogin
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,12 +95,15 @@ class ScheduleTransferActivity : Activity() {
         loginHandler.removeCallbacks(loginTick); loginHandler.post(loginTick)
     }
     override fun onPause() {
-        resumed = false; loginHandler.removeCallbacks(loginTick); super.onPause()
+        resumed = false; loginHandler.removeCallbacks(loginTick)
+        if (web != null) CookieManager.getInstance().flush()
+        super.onPause()
     }
     @Deprecated("Platform compatibility") override fun onBackPressed() = requestBack()
     private fun requestBack() {
+        if (session.clearingLogin) { Ui.toast(this, "正在清除网页登录状态，请稍候"); return }
         if (session.work.busy) {
-            if (session.downloading) { session.cancelled.set(true); session.notice = "正在取消，当前请求结束后返回；原课表未改。"; updateStatus() }
+            if (session.downloading) { session.cancelled.set(true); clearAuthorization(); session.notice = "正在取消，当前请求结束后返回；原课表未改。"; updateStatus() }
             else Ui.toast(this, "正在保存或读取，请稍候")
             return
         }
@@ -106,7 +115,7 @@ class ScheduleTransferActivity : Activity() {
         session.work.detach(this)
         if (session.owner?.get() === this) session.owner = null
         if (!isChangingConfigurations) {
-            session.cancelled.set(true); clearLogin(); session.work.close()
+            session.cancelled.set(true); clearAuthorization(); session.work.close()
         }
         super.onDestroy()
     }
@@ -115,24 +124,41 @@ class ScheduleTransferActivity : Activity() {
         web?.let { (it.parent as? android.view.ViewGroup)?.removeView(it); it.stopLoading(); it.webChromeClient = null; it.destroy() }
         web = null; readButton = null
     }
-    private fun clearLogin() {
-        val usedWeb = session.webSessionStarted
+    private fun clearAuthorization() {
         session.authorization = null
         session.autoImportAttempted = false
-        session.webSessionStarted = false
-        if (usedWeb) {
-            WebStorage.getInstance().deleteAllData()
-            CookieManager.getInstance().removeAllCookies(null)
-        }
     }
     private fun home() {
-        clearLogin(); session.stage = Stage.HOME; session.candidate = null; session.baseline = null
+        clearAuthorization(); session.stage = Stage.HOME; session.candidate = null; session.baseline = null; session.baselineSnapshot = null; session.previewDifference = null; session.previewDate = null; session.selectedLegacy.clear()
         session.progress = ""; session.warnings = emptyList(); render()
+    }
+    private fun confirmClearWebLogin() {
+        dialog = AlertDialog.Builder(this).setTitle("清除学校登录状态？")
+            .setMessage("将清除本应用 WebView 的全部 Cookie 和网页存储，可能影响本应用其他网页的登录状态；不会删除本地课表或课表备份。学校服务器上的登录状态不一定同时退出。")
+            .setNegativeButton("取消", null).setPositiveButton("清除并退出") { _, _ ->
+                clearAuthorization()
+                val current = session
+                current.clearingLogin = true
+                current.notice = "正在清除本应用网页登录状态…"
+                render()
+                WebStorage.getInstance().deleteAllData()
+                CookieManager.getInstance().removeAllCookies {
+                    CookieManager.getInstance().flush()
+                    current.clearingLogin = false
+                    current.notice = "已清除本应用网页 Cookie，并请求清除网页存储；下次请重新登录。"
+                    current.owner?.get()?.render()
+                }
+            }.show()
     }
     private fun render() {
         if (session.stage == Stage.LOGIN && web != null && !session.work.busy) { updateStatus(); return }
         destroyWeb(); page.removeAllViews()
-        page.addView(Ui.header(this, if (session.stage == Stage.LOGIN) "学校课表" else "课表导入与备份", "导入后保存在本机 · 不需要一直登录"))
+        page.addView(Ui.header(this, when (session.stage) {
+            Stage.LOGIN -> "学校课表"
+            Stage.PREVIEW -> "课表更新预览"
+            Stage.TERMS -> "选择学期"
+            Stage.HOME -> "课表导入与备份"
+        }))
         status = Ui.text(this, "", 14f, Ui.muted).apply {
             setPadding(dp(16), 0, dp(16), dp(8)); accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         }.also { page.addView(it) }
@@ -140,7 +166,7 @@ class ScheduleTransferActivity : Activity() {
         if (session.stage == Stage.LOGIN && !session.work.busy) { showWeb(); return }
         val body = Ui.column(this).apply { setPadding(dp(16), 0, dp(16), dp(24)) }
         page.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
-        if (session.work.busy) {
+        if (session.work.busy || session.clearingLogin) {
             body.addView(android.widget.ProgressBar(this))
             if (session.downloading) action(body, "取消导入", true) { requestBack() }
             return
@@ -148,18 +174,26 @@ class ScheduleTransferActivity : Activity() {
         when (session.stage) {
             Stage.HOME -> {
                 val card = Ui.card(this)
-                card.addView(Ui.text(this, "从学校平台导入", 18f, bold = true))
-                card.addView(Ui.text(this, "登录福建信息职业技术学院平台后，自动读取当前学期。程序会逐周读取，预览确认后才保存，不会自动替换原课表。", 14f, Ui.muted))
+                card.addView(Ui.text(this, "更新学校课表", 21f, bold = true))
                 card.addView(Ui.space(this, 8))
+                card.addView(Ui.text(this, "先看差异，再选择未来更新或整表替换。", 15f, Ui.muted))
+                card.addView(Ui.space(this, 16))
                 action(card, "登录学校平台", ready, true) { session.notice = "请自行登录，识别成功后自动读取当前学期；未自动开始时，打开个人课表或点击下方导入。"; session.stage = Stage.LOGIN; render() }
-                body.addView(card); body.addView(Ui.space(this))
-                body.addView(Ui.text(this, "密码只在学校网页输入。系统网页组件会临时保存登录状态，正常退出时清除，下次登录前也会清理；导入器不另存凭据，也不发送到其他服务器。", 13f, Ui.muted))
-                body.addView(Ui.space(this))
-                action(body, "导出课表备份", ready && session.data?.semester != null) { export() }
-                action(body, "从备份恢复", ready) { pickBackup() }
-                action(body, "恢复上次替换前的课表", ready && session.previous != null) { preview(session.previous!!, "上次替换前副本", emptyList(), session.data!!) }
-                body.addView(Ui.text(this, "备份包含课程、教师、教室和学期日期，请自行保管。备份不含账号、密码或登录凭据。最近一次替换前副本只保存在本机。", 13f, Ui.muted))
-                action(body, "返回课程表", true) { finish() }
+                card.addView(Ui.text(this, "网页会话尽量保留，过期后需重新登录。", 13f, Ui.muted))
+                card.addView(Ui.textButton(this, "登录与隐私说明") { showLoginInfo() }, LinearLayout.LayoutParams(-1, -2))
+                body.addView(card)
+                body.addView(Ui.space(this, 20))
+                body.addView(Ui.text(this, "备份与恢复", 17f, bold = true))
+                body.addView(Ui.space(this, 10))
+                val backups = Ui.card(this)
+                action(backups, "导出课表备份", ready && session.data?.semester != null) { export() }
+                action(backups, "从备份恢复", ready) { pickBackup() }
+                action(backups, "恢复上次替换前的课表", ready && session.previous != null) { preview(session.previous!!, "上次替换前副本", emptyList(), session.data!!) }
+                backups.addView(Ui.text(this, "备份只含课表，不含登录凭据；请自行保管。", 13f, Ui.muted))
+                body.addView(backups)
+                body.addView(Ui.space(this, 14))
+                action(body, "清除 / 退出学校登录", ready) { confirmClearWebLogin() }
+                body.addView(Ui.textButton(this, "返回课程表") { finish() }, LinearLayout.LayoutParams(-1, -2))
             }
             Stage.TERMS -> {
                 body.addView(Ui.text(this, "选择要离线保存的学期", 18f, bold = true))
@@ -171,17 +205,25 @@ class ScheduleTransferActivity : Activity() {
         }
     }
     private fun updateStatus() {
-        status?.text = listOf(session.notice, if (session.work.busy) session.progress.ifBlank { session.work.label } else "").filter { it.isNotBlank() }.joinToString("\n")
+        status?.apply {
+            text = listOf(session.notice, if (session.work.busy) session.progress.ifBlank { session.work.label } else "").filter { it.isNotBlank() }.joinToString("\n")
+            visibility = if (text.isBlank()) View.GONE else View.VISIBLE
+        }
         readButton?.isEnabled = !session.work.busy && !probingLogin
     }
     @android.annotation.SuppressLint("SetJavaScriptEnabled")
     private fun showWeb() {
         val view = WebView(this)
         web = view
+        view.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         WebView.setWebContentsDebuggingEnabled(false)
         CookieManager.getInstance().setAcceptThirdPartyCookies(view, false)
         view.settings.apply {
             javaScriptEnabled = true; domStorageEnabled = true
+            @Suppress("DEPRECATION")
+            setSavePassword(false)
+            @Suppress("DEPRECATION")
+            setSaveFormData(false)
             allowFileAccess = false; allowContentAccess = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             javaScriptCanOpenWindowsAutomatically = false; setSupportMultipleWindows(false)
@@ -235,14 +277,7 @@ class ScheduleTransferActivity : Activity() {
         }
         page.addView(controls); updateStatus()
         if (resumed) { loginHandler.removeCallbacks(loginTick); loginHandler.postDelayed(loginTick, 1500) }
-        if (!session.webSessionStarted) {
-            session.webSessionStarted = true
-            WebStorage.getInstance().deleteAllData()
-            view.clearCache(true)
-            CookieManager.getInstance().removeAllCookies {
-                if (web === view && session.stage == Stage.LOGIN) view.loadUrl(SchoolPortalPolicy.START_URL)
-            }
-        } else view.loadUrl(SchoolPortalPolicy.START_URL)
+        view.loadUrl(SchoolPortalPolicy.START_URL)
     }
     private fun probeLogin(view: WebView, manual: Boolean) {
         if (web !== view || session.stage != Stage.LOGIN || session.work.busy || probingLogin) return
@@ -290,7 +325,7 @@ class ScheduleTransferActivity : Activity() {
         session.cancelled.set(false); session.downloading = true; session.notice = "正在读取${term.label}，全部完成后才能保存。"
         val current = session
         session.work.submit("准备读取整学期…", {
-            val baseline = current.store.load()
+            val baseline = current.store.loadSnapshot()
             val result = SchoolPortalClient.network(authorization, current.cancelled).collect(term, current.cancelled) { done, total ->
                 Handler(Looper.getMainLooper()).post { current.progress = "已读取 $done / $total 周"; current.owner?.get()?.updateStatus() }
             }
@@ -298,42 +333,195 @@ class ScheduleTransferActivity : Activity() {
         }, { result ->
             session.downloading = false; session.progress = ""
             if (session.cancelled.get()) { session.notice = "已取消，原课表未改。"; home() }
-            else result.onSuccess { (before, imported) -> preview(imported.data, term.label, imported.warnings, before) }
+            else result.onSuccess { (before, imported) ->
+                session.baselineSnapshot = before
+                preview(imported.data, term.label, imported.warnings, before.data, school = true)
+            }
                 .onFailure { session.notice = "整学期未能完整读取，没有保存。请检查网络或重新登录后重试；原课表未改。"; render() }
         })
     }
-    private fun preview(data: ScheduleData, source: String, warnings: List<String>, baseline: ScheduleData) {
+    private fun preview(data: ScheduleData, source: String, warnings: List<String>, baseline: ScheduleData, school: Boolean = false) {
+        session.schoolPreview = school
+        session.selectedLegacy.clear(); session.previewDifference = null; session.previewDate = null
+        if (!school) session.baselineSnapshot = null
         session.candidate = data; session.baseline = baseline; session.source = source; session.warnings = warnings
-        session.stage = Stage.PREVIEW; session.notice = "预览尚未保存，取消不会修改原课表。"; render()
+        session.stage = Stage.PREVIEW; session.notice = "预览尚未保存，取消不会修改原课表。"
+        if (!school) { render(); return }
+        val date = LocalDate.now()
+        val started = session.work.submit("正在计算课表差异…", {
+            ScheduleUpdatePreview.compare(baseline, data, date)
+        }, { result ->
+            result.onSuccess { difference -> session.previewDifference = difference; session.previewDate = date }
+                .onFailure { session.notice = "课表差异无法计算，原课表未改；请返回后重试。" }
+            render()
+        })
+        if (!started) { session.notice = "正在处理其他操作，请返回后重试。"; render() }
+    }
+    private fun showLoginInfo() {
+        dialog = Ui.bottomSheet(this, "登录与隐私说明") { body, _ ->
+            body.addView(Ui.text(this, "课表保存在本机，登录后逐周读取完整学期，先预览再确认。", 16f))
+            body.addView(Ui.space(this))
+            body.addView(Ui.text(this, "网页组件会尽量在本机保留会话，过期后需重新登录。应用不读取密码、不单独保存 Token；网页自身的数据由学校页面控制。", 15f, Ui.muted))
+            body.addView(Ui.space(this))
+            body.addView(Ui.text(this, "未来更新保留过去及受保护课程；整表替换包含过去及手动课程。写入前保留最近一次本机副本。每周自动更新尚未实现。", 15f, Ui.muted))
+            body.addView(Ui.space(this))
+            body.addView(Ui.text(this, "课表备份含课程、教师、教室及学期日期，不含账号、密码或登录凭据。", 15f, Ui.muted))
+        }
     }
     private fun showPreview(body: LinearLayout) {
         val data = session.candidate ?: return
-        body.addView(Ui.text(this, session.source, 18f, bold = true))
-        body.addView(Ui.text(this, "${data.semester?.startMonday ?: "未设学期"} 起 · ${data.semester?.totalWeeks ?: 0}周\n${data.courses.map { it.name }.distinct().size}个课程名称 · ${data.courses.size}个上课时段"))
-        session.warnings.forEach { body.addView(Ui.text(this, it, 14f, Ui.muted)) }
-        if (data.courses.isEmpty()) body.addView(Ui.text(this, "此课表没有课程。请确认学期是否正确，避免替换成空表。", 15f))
-        body.addView(Ui.space(this))
-        action(body, "确认保存到本机", ready, true) { confirmSave() }
-        action(body, "取消，不修改原课表", true) { home() }
-        body.addView(Ui.text(this, "以下为前30个时段，保存后可在本地周表逐周查看和编辑。", 13f, Ui.muted))
-        data.courses.take(30).forEach { course ->
-            body.addView(Ui.text(this, "${course.name}\n周${course.weekday} · 第${course.startPeriod}–${course.endPeriod}节 · 第${course.startWeek}–${course.endWeek}周" +
-                when(course.pattern) { WeekPattern.ODD -> "（单周）"; WeekPattern.EVEN -> "（双周）"; else -> "" } + "\n${course.teacher}  ${course.classroom}", 14f))
-            body.addView(Ui.space(this))
+        val summary = Ui.card(this)
+        summary.tag = "schedule.preview.summary"
+        summary.addView(Ui.text(this, session.source, 21f, bold = true))
+        summary.addView(Ui.space(this, 8))
+        summary.addView(Ui.text(this, "${data.semester?.startMonday ?: "未设学期"} 起 · ${data.semester?.totalWeeks ?: 0}周", 14f, Ui.muted))
+        summary.addView(Ui.text(this, "${data.courses.map { it.name }.distinct().size}个课程名称 · ${data.courses.size}个上课时段", 14f, Ui.muted))
+        body.addView(summary)
+        body.addView(Ui.space(this, 12))
+        val difference = if (session.schoolPreview) session.previewDifference else null
+        if (session.schoolPreview) {
+            if (difference == null) {
+                body.addView(Ui.text(this, "差异计算失败，暂不能未来合并；仍可核对后整表替换。", 15f))
+            } else {
+                val counts = Ui.row(this)
+                fun count(label: String, count: Int, tagValue: String): LinearLayout = Ui.card(this).apply {
+                    tag = tagValue
+                    background = Ui.shape(this@ScheduleTransferActivity, Ui.pale, 14)
+                    addView(Ui.text(this@ScheduleTransferActivity, label, 13f, Ui.muted))
+                    addView(Ui.space(this@ScheduleTransferActivity, 8))
+                    addView(Ui.text(this@ScheduleTransferActivity, "${count}次", 26f, Ui.blue, true))
+                }
+                counts.addView(count("仅本地有", difference.onlyLocal.size, "schedule.diff.local"),
+                    LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(10) })
+                counts.addView(count("仅学校有", difference.onlySchool.size, "schedule.diff.school"),
+                    LinearLayout.LayoutParams(0, -2, 1f))
+                body.addView(counts)
+                body.addView(Ui.space(this, 10))
+                body.addView(Ui.text(this, "比较自${session.previewDate}起的上课次数，按名称、教师、教室及节次核对；不含地点关联和作息。以下不是最终合并结果。", 13f, Ui.muted))
+                val snapshot = session.baselineSnapshot
+                if (snapshot != null && snapshot.data == session.baseline) {
+                    val future = Ui.card(this)
+                    future.tag = "schedule.future.options"
+                    future.addView(Ui.text(this, "仅更新今日及未来", 18f, bold = true))
+                    future.addView(Ui.space(this, 8))
+                    future.addView(Ui.text(this, "过去课程、受保护课程保留；未登记来源的旧课程默认全部保护。", 14f, Ui.muted))
+                    val unknown = snapshot.data.courses.filter { it.id !in snapshot.registry.managed && it.id !in snapshot.registry.protectedIds }
+                    if (unknown.isNotEmpty()) {
+                        action(future, "选择旧课程（已选${session.selectedLegacy.size}/${unknown.size}）", ready) { chooseLegacy(unknown) }
+                        future.addView(Ui.text(this, "只勾选你确认可按学校课程处理的记录。", 13f, Ui.muted))
+                    }
+                    if (snapshot.registry.protectedIds.isNotEmpty())
+                        future.addView(Ui.text(this, "存在本地编辑或删除过的学校课程，无法可靠确定原时段，暂不能使用未来合并。", 14f, Ui.muted))
+                    action(future, "预览仅今日及未来更新", ready, true) { previewFuture() }
+                    body.addView(Ui.space(this, 12)); body.addView(future)
+                }
+            }
         }
+        session.warnings.forEach { body.addView(Ui.text(this, it, 14f, Ui.muted)) }
+        if (data.courses.isEmpty()) body.addView(Ui.text(this, "此课表没有课程。请核对学期，避免替换成空表。", 15f))
+        body.addView(Ui.space(this, 12))
+        val replacement = Ui.card(this)
+        replacement.tag = "schedule.replace.options"
+        replacement.addView(Ui.text(this, "整表替换", 18f, bold = true))
+        replacement.addView(Ui.space(this, 8))
+        replacement.addView(Ui.text(this, "包含过去及手动课程，不是未来合并。替换前保留最近一次本机副本。", 14f, Ui.muted))
+        action(replacement, "确认保存到本机", ready, !session.schoolPreview) { confirmSave() }
+        body.addView(replacement)
+        action(body, "取消，不修改原课表", true) { home() }
+        if (difference != null) {
+            fun showRows(label: String, rows: List<ScheduleOccurrence>) {
+                if (rows.isEmpty()) return
+                body.addView(Ui.space(this, 14))
+                body.addView(Ui.text(this, "$label（${rows.size}次，显示前30次）", 17f, bold = true))
+                rows.take(30).forEach { row ->
+                    val card = Ui.card(this)
+                    card.addView(Ui.text(this, "${row.date} · 第${row.startPeriod}–${row.endPeriod}节", 12f, Ui.muted))
+                    card.addView(Ui.space(this, 7))
+                    card.addView(Ui.text(this, row.name, 17f, bold = true))
+                    card.addView(Ui.space(this, 6))
+                    card.addView(Ui.text(this, "教室：${row.classroom.ifBlank { "未填写" }} · 教师：${row.teacher.ifBlank { "未填写" }}", 14f, Ui.muted))
+                    body.addView(Ui.space(this, 8)); body.addView(card)
+                }
+            }
+            showRows("仅本地", difference.onlyLocal)
+            showRows("仅学校", difference.onlySchool)
+        }
+        body.addView(Ui.space(this, 20))
+        body.addView(Ui.text(this, "导入课程 · 前30个时段", 17f, bold = true))
+        data.courses.take(30).forEach { course ->
+            val card = Ui.card(this)
+            card.addView(Ui.text(this, course.name, 17f, bold = true))
+            card.addView(Ui.space(this, 6))
+            card.addView(Ui.text(this, "周${course.weekday} · ${SchedulePresentation.periodRange(course)} · 第${course.startWeek}–${course.endWeek}周" +
+                when (course.pattern) { WeekPattern.ODD -> "（单周）"; WeekPattern.EVEN -> "（双周）"; else -> "" }, 13f, Ui.muted))
+            card.addView(Ui.text(this, "${course.classroom.ifBlank { "教室未填写" }} · ${course.teacher.ifBlank { "教师未填写" }}", 14f, Ui.muted))
+            body.addView(Ui.space(this, 8)); body.addView(card)
+        }
+    }
+    private fun chooseLegacy(courses: List<Course>) {
+        val selected = session.selectedLegacy.toMutableSet()
+        val labels = courses.mapIndexed { index, course ->
+            "${index+1}. ${course.name} · 周${course.weekday} 第${course.startPeriod}–${course.endPeriod}节 · ${course.startWeek}–${course.endWeek}周 · ${course.teacher} ${course.classroom}"
+        }.toTypedArray()
+        val checked = courses.map { it.id in selected }.toBooleanArray()
+        dialog = AlertDialog.Builder(this).setTitle("选择可按学校课程处理的旧课程")
+            .setMultiChoiceItems(labels, checked) { _, index, value ->
+                if (value) selected.add(courses[index].id) else selected.remove(courses[index].id)
+            }
+            .setNegativeButton("取消", null).setPositiveButton("确认选择") { _, _ ->
+                session.selectedLegacy.clear(); session.selectedLegacy.addAll(selected); render()
+            }.show()
+    }
+    private fun previewFuture() {
+        val snapshot = session.baselineSnapshot ?: return
+        val school = session.candidate ?: return
+        val selected = session.selectedLegacy.toSet()
+        val today = LocalDate.now()
+        session.work.submit("正在计算未来更新…", {
+            val plan = SchoolFutureMerge.plan(snapshot.data, school, snapshot.registry.managed, selected, today, snapshot.registry.protectedIds)
+            plan to ScheduleUpdatePreview.compare(snapshot.data, plan.data, today)
+        }, { result ->
+            result.onSuccess { (plan, difference) ->
+                fun describe(rows: List<ScheduleOccurrence>) = rows.take(12).joinToString("\n") { "${it.date} 第${it.startPeriod}–${it.endPeriod}节 ${it.name} ${it.classroom}" }
+                val details = "从 $today 起，移除 ${difference.onlyLocal.size} 次、新增 ${difference.onlySchool.size} 次；因受保护课程冲突而未添加 ${plan.blockedOccurrences} 次。过去课程和受保护课程保留，写入前保留一份本机副本。\n\n" +
+                    "移除（前12次）：\n${describe(difference.onlyLocal).ifEmpty { "无" }}\n\n新增（前12次）：\n${describe(difference.onlySchool).ifEmpty { "无" }}"
+                dialog = AlertDialog.Builder(this).setTitle("确认仅更新今日及未来？").setMessage(details)
+                    .setNegativeButton("取消", null).setPositiveButton("确认未来更新") { _, _ ->
+                        val current = session; val store = current.store; val appContext = applicationContext
+                        current.work.submit("正在安全更新课程表…", {
+                            val saved = store.applyFutureWithBackup(snapshot, school, selected, today)
+                            val recorded = SchoolImportReminder.mayRecordFutureSuccess(saved.blockedOccurrences) && runCatching { SchoolImportReminder.recordSuccess(appContext) }.getOrDefault(false)
+                            Triple(saved, runCatching { store.previousImport() }.getOrNull(), recorded)
+                        }, { savedResult ->
+                            savedResult.onSuccess { (saved, previous, recorded) ->
+                                session.data = saved.data; session.previous = previous
+                                session.notice = when {
+                                    saved.blockedOccurrences > 0 -> "未来课表已处理，但 ${saved.blockedOccurrences} 次因受保护课程冲突未加入；未刷新更新时间。"
+                                    recorded -> "未来课表已保存。"
+                                    else -> "课表已保存，但导入时间未能记录。"
+                                }
+                                home()
+                            }.onFailure { session.notice = "更新失败或课表、日期已变化，没有应用更新。请重新预览。"; render() }
+                        })
+                    }.show()
+            }.onFailure { error -> session.notice = error.message ?: "无法安全合并，原课表未改。"; render() }
+        })
     }
     private fun confirmSave() {
         val candidate = session.candidate ?: return
         val before = session.baseline ?: return
         dialog = AlertDialog.Builder(this).setTitle("替换当前本地课表？")
-            .setMessage("将保存预览中的${candidate.courses.size}个时段，替换当前课表。替换前会保留一份本机副本，可在这里恢复。需要长期保留的旧学期请先导出备份。")
+            .setMessage("将以预览中的${candidate.courses.size}个时段整表替换当前课表，包括过去及手动课程，并非仅更新今日及未来。替换前会保留一份本机副本；需要长期保留的旧学期请先导出备份。")
             .setNegativeButton("返回核对", null).setPositiveButton("确认替换") { _, _ ->
                 val store = session.store
+                val school = session.schoolPreview
+                val appContext = applicationContext
                 session.work.submit("正在保存本地课表…", {
-                    val saved = store.replaceWithBackup(before, candidate)
-                    saved to runCatching { store.previousImport() }.getOrNull()
+                    val saved = store.replaceWithBackup(before, candidate, schoolImport = school)
+                    val recorded = !school || runCatching { SchoolImportReminder.recordSuccess(appContext) }.getOrDefault(false)
+                    Triple(saved, runCatching { store.previousImport() }.getOrNull(), recorded)
                 }, { result ->
-                    result.onSuccess { (saved, previous) -> session.data = saved; session.previous = previous; session.notice = "已保存到本机，可断网查看。"; home() }
+                    result.onSuccess { (saved, previous, recorded) -> session.data = saved; session.previous = previous; session.notice = if (recorded) "已保存到本机，可断网查看。" else "课表已保存，但导入时间未能记录，可能无法显示更新提醒。"; home() }
                         .onFailure { session.notice = "保存失败或原课表已被其他页面修改，没有替换。请返回并重新预览；原文件已保留。"; render() }
                 })
             }.show()

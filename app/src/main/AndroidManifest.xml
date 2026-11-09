@@ -13,6 +13,7 @@
         <package android:name="com.ss.android.ugc.aweme" />
         <package android:name="com.ss.android.ugc.aweme.lite" />
         <package android:name="com.autonavi.minimap" />
+        <package android:name="com.tencent.mm" />
     </queries>
     <application android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@drawable/ic_app" android:label="校园生活助手"
         android:largeHeap="true" android:theme="@style/AppTheme" android:supportsRtl="true">
@@ -23,8 +24,10 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.WatermarkActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".ui.ProfileActivity" android:exported="false" />
         <activity android:name=".home.ToolManagementActivity" android:exported="false" />
+        <activity android:name=".gate.GateActivity" android:exported="false" />
         <activity android:name=".update.UpdateActivity" android:exported="false" />
         <activity android:name=".schedule.ScheduleActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".schedule.ScheduleTransferActivity" android:exported="false" android:windowSoftInputMode="adjustResize" android:configChanges="orientation|screenSize|keyboardHidden" />

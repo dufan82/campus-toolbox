@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity android:name=".gate.probe.WechatProbeActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+    </application>
+</manifest>

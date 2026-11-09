@@ -15,11 +15,24 @@ class ToolGlyph(context: Context,private val kind: String,color: Int) : Drawable
         fun path(vararg points: Float) { val p=Path();p.moveTo(points[0],points[1]);for(i in 2 until points.size step 2)p.lineTo(points[i],points[i+1]);canvas.drawPath(p,paint) }
         fun rect(l: Float,t: Float,r: Float,b: Float)=canvas.drawRoundRect(l,t,r,b,1.5f,1.5f,paint)
         when(kind) {
+            "home" -> {path(3f,10f,12f,3f,21f,10f,21f,21f,15f,21f,15f,14f,9f,14f,9f,21f,3f,21f,3f,10f)}
+            "user" -> {canvas.drawCircle(12f,7f,4f,paint);val p=Path();p.moveTo(4f,21f);p.lineTo(4f,18f);p.cubicTo(4f,10f,20f,10f,20f,18f);p.lineTo(20f,21f);canvas.drawPath(p,paint)}
+            "next" -> path(9f,5f,16f,12f,9f,19f)
+            "close" -> {path(6f,6f,18f,18f);path(6f,18f,18f,6f)}
+            "pin" -> {val p=Path();p.moveTo(12f,22f);p.cubicTo(-5f,6f,6f,1f,12f,2f);p.cubicTo(26f,1f,22f,13f,12f,22f);canvas.drawPath(p,paint);canvas.drawCircle(12f,8f,2.5f,paint)}
+            "clock" -> {canvas.drawCircle(12f,12f,9f,paint);path(12f,7f,12f,12f,16f,14f)}
+            "download" -> {path(12f,3f,12f,16f);path(6f,10f,12f,16f,18f,10f);path(4f,17f,4f,21f,20f,21f,20f,17f)}
+            "plus" -> {path(12f,5f,12f,19f);path(5f,12f,19f,12f)}
+            "sliders" -> {path(3f,7f,21f,7f);path(3f,17f,21f,17f);path(8f,4f,8f,10f);path(16f,14f,16f,20f)}
+            "shield" -> {path(12f,3f,20f,6f,20f,13f,16f,19f,12f,22f,8f,19f,4f,13f,4f,6f,12f,3f);path(8f,12f,11f,15f,16f,9f)}
+            "refresh" -> {val oval=RectF(4f,4f,20f,20f);canvas.drawArc(oval,35f,285f,false,paint);path(20f,3f,20f,8f,15f,8f)}
+            "layout" -> {rect(3f,3f,10f,10f);rect(14f,3f,21f,10f);rect(3f,14f,10f,21f);rect(14f,14f,21f,21f)}
             "package" -> {path(12f,3f,21f,8f,21f,16f,12f,21f,3f,16f,3f,8f,12f,3f);path(3f,8f,12f,13f,21f,8f);path(12f,13f,12f,21f);path(7f,5.5f,16f,10.5f)}
             "qr" -> {rect(3f,3f,9f,9f);rect(15f,3f,21f,9f);rect(3f,15f,9f,21f);path(15f,15f,18f,15f,18f,18f,21f,18f,21f,21f,15f,21f);path(3f,12f,5f,12f);path(12f,3f,12f,6f);path(12f,11f,12f,16f)}
             "bag" -> {rect(4f,6f,20f,21f);path(8f,7f,8f,4f,16f,4f,16f,7f);val p=Path();p.moveTo(8f,10f);p.cubicTo(8f,15f,16f,15f,16f,10f);canvas.drawPath(p,paint)}
             "image" -> {rect(3f,3f,21f,21f);canvas.drawCircle(8f,8f,1.4f,paint);path(3f,17f,8f,12f,12f,16f,16f,12f,21f,17f)}
             "back" -> path(15f,5f,8f,12f,15f,19f)
+            "gate" -> {path(4f,21f,4f,4f,15f,4f,15f,8f);path(4f,21f,15f,21f,15f,16f);path(9f,12f,21f,12f);path(17f,8f,21f,12f,17f,16f)}
             "map" -> {path(3f,5f,9f,3f,15f,5f,21f,3f,21f,19f,15f,21f,9f,19f,3f,21f,3f,5f);path(9f,3f,9f,19f);path(15f,5f,15f,21f)}
             "info" -> {canvas.drawCircle(12f,12f,9f,paint);path(12f,10f,12f,17f);canvas.drawCircle(12f,6.5f,.5f,paint)}
             "share" -> {path(7f,10f,4f,10f,4f,21f,20f,21f,20f,10f,17f,10f);path(12f,15f,12f,2f);path(8f,6f,12f,2f,16f,6f)}

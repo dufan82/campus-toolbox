@@ -27,21 +27,26 @@ class MainActivity : Activity() {
     private var updateTicket=0
     private var updateStarted=false
     private var availableUpdate: UpdatePackage?=null
+    private var nextLesson: HomeLesson?=null
+    private var nextLessonData: cn.campuslife.assistant.schedule.ScheduleData?=null
+    private var lessonTicket=0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val root=Ui.page(this)
         val content=Ui.column(this).apply { setPadding(Ui.dp(context,20),Ui.dp(context,12),Ui.dp(context,20),Ui.dp(context,16)) }
         root.addView(content,LinearLayout.LayoutParams(-1,-2))
+        val compact=resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        if(!compact) { content.addView(Ui.text(this,"平潭校区",12f,Ui.muted));content.addView(Ui.space(this,5)) }
         val header=Ui.row(this)
-        header.addView(Ui.text(this,"校园工具箱",24f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+        header.addView(Ui.text(this,"校园工具箱",26f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
         header.addView(Ui.iconButton(this,"settings","设置") { settings() },LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
-        content.addView(header);content.addView(Ui.space(this,12))
+        content.addView(header);content.addView(Ui.space(this,10));if(!compact) { content.addView(Ui.text(this,"快递直达",16f,bold=true));content.addView(Ui.space(this,10)) }
         val quick=Ui.row(this).apply { background=Ui.shape(context,Color.WHITE,16,Ui.line) }
         val launcher=ExpressLauncher(this,ExpressConfiguration(ExpressPreferences(this)))
         ExpressCatalog.entries.forEachIndexed { index,entry ->
             if(index>0) quick.addView(View(this).apply { setBackgroundColor(Ui.line) },LinearLayout.LayoutParams(Ui.dp(this,1),-1))
             val tile=Ui.column(this).apply {
-                gravity=Gravity.CENTER;minimumHeight=Ui.dp(context,116);isClickable=true;isFocusable=true
+                gravity=Gravity.CENTER;minimumHeight=Ui.dp(context,100);isClickable=true;isFocusable=true
                 tag="shortcut_${entry.id}";contentDescription=entry.title
                 setPadding(Ui.dp(context,4),Ui.dp(context,16),Ui.dp(context,4),Ui.dp(context,16))
                 background=RippleDrawable(ColorStateList.valueOf(0x220c6b58),Ui.shape(context,Color.WHITE,16),null)
@@ -65,12 +70,13 @@ class MainActivity : Activity() {
         content.addView(quick)
         toolsBody=Ui.column(this).apply { setPadding(Ui.dp(context,20),0,Ui.dp(context,20),Ui.dp(context,24));tag="home_tools" }
         root.addView(Ui.scroll(this,toolsBody),LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(Ui.bottomNavigation(this,"home"))
         renderTools()
         // After the first layout; all network and preference reads stay off the UI thread.
         root.post { if (!isDestroyed) { updateStarted=true;checkUpdate() } }
     }
-    override fun onResume() { super.onResume();if(::toolsBody.isInitialized) { reloadLayout();if(updateStarted) checkUpdate() } }
-    override fun onDestroy() { updateTicket++;super.onDestroy() }
+    override fun onResume() { super.onResume();if(::toolsBody.isInitialized) { reloadLayout();loadNextLesson();if(updateStarted) checkUpdate() } }
+    override fun onDestroy() { updateTicket++;lessonTicket++;super.onDestroy() }
     private fun checkUpdate() {
         val ticket=++updateTicket
         val reference=WeakReference(this)
@@ -90,6 +96,17 @@ class MainActivity : Activity() {
         HomeLayoutRepository(this).load { result -> if(!isDestroyed && ticket==layoutTicket) {
             result.fold({ homeLayout=it;layoutError=false },{ layoutError=true;homeLayout=null });renderTools()
         } }
+    }
+    private fun loadNextLesson() {
+        val ticket=++lessonTicket;val app=applicationContext;val reference=WeakReference(this)
+        homePreviewIo.execute {
+            val result=runCatching { cn.campuslife.assistant.schedule.ScheduleStore(app).load() }
+            val data=result.getOrNull()
+            val upcoming=data?.let { HomeSchedulePreview.next(it,java.time.LocalDate.now(),java.time.LocalTime.now()) }
+            Handler(Looper.getMainLooper()).post { reference.get()?.takeIf { !it.isDestroyed && it.lessonTicket==ticket }?.let {
+                it.nextLesson=upcoming;it.nextLessonData=data;it.renderTools()
+            } }
+        }
     }
     private fun renderTools() {
         toolsBody.removeAllViews()
@@ -111,8 +128,8 @@ class MainActivity : Activity() {
             toolsBody.addView(Ui.space(this,10))
         }
         val heading=Ui.row(this)
-        heading.addView(Ui.text(this,"我的常用工具",17f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
-        heading.addView(Ui.button(this,"管理") { startActivity(Intent(this,ToolManagementActivity::class.java).putExtra("manage",true)) }.apply { tag="home_manage" })
+        heading.addView(Ui.text(this,"常用工具",17f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+        heading.addView(Ui.textButton(this,"编辑") { startActivity(Intent(this,ToolManagementActivity::class.java).putExtra("manage",true)) }.apply { tag="home_manage" })
         toolsBody.addView(heading);toolsBody.addView(Ui.space(this,8))
         if(layoutError) {
             toolsBody.addView(Ui.text(this,"首页设置读取失败，临时显示默认布局；原设置未更改。",13f,Ui.muted).apply { tag="home_layout_error" })
@@ -123,33 +140,45 @@ class MainActivity : Activity() {
             val row=Ui.row(this).apply { gravity=Gravity.TOP }
             ids.forEachIndexed { index,id ->
                 val tool=ToolCatalog.tools.single { it.id==id }
-                val tile=Ui.card(this).apply {
-                    minimumHeight=Ui.dp(context,128);isClickable=true;isFocusable=true
+                val tile=Ui.row(this).apply {
+                    minimumHeight=Ui.dp(context,86);isClickable=true;isFocusable=true
+                    setPadding(Ui.dp(context,12),Ui.dp(context,14),Ui.dp(context,8),Ui.dp(context,14))
                     tag=if(id=="map") "open_campus_map" else "home_tool_$id";contentDescription=tool.title+"，"+tool.subtitle
-                    background=RippleDrawable(ColorStateList.valueOf(0x220c6b58),Ui.shape(context,Color.WHITE,14,Ui.line),null)
+                    background=RippleDrawable(ColorStateList.valueOf(0x183159d8),Ui.shape(context,Color.WHITE,14,Ui.line),null)
                     setOnClickListener { ToolNavigation.open(this@MainActivity,id) }
                 }
-                tile.addView(ImageView(this).apply { setImageDrawable(ToolGlyph(context,tool.glyph,Ui.blue));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO },LinearLayout.LayoutParams(Ui.dp(this,26),Ui.dp(this,26)))
-                tile.addView(Ui.space(this,12));tile.addView(Ui.text(this,tool.title,16f,bold=true));tile.addView(Ui.space(this,5));tile.addView(Ui.text(this,tool.subtitle,12f,Ui.muted))
+                val color=when(id) { "map"->0xff28745b.toInt();"watermark"->0xff986729.toInt();"planner"->0xff7356a2.toInt();else->Ui.blue }
+                val badge=ImageView(this).apply { setImageDrawable(ToolGlyph(context,if(id=="planner") "clock" else tool.glyph,color));setPadding(Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7));background=Ui.shape(context,when(id) { "map"->0xffeaf5ef.toInt();"watermark"->0xfffff4e8.toInt();"planner"->0xfff2eefd.toInt();else->Ui.pale },11);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+                tile.addView(badge,LinearLayout.LayoutParams(Ui.dp(this,35),Ui.dp(this,35)).apply { marginEnd=Ui.dp(this@MainActivity,9) })
+                val title=when(id) { "schedule"->"课程表";"planner"->"倒数日";else->tool.title }
+                val subtitle=when(id) { "map"->"搜楼栋、找位置";"schedule"->"查看本周安排";"watermark"->"选照片，加水印";else->"记住重要日期" }
+                val labels=Ui.column(this);labels.addView(Ui.text(this,title,15f,bold=true));labels.addView(Ui.space(this,5));labels.addView(Ui.text(this,subtitle,11f,Ui.muted))
+                tile.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
                 row.addView(tile,LinearLayout.LayoutParams(0,-2,1f).apply { if(index==0) marginEnd=Ui.dp(this@MainActivity,10) })
             }
             if(ids.size==1) row.addView(View(this),LinearLayout.LayoutParams(0,1,1f))
             toolsBody.addView(row);toolsBody.addView(Ui.space(this,10))
         }
-        toolsBody.addView(Ui.button(this,"全部工具") { open(ToolManagementActivity::class.java) }.apply { tag="home_all_tools" },LinearLayout.LayoutParams(-1,-2))
-        toolsBody.addView(Ui.space(this,18));toolsBody.addView(Ui.text(this,"资料与照片只在本机处理 · 地图需联网",12f,Ui.muted))
+        toolsBody.addView(Ui.textButton(this,"全部工具") { open(ToolManagementActivity::class.java) }.apply { tag="home_all_tools" },LinearLayout.LayoutParams(-1,-2))
+        toolsBody.addView(Ui.space(this,12))
+        val lesson=nextLesson
+        if(lesson!=null) {
+            val heading=Ui.row(this);heading.addView(Ui.text(this,"下次上课",17f,bold=true),LinearLayout.LayoutParams(0,-2,1f));heading.addView(Ui.textButton(this,"查看课表") { ToolNavigation.open(this,"schedule") });toolsBody.addView(heading)
+            val card=Ui.card(this).apply { tag="home_next_lesson";isClickable=true;isFocusable=true;setOnClickListener { ToolNavigation.open(this@MainActivity,"schedule") } }
+            val date=lesson.date;val today=java.time.LocalDate.now()
+            val day=when(date) { today->"今天";today.plusDays(1)->"明天";else->"${date.monthValue}月${date.dayOfMonth}日" }
+            val period=if(lesson.course.startPeriod==lesson.course.endPeriod) "第${lesson.course.startPeriod}节" else "第${lesson.course.startPeriod}–${lesson.course.endPeriod}节"
+            card.addView(Ui.text(this,"$day · $period",12f,Ui.muted));card.addView(Ui.space(this,10));card.addView(Ui.text(this,lesson.course.name,17f,bold=true));card.addView(Ui.space(this,8))
+            val start=nextLessonData?.periods?.getOrNull(lesson.course.startPeriod-1)?.start
+            val details=listOf(lesson.course.classroom.takeIf { it.isNotBlank() },start?.toString()).filterNotNull().joinToString(" · ")
+            if(details.isNotBlank()) card.addView(Ui.text(this,details,13f,Ui.muted))
+            toolsBody.addView(card)
+        } else {
+            toolsBody.addView(Ui.textButton(this,if(nextLessonData?.semester==null) "添加或导入课表" else "查看课程安排") { ToolNavigation.open(this,"schedule") },LinearLayout.LayoutParams(-1,-2))
+        }
+        toolsBody.addView(Ui.space(this,18));toolsBody.addView(Ui.text(this,"不用注册，也能使用本地工具",11f,Ui.muted).apply { gravity=Gravity.CENTER })
     }
     private fun open(type: Class<out Activity>) { startActivity(Intent(this,type)) }
-    private fun settings() {
-        AlertDialog.Builder(this).setTitle("工具箱设置").setItems(arrayOf("我的校园资料","快捷入口设置与诊断","检查更新","使用说明")) { _,index ->
-            when(index) {
-                0->open(ProfileActivity::class.java)
-                1->open(ExpressActivity::class.java)
-                2->startActivity(Intent(this,UpdateActivity::class.java).putExtra("manual",true))
-                else->AlertDialog.Builder(this).setTitle("使用说明")
-                    .setMessage("照片水印：选图或拍照 → 点选上方字段 → 编辑资料 → 在下方预览 → 命名并保存。学号默认关闭，标签上的数字是排列顺序。\n\n只保留一种简洁样式；设置自动记住。导出创建新照片，原图不会覆盖。资料和照片只在本机处理。\n\n快递按钮直接向官方 App 发起跳转，成功时不弹提示；是否到达目标页由第三方版本、登录和链接有效性决定。")
-                    .setPositiveButton("知道了",null).show()
-            }
-        }.setNegativeButton("关闭",null).show()
-    }
+    companion object { private val homePreviewIo=java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it,"home-schedule-preview") } }
+    private fun settings() { open(SettingsActivity::class.java) }
 }

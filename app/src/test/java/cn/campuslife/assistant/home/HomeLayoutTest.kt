@@ -4,13 +4,20 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class HomeLayoutTest {
+    @Test fun removedGateDoesNotReturnAndExistingChoicesSurviveUpgrade() {
+        val result=HomeLayout(listOf("planner","gate","map","schedule","watermark"),setOf("gate","map")).normalized()
+        assertEquals(listOf("planner","map","schedule","watermark"),result.order)
+        assertEquals(setOf("map"),result.hidden)
+        assertEquals(listOf("planner","schedule","watermark"),result.visible())
+        assertFalse(ToolCatalog.tools.any { it.id=="gate" })
+    }
     @Test fun retiredToolsDisappearWhileLegacySurvivorOrderAndHiddenChoiceRemain() {
         val result=HomeLayout(listOf("batch","watermark","favorites","planner","map","schedule"),
             setOf("favorites","batch","planner")).normalized()
         assertEquals(listOf("watermark","planner","map","schedule"),result.order)
         assertEquals(setOf("planner"),result.hidden)
         assertEquals(listOf("watermark","map","schedule"),result.visible())
-        assertEquals("倒计时",ToolCatalog.tools.single { it.id=="planner" }.title)
+        assertEquals("倒数日",ToolCatalog.tools.single { it.id=="planner" }.title)
     }
     @Test fun normalizationKeepsOrderAddsNewToolsAndRejectsExpressIds() {
         val result=HomeLayout(listOf("planner","pdd_code","map","planner","gone"),setOf("map","pdd_code" )).normalized()
