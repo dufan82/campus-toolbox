@@ -1,5 +1,18 @@
 # 国内更新源
 
+## 当前版本：1.8.1 / code28
+
+2026-11-09已与GitHub同步为最新稳定版。CNB Release ID2119669458318352384；匿名latest协议、三附件完整下载的大小/SHA256均通过，不需要账号Token。包名、旧兼容证书、非调试和双ARM库已核对；本轮没有在用户ARM手机执行安装。
+
+- [国内1.8.1下载](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.8.1)
+- [GitHub 1.8.1备用](https://github.com/dufan82/campus-toolbox/releases/tag/v1.8.1)
+- APK 78,924,462字节；SHA256 `dffaf667cfc11203c5b3bfecff807db5f90b16ad9177dc1c6fafb8f8201f67aa`。
+- update.json为276字节，SHA256SUMS.txt为169字节；三附件原始匿名校验记录在verification/daily-sync-20261109/cnb181-assets-verified.json，latest记录在cnb181-latest.json。
+- 更新读取优先国内源。手动入口是“我的→检查更新”，自动缓存24小时，最近请求后手动检查至少间隔60秒。直接覆盖安装，不卸载旧版。手机实际接收提示、系统下载安装及数据保留仍待验收。
+- CNB源码压缩包仍是国内入口页仓库；完整Android源码以GitHub 8d573a2及后续文档提交为准。
+
+## 1.7.4历史发布记录
+
 当前国内最新版为1.7.4/code21，2026-10-27通过用户授权的官方API发布；Release ID 2114875750033051648，非草稿、非预发布、已设latest。三个附件已免登录完整下载，大小/SHA与本地准备文件及服务器摘要一致；包名、非调试、双ARM及历史签名通过。实际旧1.7.3已检测到1.7.4并显示首页入口和版本弹窗，检查不需要GitHub。断VPN真机的系统下载和覆盖安装仍待验收，本次未推送GitHub。
 
 1.7.3开始默认绑定 https://cnb.cool/campus-toolbox/campus-toolbox ，国内源优先、GitHub备用。1.7.3及其旧附件保留，不覆盖。
