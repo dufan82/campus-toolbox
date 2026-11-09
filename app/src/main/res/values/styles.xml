@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="BaseAppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <style name="BrandSharedTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#3159D8</item>
+        <item name="android:colorAccent">@color/brand_navy</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#F5F7FB</item>
+        <item name="android:statusBarColor">@color/brand_mist</item>
         <item name="android:navigationBarColor">#FFFFFF</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:windowBackground">#F5F7FB</item>
+        <item name="android:windowBackground">@color/brand_mist</item>
     </style>
+    <style name="BaseAppTheme" parent="BrandSharedTheme" />
     <style name="AppTheme" parent="BaseAppTheme" />
+    <style name="BrandLaunchTheme" parent="AppTheme">
+        <item name="android:windowBackground">@drawable/brand_starting_background</item>
+    </style>
 </resources>

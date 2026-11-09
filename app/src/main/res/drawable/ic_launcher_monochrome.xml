@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 33 themed icon alpha silhouette. One white color; transparent background; no text. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF" android:strokeWidth="5.5"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M32,37H54V54H76V71H65" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M37,37A5,5 0,1 1,27,37A5,5 0,1 1,37,37Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M81,71A5,5 0,1 1,71,71A5,5 0,1 1,81,71Z" />
+</vector>

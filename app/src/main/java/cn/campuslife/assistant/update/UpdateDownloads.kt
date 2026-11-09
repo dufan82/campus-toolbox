@@ -134,7 +134,7 @@ private class SystemUpdateDownloads(context: Context) : UpdateDownloadBackend {
         val folder = context.getExternalFilesDir("updates") ?: throw IOException("下载目录不可用")
         if (!folder.isDirectory && !folder.mkdirs()) throw IOException("无法创建下载目录")
         if (StatFs(folder.absolutePath).availableBytes < info.size + 16L * 1024 * 1024) throw IOException("下载空间不足")
-        val request = DownloadManager.Request(Uri.parse(url)).setTitle("校园工具箱更新")
+        val request = DownloadManager.Request(Uri.parse(url)).setTitle("校伴更新")
             .setDescription(info.versionName).setMimeType("application/vnd.android.package-archive")
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             .setDestinationInExternalFilesDir(context, "updates", "${UUID.randomUUID()}.apk")

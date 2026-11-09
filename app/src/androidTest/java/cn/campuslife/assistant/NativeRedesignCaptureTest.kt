@@ -31,8 +31,10 @@ class NativeRedesignCaptureTest {
             val f=File(ctx.filesDir,name);name to if(f.isFile) f.readBytes() else null
         }
         val store=LocalStore(ctx);val config=store.config();val profile=store.profile();val oldDraft=store.draftName()
+        val homeStore=cn.campuslife.assistant.home.HomeLayoutStore(ctx);val oldHome=homeStore.load()
         val photo=File(PhotoLoader(ctx).draftFolder,"redesign-capture.jpg")
         try {
+            homeStore.save(cn.campuslife.assistant.home.HomeLayout.defaults())
             val now=LocalDate.now();val start=now.with(DayOfWeek.MONDAY)
             val times=listOf("08:30","09:20","10:25","11:15","12:10","13:05","14:00","14:50","15:55","16:45","19:00","19:50")
             val periods=times.mapIndexed { i,t -> val time=LocalTime.parse(t);SchedulePeriod("第${i+1}节",time,time.plusMinutes(45)) }
@@ -68,7 +70,7 @@ class NativeRedesignCaptureTest {
             }
         } finally {
             for((name,bytes) in originals) { val f=File(ctx.filesDir,name);if(bytes==null) f.delete() else f.writeBytes(bytes) }
-            store.saveConfig(config);store.saveProfile(profile);store.saveDraftName(oldDraft);photo.delete()
+            store.saveConfig(config);store.saveProfile(profile);store.saveDraftName(oldDraft);homeStore.save(oldHome);photo.delete()
         }
     }
     private fun <T:Activity> capture(type:Class<T>,name:String) {
@@ -78,7 +80,8 @@ class NativeRedesignCaptureTest {
     }
     private fun save(name:String) {
         val inst=InstrumentationRegistry.getInstrumentation()
-        val folder=File(inst.targetContext.getExternalFilesDir("verification"),"ui180").apply { mkdirs() }
+        val folderName=InstrumentationRegistry.getArguments().getString("captureFolder")?.takeIf {it.matches(Regex("[a-z0-9-]{1,40}"))} ?: "ui180"
+        val folder=File(inst.targetContext.getExternalFilesDir("verification"),folderName).apply { mkdirs() }
         val bitmap=requireNotNull(inst.uiAutomation.takeScreenshot())
         File(folder,"$name.png").outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) };bitmap.recycle()
     }

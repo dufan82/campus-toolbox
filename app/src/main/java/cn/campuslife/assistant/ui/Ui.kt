@@ -19,12 +19,17 @@ import android.view.WindowManager
 import android.widget.*
 
 object Ui {
-    val blue = Color.rgb(49,89,216)
-    val ink = Color.rgb(25,34,53)
-    val muted = Color.rgb(98,112,135)
-    val background = Color.rgb(245,247,251)
-    val line = Color.rgb(233,237,243)
-    val pale = Color.rgb(237,242,255)
+    // Keep the existing API names so a visual change cannot alter feature/storage identities.
+    val blue = Brand.navy
+    val ink = Brand.navy
+    val muted = Color.rgb(92,106,122)
+    val background = Brand.mist
+    val line = Color.rgb(225,230,236)
+    val pale = Color.rgb(235,240,245)
+    val teal = Brand.teal
+    val orange = Brand.orange
+    val tealTint = Color.rgb(231,246,242)
+    val orangeTint = Color.rgb(255,243,230)
     fun dp(context: Context, value: Int) = (value * context.resources.displayMetrics.density).toInt()
     fun column(context: Context) = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
     fun row(context: Context) = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
@@ -41,12 +46,12 @@ object Ui {
         text = label; textSize = 14f; isAllCaps = false; minHeight = dp(context, 48); minimumHeight = dp(context, 48)
         setTextColor(if (primary) Color.WHITE else blue)
         minWidth=0; minimumWidth=0
-        background = RippleDrawable(ColorStateList.valueOf(0x223159d8), shape(context, if (primary) blue else pale, 12), null)
+        background = RippleDrawable(ColorStateList.valueOf(0x22172b49), shape(context, if (primary) blue else pale, 12), null)
         setPadding(dp(context, 14), dp(context, 6), dp(context, 14), dp(context, 6))
         setOnClickListener { onClick() }
     }
     fun textButton(context: Context,label: String,onClick: ()->Unit) = button(context,label,onClick=onClick).apply {
-        background=RippleDrawable(ColorStateList.valueOf(0x183159d8),shape(context,Color.TRANSPARENT,10),null)
+        background=RippleDrawable(ColorStateList.valueOf(0x18172b49),shape(context,Color.TRANSPARENT,10),null)
         setPadding(dp(context,8),dp(context,6),dp(context,8),dp(context,6))
     }
     fun card(context: Context) = column(context).apply {
@@ -86,7 +91,7 @@ object Ui {
         setText(value); hint = hintText; textSize = 15f; setTextColor(ink); setHintTextColor(muted)
         setSingleLine(!multiline); if (multiline) { minLines = 2; maxLines = 4; gravity = Gravity.TOP }
         minHeight = dp(context, 48); backgroundTintList = null
-        background=shape(context,Color.WHITE,10,Color.rgb(214,222,234))
+        background=shape(context,Color.WHITE,10,line)
         setPadding(dp(context,12),dp(context,10),dp(context,12),dp(context,10))
         filters = arrayOf(android.text.InputFilter.LengthFilter(2000))
         importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
@@ -103,7 +108,7 @@ object Ui {
     fun toast(context: Context, message: String) = Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     fun iconButton(context: Context,kind: String,label: String,onClick: ()->Unit)=button(context,"",onClick=onClick).apply {
         contentDescription=label
-        background=RippleDrawable(ColorStateList.valueOf(0x220c6b58),shape(context,Color.TRANSPARENT,12),null)
+        background=RippleDrawable(ColorStateList.valueOf(0x2235b6a0),shape(context,Color.TRANSPARENT,12),null)
         setCompoundDrawablesWithIntrinsicBounds(ToolGlyph(context,kind,ink),null,null,null)
         setPadding(dp(context,12),dp(context,12),dp(context,12),dp(context,12))
     }
@@ -116,17 +121,9 @@ object Ui {
             val item=column(context).apply {
                 gravity=Gravity.CENTER;minimumHeight=dp(context,56);isClickable=true;isFocusable=true
                 tag="bottom_nav_$id";contentDescription=label;isSelected=selected
-                background=RippleDrawable(ColorStateList.valueOf(0x183159d8),shape(context,Color.WHITE,12),null)
+                background=RippleDrawable(ColorStateList.valueOf(0x18172b49),shape(context,if(selected)tealTint else Color.WHITE,12),null)
                 setOnClickListener {
-                    if(!selected) {
-                        val target=when(id) {
-                            "home"->MainActivity::class.java
-                            "schedule"->cn.campuslife.assistant.schedule.ScheduleActivity::class.java
-                            else->SettingsActivity::class.java
-                        }
-                        val flags=if(id=="home") Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP else Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                        activity.startActivity(Intent(activity,target).addFlags(flags))
-                    }
+                    if(!selected) MainNavigation.navigate(activity,active,id)
                 }
             }
             item.addView(ImageView(context).apply {
@@ -142,7 +139,7 @@ object Ui {
     fun bottomSheet(activity: Activity,title: String,build: (LinearLayout,Dialog)->Unit): Dialog {
         val dialog=Dialog(activity);dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         val body=column(activity).apply { setPadding(dp(context,20),dp(context,9),dp(context,20),dp(context,20)) }
-        body.addView(View(activity).apply { background=shape(context,Color.rgb(216,222,232),3) },LinearLayout.LayoutParams(dp(activity,32),dp(activity,4)).apply { gravity=Gravity.CENTER_HORIZONTAL;bottomMargin=dp(activity,12) })
+        body.addView(View(activity).apply { background=shape(context,line,3) },LinearLayout.LayoutParams(dp(activity,32),dp(activity,4)).apply { gravity=Gravity.CENTER_HORIZONTAL;bottomMargin=dp(activity,12) })
         val heading=row(activity)
         heading.addView(text(activity,title,20f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
         heading.addView(iconButton(activity,"close","关闭") { dialog.dismiss() },LinearLayout.LayoutParams(dp(activity,48),dp(activity,48)))

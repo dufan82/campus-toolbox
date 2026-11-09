@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">校伴</string>
+    <string name="brand_english" translatable="false">CAMPUS COMPANION</string>
+    <string name="brand_tagline">让校园生活更简单</string>
+    <string name="brand_positioning">校园效率工具箱</string>
+</resources>

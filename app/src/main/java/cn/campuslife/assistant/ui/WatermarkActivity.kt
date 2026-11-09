@@ -287,7 +287,7 @@ class WatermarkActivity : Activity() {
                     startActivity(Intent.createChooser(intent,"分享水印照片"))
                 } catch(_: Exception) { Ui.toast(this,"未找到可用的分享应用，请先保存照片") }
             } else if(Build.VERSION.SDK_INT>=29) {
-                Ui.toast(this,"已保存到相册 / 校园生活助手，原图未修改")
+                Ui.toast(this,"已保存到相册（沿用原“校园生活助手”文件夹），原图未修改")
             } else {
                 pendingSave=file
                 try { startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {

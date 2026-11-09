@@ -36,7 +36,7 @@ class WatermarkPreview(context: Context) : View(context) {
     private fun viewport(photo: PhotoAsset) = Viewport.fit(photo.width.toDouble(),photo.height.toDouble(),max(1,width).toDouble(),max(1,height).toDouble())
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(0xffe2e8e5.toInt())
+        canvas.drawColor(Ui.line)
         val photo = photo ?: run {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ui.muted; textSize = Ui.dp(context,16).toFloat(); textAlign=Paint.Align.CENTER }
             canvas.drawText("选一张活动照片，开始记录",width/2f,height/2f,paint)

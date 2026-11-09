@@ -37,11 +37,14 @@ class MainActivity : Activity() {
         val content=Ui.column(this).apply { setPadding(Ui.dp(context,20),Ui.dp(context,12),Ui.dp(context,20),Ui.dp(context,16)) }
         root.addView(content,LinearLayout.LayoutParams(-1,-2))
         val compact=resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        if(!compact) { content.addView(Ui.text(this,"平潭校区",12f,Ui.muted));content.addView(Ui.space(this,5)) }
+        if(!compact) { content.addView(Ui.text(this,getString(cn.campuslife.assistant.R.string.brand_english),10f,Ui.muted).apply {letterSpacing=.14f});content.addView(Ui.space(this,5)) }
         val header=Ui.row(this)
-        header.addView(Ui.text(this,"校园工具箱",26f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+        header.addView(ImageView(this).apply {setImageResource(cn.campuslife.assistant.R.drawable.logo_symbol);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO},LinearLayout.LayoutParams(Ui.dp(this,32),Ui.dp(this,32)).apply {marginEnd=Ui.dp(this@MainActivity,9)})
+        header.addView(Ui.text(this,Brand.name,26f,bold=true).apply {tag="brand_name"},LinearLayout.LayoutParams(0,-2,1f))
         header.addView(Ui.iconButton(this,"settings","设置") { settings() },LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
-        content.addView(header);content.addView(Ui.space(this,10));if(!compact) { content.addView(Ui.text(this,"快递直达",16f,bold=true));content.addView(Ui.space(this,10)) }
+        content.addView(header)
+        if(!compact) {content.addView(Ui.text(this,getString(cn.campuslife.assistant.R.string.brand_tagline),12f,Ui.muted).apply {tag="brand_tagline"});content.addView(Ui.space(this,10));content.addView(Ui.text(this,"快递直达",16f,bold=true));content.addView(Ui.space(this,10))}
+        else content.addView(Ui.space(this,10))
         val quick=Ui.row(this).apply { background=Ui.shape(context,Color.WHITE,16,Ui.line) }
         val launcher=ExpressLauncher(this,ExpressConfiguration(ExpressPreferences(this)))
         ExpressCatalog.entries.forEachIndexed { index,entry ->
@@ -50,7 +53,7 @@ class MainActivity : Activity() {
                 gravity=Gravity.CENTER;minimumHeight=Ui.dp(context,100);isClickable=true;isFocusable=true
                 tag="shortcut_${entry.id}";contentDescription=entry.title
                 setPadding(Ui.dp(context,4),Ui.dp(context,16),Ui.dp(context,4),Ui.dp(context,16))
-                background=RippleDrawable(ColorStateList.valueOf(0x220c6b58),Ui.shape(context,Color.WHITE,16),null)
+                background=RippleDrawable(ColorStateList.valueOf(0x2235b6a0),Ui.shape(context,Color.WHITE,16),null)
                 setOnClickListener {
                     val result=launcher.launch(entry.id)
                     if(result.candidate==null || result.candidate.kind==RouteKind.APP_HOME) AlertDialog.Builder(this@MainActivity)
@@ -59,9 +62,9 @@ class MainActivity : Activity() {
                 }
             }
             val badge=ImageView(this).apply {
-                val red=index<2;setImageDrawable(ToolGlyph(context,listOf("package","qr","bag")[index],if(red)0xffb7433e.toInt() else Ui.ink))
+                setImageDrawable(ToolGlyph(context,listOf("package","qr","bag")[index],Ui.ink))
                 setPadding(Ui.dp(context,10),Ui.dp(context,10),Ui.dp(context,10),Ui.dp(context,10))
-                background=Ui.shape(context,if(red)0xfffff2f1.toInt() else Ui.background,12)
+                background=Ui.shape(context,when(index){0->Ui.tealTint;1->Ui.orangeTint;else->Ui.pale},12)
                 importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }
             tile.addView(badge,LinearLayout.LayoutParams(Ui.dp(this,44),Ui.dp(this,44)));tile.addView(Ui.space(this,10))
@@ -154,11 +157,10 @@ class MainActivity : Activity() {
                     minimumHeight=Ui.dp(context,86);isClickable=true;isFocusable=true
                     setPadding(Ui.dp(context,12),Ui.dp(context,14),Ui.dp(context,8),Ui.dp(context,14))
                     tag=if(id=="map") "open_campus_map" else "home_tool_$id";contentDescription=tool.title+"，"+tool.subtitle
-                    background=RippleDrawable(ColorStateList.valueOf(0x183159d8),Ui.shape(context,Color.WHITE,14,Ui.line),null)
+                    background=RippleDrawable(ColorStateList.valueOf(0x18172b49),Ui.shape(context,Color.WHITE,14,Ui.line),null)
                     setOnClickListener { ToolNavigation.open(this@MainActivity,id) }
                 }
-                val color=when(id) { "map"->0xff28745b.toInt();"watermark"->0xff986729.toInt();"planner"->0xff7356a2.toInt();else->Ui.blue }
-                val badge=ImageView(this).apply { setImageDrawable(ToolGlyph(context,if(id=="planner") "clock" else tool.glyph,color));setPadding(Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7));background=Ui.shape(context,when(id) { "map"->0xffeaf5ef.toInt();"watermark"->0xfffff4e8.toInt();"planner"->0xfff2eefd.toInt();else->Ui.pale },11);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO }
+                val badge=ImageView(this).apply { setImageDrawable(ToolGlyph(context,if(id=="planner") "clock" else tool.glyph,Ui.ink));setPadding(Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7));background=Ui.shape(context,when(id) { "map"->Ui.tealTint;"watermark"->Ui.orangeTint;else->Ui.pale },11);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO }
                 tile.addView(badge,LinearLayout.LayoutParams(Ui.dp(this,35),Ui.dp(this,35)).apply { marginEnd=Ui.dp(this@MainActivity,9) })
                 val title=when(id) { "schedule"->"课程表";"planner"->"倒数日";else->tool.title }
                 val subtitle=when(id) { "map"->"搜楼栋、找位置";"schedule"->"查看本周安排";"watermark"->"选照片，加水印";else->"记住重要日期" }

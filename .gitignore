@@ -38,6 +38,11 @@ local.properties
 !/docs/BUILD.md
 !/docs/feedback-form.md
 !/docs/DAILY_SCHEDULE_SYNC.md
+!/docs/BRAND_UPGRADE.md
+!/docs/brand/
+/docs/brand/*
+!/docs/brand/*.svg
+!/docs/brand/README.md
 !/docs/RELEASING.md
 !/docs/DOMESTIC_UPDATES.md
 !/docs/CI.md

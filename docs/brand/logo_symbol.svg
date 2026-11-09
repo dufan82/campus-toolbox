@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title description">
+  <title id="title">校伴标志</title>
+  <desc id="description">深海军蓝直角阶梯路径，左上青绿起点，右下橙色转角，底部向左短收笔。透明背景。</desc>
+  <g id="symbol">
+    <path id="step-path" d="M32,37H54V54H76V71H65" fill="none" stroke="#172B49" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle id="start-node" cx="32" cy="37" r="5" fill="#35B6A0" />
+    <circle id="end-node" cx="76" cy="71" r="5" fill="#F2A65A" />
+  </g>
+</svg>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="264" height="108" viewBox="0 0 264 108" role="img" aria-labelledby="title description">
+  <title id="title">校伴文字标志</title>
+  <desc id="description">校伴、CAMPUS COMPANION、让校园生活更简单均为可编辑text，字体由设备系统提供。</desc>
+  <g id="wordmark" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans CJK SC', sans-serif" fill="#172B49">
+    <text id="chinese-name" x="0" y="44" font-size="40" font-weight="700" letter-spacing="2">校伴</text>
+    <text id="english-name" x="1" y="70" font-size="11" font-weight="600" letter-spacing="1.8">CAMPUS COMPANION</text>
+    <text id="tagline" x="1" y="96" font-size="13">让校园生活更简单</text>
+  </g>
+</svg>

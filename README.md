@@ -1,6 +1,10 @@
-# 校园工具箱
+# 校伴
 
-给福建信息职业技术学院平潭校区同学用的日常工具。
+![校伴 · CAMPUS COMPANION](docs/brand/logo_primary.svg)
+
+**让校园生活更简单**
+
+校伴（原校园工具箱），给福建信息职业技术学院平潭校区同学用的校园效率工具箱。
 
 [下载安装包（国内）](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases) · [GitHub 备用](https://github.com/dufan82/campus-toolbox/releases/latest)
 

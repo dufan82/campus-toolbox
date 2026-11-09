@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title description">
+  <title id="title">校伴应用图标</title>
+  <desc id="description">圆角雾白底、阶梯路径与双节点，无文字。自适应图标由Android系统遮罩，不烘焙圆角。</desc>
+  <rect id="mist-tile" x="0" y="0" width="108" height="108" rx="24" fill="#F5F7FA" />
+  <g id="symbol">
+    <path id="step-path" d="M32,37H54V54H76V71H65" fill="none" stroke="#172B49" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+    <circle id="start-node" cx="32" cy="37" r="5" fill="#35B6A0" />
+    <circle id="end-node" cx="76" cy="71" r="5" fill="#F2A65A" />
+  </g>
+</svg>

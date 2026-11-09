@@ -20,11 +20,11 @@ object ScheduleBackup {
         while (true) {
             val count = input.read(buffer)
             if (count == -1) break
-            require(output.size() + count <= MAX_BYTES) { "请选择1MB以内的校园工具箱课表备份" }
+            require(output.size() + count <= MAX_BYTES) { "请选择1MB以内的校伴课表备份" }
             output.write(buffer, 0, count)
         }
         val json = JSONObject(output.toString("UTF-8"))
-        require(json.optString("format") == "campus-toolbox-schedule" && json.optInt("version") == 1) { "这不是支持的校园工具箱课表备份" }
+        require(json.optString("format") == "campus-toolbox-schedule" && json.optInt("version") == 1) { "这不是支持的校伴课表备份" }
         return ScheduleStore.decode(json.getJSONObject("schedule"))
     }
 }

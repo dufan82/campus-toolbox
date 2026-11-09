@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stay deliberately light in system dark mode; do not auto-invert photos, the map or brand. -->
+    <style name="BaseAppTheme" parent="BrandSharedTheme">
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

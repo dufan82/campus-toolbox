@@ -47,7 +47,7 @@ class ScheduleWeekView(context: Context, data: ScheduleData, week: Int, enabled:
             override fun onDraw(canvas: Canvas) {
                 super.onDraw(canvas)
                 if (todayIndex != null) {
-                    paint.color = 0xfff0f7f3.toInt()
+                    paint.color = Ui.tealTint
                     canvas.drawRect((timeWidth + todayIndex * columnWidth).toFloat(), 0f, (timeWidth + (todayIndex + 1) * columnWidth).toFloat(), height.toFloat(), paint)
                 }
                 paint.color = Ui.line; paint.strokeWidth = resources.displayMetrics.density * 0.5f
@@ -61,7 +61,7 @@ class ScheduleWeekView(context: Context, data: ScheduleData, week: Int, enabled:
                 contentDescription = "${SchedulePresentation.periodLabel(index + 1)}，${period.start ?: "时间未设置"}"
             }, FrameLayout.LayoutParams(timeWidth, rowHeight).apply { topMargin = index * rowHeight })
         }
-        val palette = intArrayOf(0xffe8f3ee.toInt(), 0xffeaf1fb.toInt(), 0xfffbf2e4.toInt(), 0xfff0ebf8.toInt(), 0xfff9ecef.toInt(), 0xffe7f4f3.toInt())
+        val palette = intArrayOf(Ui.pale, Ui.tealTint, Ui.orangeTint, 0xffdff0eb.toInt(), 0xfffbead7.toInt(), 0xffe6ebf1.toInt())
         for (block in SchedulePresentation.blocks(ScheduleCalendar.week(data, week))) {
             val course = block.courses.first()
             val multiple = block.courses.size > 1
@@ -73,7 +73,7 @@ class ScheduleWeekView(context: Context, data: ScheduleData, week: Int, enabled:
                 maxLines = (block.endPeriod - block.startPeriod + 1) * 5; ellipsize = TextUtils.TruncateAt.END
                 setTextColor(Ui.ink)
                 stateListAnimator = null; elevation = 0f
-                background = android.graphics.drawable.InsetDrawable(RippleDrawable(ColorStateList.valueOf(0x220c6b58), Ui.shape(context, if (multiple) 0xfff5eee5.toInt() else palette[SchedulePresentation.colorIndex(course.name)], 9), null), Ui.dp(context, 2), Ui.dp(context, 3), Ui.dp(context, 2), Ui.dp(context, 3))
+                background = android.graphics.drawable.InsetDrawable(RippleDrawable(ColorStateList.valueOf(0x2235b6a0), Ui.shape(context, if (multiple) Ui.orangeTint else palette[SchedulePresentation.colorIndex(course.name)], 9), null), Ui.dp(context, 2), Ui.dp(context, 3), Ui.dp(context, 2), Ui.dp(context, 3))
                 setPadding(Ui.dp(context, 5), Ui.dp(context, 9), Ui.dp(context, 4), Ui.dp(context, 6))
                 tag = if (multiple) "schedule.overlap" else "schedule.course.${course.id}"
                 contentDescription = block.courses.joinToString("；") { "${it.name}，周${it.weekday}，${SchedulePresentation.periodRange(it)}，教室：${it.classroom.ifBlank { "未填写" }}，教师：${it.teacher.ifBlank { "未填写" }}" } + "，点击查看详情"

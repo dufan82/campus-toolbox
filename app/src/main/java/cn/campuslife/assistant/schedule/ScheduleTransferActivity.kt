@@ -569,7 +569,7 @@ class ScheduleTransferActivity : Activity() {
                 before to restored
             }, { result ->
                 result.onSuccess { (before, restored) -> preview(restored, "课表备份", emptyList(), before) }
-                    .onFailure { session.notice = "备份无法读取、格式不支持或超过1MB；请选择校园工具箱导出的JSON。原课表未改。"; render() }
+                    .onFailure { session.notice = "备份无法读取、格式不支持或超过1MB；请选择校伴导出的JSON。原课表未改。"; render() }
             }, enqueue = true)
         }
     }

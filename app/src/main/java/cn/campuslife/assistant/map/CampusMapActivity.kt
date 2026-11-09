@@ -163,7 +163,7 @@ class CampusMapActivity: Activity() {
             }
             chrome.addMapControls()
             locationStyle=MyLocationStyle().myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER)
-                .radiusFillColor(0x225995ec).strokeColor(0x665995ec).strokeWidth(1f)
+                .radiusFillColor(0x2235b6a0).strokeColor(0x6635b6a0).strokeWidth(1f)
             map?.myLocationStyle=locationStyle
             locationSource=DeviceLocationSource(applicationContext,{ newFix ->
                 if(foreground) {

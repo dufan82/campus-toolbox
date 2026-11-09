@@ -2,10 +2,10 @@
 
 ## 项目边界
 
-- 本仓库为 Campus Toolbox（校园工具箱），现有 Android 应用显示名为“校园生活助手”。名称整理不等于修改 applicationId、应用名称或目录。
+- 本项目现展示品牌为“校伴”（CAMPUS COMPANION，原校园工具箱/校园生活助手）。品牌更名只改变用户可见名称和视觉，不修改 applicationId、包名、存储标识、工程目录或 GitHub/CNB 仓库地址。
 - 原生 Kotlin / Android Views / Canvas，Gradle 多模块：`app` 与 `watermark-core`。先核对实际文件，不按 Web / 小程序工程重建。
 - 保持 UI、图片处理、本地存储、快递跳转与纯 Kotlin 布局的职责边界；不为行数机械拆分，不无故增加框架或依赖。
-- 继续已有工程，不擅自迁移目录；新项目/交付按用户要求放在 E 盘 CodexProjects，下载工具放 E 盘 skill。需要浏览器时只使用 Edge。
+- 继续已有工程，不擅自迁移目录；新项目/交付按用户要求放在 E 盘 CodexProjects，下载工具放 E 盘 skill。需要浏览器时只用内置浏览器，或使用现有CLI/API；不得自行改用Edge或桌面控制。
 
 ## 每轮最小交接流程
 

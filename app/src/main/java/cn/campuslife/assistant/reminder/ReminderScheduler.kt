@@ -84,9 +84,9 @@ class ReminderScheduler(context: Context) {
             .putExtra("tab",1)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val generic=Notification.Builder(context,CHANNEL).setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("校园工具箱提醒").setContentText("打开查看倒计时").build()
-        val notification=Notification.Builder(context,CHANNEL).setSmallIcon(android.R.drawable.ic_dialog_info)
+        val generic=Notification.Builder(context,CHANNEL).setSmallIcon(cn.campuslife.assistant.R.drawable.ic_notification)
+            .setContentTitle("校伴提醒").setContentText("打开查看倒计时").build()
+        val notification=Notification.Builder(context,CHANNEL).setSmallIcon(cn.campuslife.assistant.R.drawable.ic_notification)
             .setContentTitle("倒计时提醒").setContentText(title)
             .setContentIntent(launch).setAutoCancel(true).setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(generic).setCategory(Notification.CATEGORY_REMINDER).build()

@@ -40,10 +40,7 @@ class SettingsActivity : Activity() {
             AlertDialog.Builder(this).setTitle("资料留在本机").setMessage("照片和水印在本机处理，课程表与日期本地保存。地图按需联网、点击定位后申请权限。学校登录和更新检查使用原有官方服务，不上传你的照片或课表。仅主动开启每日课表同步后，登录Token才会通过Android Keystore与AES-GCM加密保存在本机；不保存密码或其他应用的Cookie，关闭同步或退出登录会清除该Token。")
                 .setPositiveButton("知道了",null).show()
         })
-        app.addView(item("info","关于校园工具箱","","settings_about") {
-            AlertDialog.Builder(this).setTitle("校园工具箱").setMessage("快递直达、校园地图、照片水印、课程表和倒数日。\n\n照片水印生成新照片，不覆盖原图；课表导入后可离线查看。\n\n版本 ${BuildConfig.VERSION_NAME}")
-                .setPositiveButton("知道了",null).show()
-        })
+        app.addView(item("info","关于校伴","","settings_about") { Brand.showAbout(this) })
         body.addView(app);body.addView(Ui.space(this,22));body.addView(Ui.text(this,"课表、日期和照片资料保存在本机",11f,Ui.muted).apply { gravity=Gravity.CENTER })
         body.addView(Ui.space(this,12))
         body.addView(Ui.textButton(this,"意见反馈") { cn.campuslife.assistant.feedback.FeedbackLauncher.open(this) }.apply {
@@ -56,7 +53,7 @@ class SettingsActivity : Activity() {
     private fun item(glyph: String,title: String,subtitle: String,id: String,click: ()->Unit)=Ui.row(this).apply {
         tag=id;minimumHeight=Ui.dp(context,68);isClickable=true;isFocusable=true;contentDescription=listOf(title,subtitle).filter { it.isNotBlank() }.joinToString("，")
         setPadding(0,Ui.dp(context,13),0,Ui.dp(context,13))
-        background=android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x183159d8),Ui.shape(context,Color.WHITE,8),null)
+        background=android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x18172b49),Ui.shape(context,Color.WHITE,8),null)
         setOnClickListener { click() }
         addView(ImageView(context).apply { setImageDrawable(ToolGlyph(context,glyph,Ui.muted));importantForAccessibility=android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO },LinearLayout.LayoutParams(Ui.dp(context,22),Ui.dp(context,22)).apply { marginEnd=Ui.dp(context,13) })
         val text=Ui.column(context);text.addView(Ui.text(context,title,15f,bold=true));if(subtitle.isNotBlank()) { text.addView(Ui.space(context,5));text.addView(Ui.text(context,subtitle,12f,Ui.muted)) }

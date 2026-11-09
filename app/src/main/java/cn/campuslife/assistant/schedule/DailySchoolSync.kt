@@ -82,7 +82,7 @@ object DailySchoolSync {
                     description="仅在每日检查实际更新课程后提醒";lockscreenVisibility=Notification.VISIBILITY_PRIVATE
                 })
                 val intent=PendingIntent.getActivity(app,20701,Intent(app,ScheduleActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-                manager.notify(20701,Notification.Builder(app,"school-sync").setSmallIcon(R.drawable.ic_app)
+                manager.notify(20701,Notification.Builder(app,"school-sync").setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle("课表已更新").setContentText(changes.summary()).setContentIntent(intent).setAutoCancel(true)
                     .setVisibility(Notification.VISIBILITY_PRIVATE).build())
             }

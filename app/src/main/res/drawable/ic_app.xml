@@ -1,4 +1,13 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#3159D8" android:pathData="M0,0h108v108h-108z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M18,42L54,23L90,42L54,61Z M30,53L30,72Q54,87 78,72L78,53L54,66Z M86,48L90,48L90,73L86,73Z" />
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy icon: rounded mist tile; no text. Original preserved in before.zip. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="@color/brand_mist" android:pathData="M24,0H84A24,24 0,0 1,108,24V84A24,24 0,0 1,84,108H24A24,24 0,0 1,0,84V24A24,24 0,0 1,24,0Z" />
+    <path android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/brand_navy" android:strokeWidth="5.5"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M32,37H54V54H76V71H65" />
+    <path android:fillColor="@color/brand_teal" android:pathData="M37,37A5,5 0,1 1,27,37A5,5 0,1 1,37,37Z" />
+    <path android:fillColor="@color/brand_orange" android:pathData="M81,71A5,5 0,1 1,71,71A5,5 0,1 1,81,71Z" />
 </vector>

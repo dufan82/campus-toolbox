@@ -33,11 +33,9 @@ class UpdateScreenTest {
                 assertEquals(3, shortcuts.size); assertTrue(shortcuts.all { it.isShown && it.isEnabled })
                 descendants(root).first { it.contentDescription == "设置" }.performClick()
             }
-            await { views().filterIsInstance<ListView>().any { list -> (0 until list.adapter.count).any { list.adapter.getItem(it).toString() == "检查更新" } } }
+            await { views().any { it.tag == "settings_update" && it.isShown } }
             instrumentation.runOnMainSync {
-                val list = views().filterIsInstance<ListView>().last()
-                val position = (0 until list.adapter.count).first { list.adapter.getItem(it).toString() == "检查更新" }
-                list.performItemClick(list.getChildAt(position), position, list.getItemIdAtPosition(position))
+                views().single { it.tag == "settings_update" && it.isShown }.performClick()
             }
             await { views().filterIsInstance<TextView>().any { it.text.toString() == "应用更新" } }
             await { views().filterIsInstance<TextView>().any { it.text.toString() == "暂未发布正式版本" } }

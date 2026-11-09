@@ -57,7 +57,7 @@ class ExpressActivity : Activity() {
         feedback = text("", 14, ink).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             setPadding(dp(12), dp(12), dp(12), dp(12))
-            background = shape(Color.rgb(235, 242, 255), 10)
+            background = shape(cn.campuslife.assistant.ui.Ui.pale, 10)
         }
         intro.addView(feedback, spaced(12))
         content.addView(intro, spaced(0, 16))
@@ -220,7 +220,7 @@ class ExpressActivity : Activity() {
         setPadding(dp(12), dp(12), dp(12), dp(12))
         setTextColor(if (primary) Color.WHITE else blue)
         background = RippleDrawable(ColorStateList.valueOf(if (primary) 0x33FFFFFF else 0x222563EB),
-            shape(if (primary) blue else Color.rgb(235, 242, 255), 12), null)
+            shape(if (primary) blue else cn.campuslife.assistant.ui.Ui.pale, 12), null)
         setOnClickListener { action() }
     }
 

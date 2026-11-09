@@ -54,7 +54,7 @@ internal fun redesignedScheduleWeekView(
             private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
             override fun onDraw(canvas: Canvas) {
                 super.onDraw(canvas)
-                paint.color = 0xfff7f8fc.toInt()
+                paint.color = Ui.background
                 val gap = Ui.dp(context, 2).toFloat()
                 for (day in 0..6) {
                     val left = (timeWidth + day * columnWidth).toFloat()
@@ -62,7 +62,7 @@ internal fun redesignedScheduleWeekView(
                         Ui.dp(context, 8).toFloat(), Ui.dp(context, 8).toFloat(), paint)
                 }
                 if (todayIndex != null) {
-                    paint.color = 0xfff0f4ff.toInt()
+                    paint.color = Ui.tealTint
                     val left = (timeWidth + todayIndex * columnWidth).toFloat()
                     canvas.drawRoundRect(left + gap, gap, left + columnWidth - gap, height - gap,
                         Ui.dp(context, 8).toFloat(), Ui.dp(context, 8).toFloat(), paint)
@@ -82,8 +82,7 @@ internal fun redesignedScheduleWeekView(
                 tag = "schedule.period.${index + 1}"
             }, FrameLayout.LayoutParams(timeWidth, rowHeight).apply { topMargin = index * rowHeight })
         }
-        val palette = intArrayOf(0xffe8efff.toInt(), 0xffedf2ff.toInt(), 0xffe8f2fa.toInt(),
-            0xffeeedfc.toInt(), 0xffe5effc.toInt(), 0xffecf1fa.toInt())
+        val palette = intArrayOf(Ui.pale, Ui.tealTint, Ui.orangeTint, 0xffdff0eb.toInt(), 0xfffbead7.toInt(), 0xffe6ebf1.toInt())
         for (block in SchedulePresentation.blocks(ScheduleCalendar.week(data, week))) {
             val course = block.courses.first()
             val multiple = block.courses.size > 1
@@ -99,8 +98,8 @@ internal fun redesignedScheduleWeekView(
                 setTextColor(Ui.blue)
                 stateListAnimator = null
                 elevation = 0f
-                background = InsetDrawable(RippleDrawable(ColorStateList.valueOf(0x223159d8),
-                    Ui.shape(context, if (multiple) 0xfffff1df.toInt() else palette[SchedulePresentation.colorIndex(course.name)], 8), null),
+                background = InsetDrawable(RippleDrawable(ColorStateList.valueOf(0x22172b49),
+                    Ui.shape(context, if (multiple) Ui.orangeTint else palette[SchedulePresentation.colorIndex(course.name)], 8), null),
                     Ui.dp(context, 2), Ui.dp(context, 2), Ui.dp(context, 2), Ui.dp(context, 2))
                 setPadding(Ui.dp(context, 5), Ui.dp(context, 9), Ui.dp(context, 5), Ui.dp(context, 6))
                 tag = if (multiple) "schedule.overlap" else "schedule.course.${course.id}"

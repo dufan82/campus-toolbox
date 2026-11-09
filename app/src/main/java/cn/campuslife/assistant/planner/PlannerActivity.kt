@@ -249,7 +249,7 @@ class PlannerActivity : Activity() {
             },LinearLayout.LayoutParams(0,-2,1f))
             if(resources.configuration.fontScale<=1.2f && resources.configuration.screenWidthDp>=350) {
                 numberRow.addView(ImageView(this@PlannerActivity).apply {
-                    setImageDrawable(ToolGlyph(context,"calendar",Color.rgb(185,200,239)));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                    setImageDrawable(ToolGlyph(context,"calendar",Ui.line));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 },LinearLayout.LayoutParams(dp(56),dp(56)).apply { marginStart=dp(12) })
             }
             addView(numberRow);addView(Ui.space(this@PlannerActivity,12))
@@ -258,8 +258,8 @@ class PlannerActivity : Activity() {
         } else {
             val row=Ui.row(this@PlannerActivity)
             row.addView(ImageView(this@PlannerActivity).apply {
-                setImageDrawable(ToolGlyph(context,"calendar",if(item.yearly) Color.rgb(128,86,182) else Ui.blue))
-                background=Ui.shape(context,if(item.yearly) Color.rgb(243,238,252) else Ui.pale,13)
+                setImageDrawable(ToolGlyph(context,"calendar",Ui.ink))
+                background=Ui.shape(context,if(item.yearly) Ui.tealTint else Ui.pale,13)
                 setPadding(dp(10),dp(10),dp(10),dp(10));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
             },LinearLayout.LayoutParams(dp(42),dp(42)).apply { marginEnd=dp(12) })
             val labels=Ui.column(this@PlannerActivity)
@@ -277,7 +277,7 @@ class PlannerActivity : Activity() {
             addView(row)
         }
         tag="countdown-${item.id}"; isEnabled=writable; isFocusable=true
-        background=RippleDrawable(ColorStateList.valueOf(0x183159d8),background,null)
+        background=RippleDrawable(ColorStateList.valueOf(0x18172b49),background,null)
         contentDescription="${item.title}，$label，${target.format(dateFormat)}，点按编辑"
         accessibilityDelegate=object : View.AccessibilityDelegate() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {

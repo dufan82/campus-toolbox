@@ -81,7 +81,7 @@ class UpdateActivity : Activity() {
         body.removeAllViews()
         val summary=Ui.column(this).apply { gravity=android.view.Gravity.CENTER;setPadding(0,dp(14),0,dp(24)) }
         summary.addView(android.widget.ImageView(this).apply { setImageDrawable(cn.campuslife.assistant.ui.ToolGlyph(context,"refresh",Ui.blue));setPadding(dp(14),dp(14),dp(14),dp(14));background=Ui.shape(context,Ui.pale,18);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO },LinearLayout.LayoutParams(dp(56),dp(56)))
-        summary.addView(Ui.space(this,14));summary.addView(Ui.text(this,"校园工具箱",22f,bold=true));summary.addView(Ui.space(this,7));summary.addView(Ui.text(this,"当前版本 ${BuildConfig.VERSION_NAME}",13f,Ui.muted));body.addView(summary)
+        summary.addView(Ui.space(this,14));summary.addView(Ui.text(this,"校伴",22f,bold=true));summary.addView(Ui.space(this,7));summary.addView(Ui.text(this,"当前版本 ${BuildConfig.VERSION_NAME}",13f,Ui.muted));body.addView(summary)
         body.addView(Ui.space(this, 16))
         val info = session.info
         val state = session.download
@@ -168,7 +168,7 @@ class UpdateActivity : Activity() {
         if (!packageManager.canRequestPackageInstalls()) {
             prompt?.dismiss()
             prompt = AlertDialog.Builder(this).setTitle("允许安装更新")
-                .setMessage("系统需要你允许校园工具箱安装应用。只在你主动更新时使用；取消不影响其他功能。")
+                .setMessage("系统需要你允许校伴安装应用。只在你主动更新时使用；取消不影响其他功能。")
                 .setNegativeButton("取消", null).setPositiveButton("去设置") { _, _ ->
                     runCatching { startActivity(UpdateInstaller.permissionIntent(this)); permissionOpened = true }
                         .onFailure { session.message = "无法打开系统安装权限设置"; render() }
