@@ -9,7 +9,8 @@ import java.time.LocalTime
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
-data class SchoolRegistry(val managed: Map<String, Course> = emptyMap(), val protectedIds: Set<String> = emptySet())
+data class SchoolRegistry(val managed: Map<String, Course> = emptyMap(), val protectedIds: Set<String> = emptySet(),
+    val protectedCourses: Map<String, Course> = emptyMap())
 data class ScheduleSnapshot(val data: ScheduleData, val registry: SchoolRegistry)
 
 /** Synchronous storage boundary: Activity dispatches every call onto its retained worker. */
@@ -25,7 +26,8 @@ class ScheduleStore(context: Context) {
         val changed = current.registry.managed.filter { (id, course) -> merged.courses.find { it.id == id } != course }.keys
         val settingsChanged = current.data.semester != merged.semester || current.data.periods != merged.periods
         val revoked = if (settingsChanged) current.registry.managed.keys else changed
-        val registry = SchoolRegistry(current.registry.managed - revoked, current.registry.protectedIds + revoked)
+        val registry = SchoolRegistry(current.registry.managed - revoked, current.registry.protectedIds + revoked,
+            current.registry.protectedCourses + current.registry.managed.filterKeys { it in revoked })
         file.write(encodeSnapshot(ScheduleSnapshot(merged, registry)))
         merged
     }
@@ -47,12 +49,27 @@ class ScheduleStore(context: Context) {
         if (latest != expected) throw ScheduleConflictException("原课表或来源已变化，请返回后重新预览", latest.data)
         require(today == LocalDate.now()) { "日期已变化，请重新预览" }
         val plan = SchoolFutureMerge.plan(latest.data, school, latest.registry.managed, selected, today, latest.registry.protectedIds)
-        val next = ScheduleSnapshot(plan.data, SchoolRegistry(plan.managed, latest.registry.protectedIds))
+        val next = ScheduleSnapshot(plan.data, SchoolRegistry(plan.managed, latest.registry.protectedIds, latest.registry.protectedCourses))
         require(today == LocalDate.now()) { "日期已变化，请重新预览" }
         if (next != latest) {
             if (latest.data != next.data) importUndo.write(encodeSnapshot(latest))
             require(today == LocalDate.now()) { "日期已变化，请重新预览" }
             file.write(encodeSnapshot(next))
+        }
+        plan
+    }
+    /** Compare-and-swap after the entire remote term has been validated. No-op never touches either file. */
+    fun applyAutomatic(expected: ScheduleSnapshot, school: ScheduleData, today: LocalDate): SchoolAutoPlan = synchronized(lock) {
+        val latest = readSnapshot()
+        if (latest != expected) throw ScheduleConflictException("课表已变化，本次自动更新跳过", latest.data)
+        require(today == LocalDate.now()) { "日期已变化，本次自动更新跳过" }
+        val plan = SchoolAutoMerge.plan(latest, school, today)
+        if (plan.data != latest.data) {
+            val next = ScheduleSnapshot(plan.data, latest.registry.copy(managed = plan.managed))
+            val encoded = encodeSnapshot(next)
+            importUndo.write(encodeSnapshot(latest))
+            require(today == LocalDate.now())
+            file.write(encoded)
         }
         plan
     }
@@ -67,8 +84,14 @@ class ScheduleStore(context: Context) {
             require(snapshot.registry.managed.all { (id, course) -> id == course.id && data.courses.contains(course) }) { "学校来源记录与课表不一致" }
             require(snapshot.registry.managed.keys.intersect(snapshot.registry.protectedIds).isEmpty()) { "来源状态冲突" }
             require(snapshot.registry.protectedIds.size <= 10000 && snapshot.registry.protectedIds.all { it.matches(Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) }) { "受保护课程记录无效" }
+            require(snapshot.registry.protectedCourses.size <= 10000 && snapshot.registry.protectedCourses.all { (id, c) ->
+                id == c.id && id in snapshot.registry.protectedIds && protectedEnvelope(c).checked().courses.single() == c
+            }) { "保护课程来源无效" }
             return encode(data).put("schoolManaged", encode(data.copy(courses = snapshot.registry.managed.values.toList())).getJSONArray("courses"))
                 .put("schoolProtectedIds", JSONArray(snapshot.registry.protectedIds.sorted()))
+                .put("schoolProtectedCourses", JSONArray().apply { snapshot.registry.protectedCourses.values.forEach { c ->
+                    put(encode(protectedEnvelope(c)).getJSONArray("courses").getJSONObject(0))
+                } })
         }
         fun decodeSnapshot(json: JSONObject): ScheduleSnapshot {
             val data = decode(json)
@@ -80,10 +103,18 @@ class ScheduleStore(context: Context) {
             val protected = json.get("schoolProtectedIds"); require(protected is JSONArray && protected.length() <= 10000) { "保护记录格式错误" }
             val ids = (0 until protected.length()).map { index -> protected.get(index).also { require(it is String) } as String }
             require(ids.distinct().size == ids.size) { "保护记录重复" }
-            val snapshot = ScheduleSnapshot(data, SchoolRegistry(managed, ids.toSet()))
+            require(!json.has("schoolProtectedCourses") || json.opt("schoolProtectedCourses") is JSONArray) { "保护课程来源格式错误" }
+            val protectedCourses = json.optJSONArray("schoolProtectedCourses")?.let { rows ->
+                require(rows.length() <= 10000)
+                (0 until rows.length()).map { index -> decode(encode(protectedEnvelope()).put("courses", JSONArray().put(rows.get(index)))).courses.single() }
+                    .also { require(it.map(Course::id).distinct().size == it.size) }.associateBy { it.id }
+            } ?: emptyMap()
+            val snapshot = ScheduleSnapshot(data, SchoolRegistry(managed, ids.toSet(), protectedCourses))
             encodeSnapshot(snapshot) // Validate consistency and identifiers without writing.
             return snapshot
         }
+        private fun protectedEnvelope(course: Course? = null) = ScheduleData(Semester(LocalDate.of(2000,1,3),60),
+            (1..24).map { SchedulePeriod("第${it}节") }, listOfNotNull(course))
         fun encode(data: ScheduleData): JSONObject {
             data.checked()
             return JSONObject().put("version", 1)

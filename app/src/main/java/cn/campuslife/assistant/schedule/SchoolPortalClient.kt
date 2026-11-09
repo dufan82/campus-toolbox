@@ -27,7 +27,10 @@ class SchoolPortalClient(private val request: (String, JSONObject?) -> JSONObjec
             lessons.addAll(rows)
             require(lessons.size <= 30000) { "课表记录过多，已停止导入" }
             if (consistentTimes) {
-                val times = runCatching { SchoolPortalJson.periods(request("/scheduleTime", JSONObject().put("dqz", week))) }.getOrNull()
+                val times = try { SchoolPortalJson.periods(request("/scheduleTime", JSONObject().put("dqz", week))) }
+                    catch (e: SchoolAuthenticationException) { throw e }
+                    catch (e: InterruptedIOException) { throw e }
+                    catch (_: Exception) { null }
                 if (times == null || (commonPeriods != null && commonPeriods != times)) consistentTimes = false
                 else commonPeriods = times
             }
@@ -66,6 +69,7 @@ class SchoolPortalClient(private val request: (String, JSONObject?) -> JSONObjec
                     connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                     connection.outputStream.use { output -> output.write(it.toString().toByteArray(Charsets.UTF_8)) }
                 }
+                if (connection.responseCode in setOf(401,403)) throw SchoolAuthenticationException()
                 if (connection.responseCode != 200) throw IOException("School request failed")
                 val output = ByteArrayOutputStream()
                 connection.inputStream.use { input ->

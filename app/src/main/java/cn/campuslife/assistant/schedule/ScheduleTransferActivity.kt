@@ -136,6 +136,7 @@ class ScheduleTransferActivity : Activity() {
         dialog = AlertDialog.Builder(this).setTitle("清除学校登录状态？")
             .setMessage("将清除本应用 WebView 的全部 Cookie 和网页存储，可能影响本应用其他网页的登录状态；不会删除本地课表或课表备份。学校服务器上的登录状态不一定同时退出。")
             .setNegativeButton("取消", null).setPositiveButton("清除并退出") { _, _ ->
+                runCatching { DailySchoolSync.forgetLogin(applicationContext) }
                 clearAuthorization()
                 val current = session
                 current.clearingLogin = true
@@ -361,15 +362,18 @@ class ScheduleTransferActivity : Activity() {
         dialog = Ui.bottomSheet(this, "登录与隐私说明") { body, _ ->
             body.addView(Ui.text(this, "课表保存在本机，登录后逐周读取完整学期，先预览再确认。", 16f))
             body.addView(Ui.space(this))
-            body.addView(Ui.text(this, "网页组件会尽量在本机保留会话，过期后需重新登录。应用不读取密码、不单独保存 Token；网页自身的数据由学校页面控制。", 15f, Ui.muted))
+            body.addView(Ui.text(this, "网页组件尽量在本机保留会话，过期需重新登录。每日检查默认关闭；开启并确认后，仅将课表 Token 用 Android Keystore 加密保存供后台只读使用。关闭或退出登录会删除后台凭据。不读取密码。", 15f, Ui.muted))
             body.addView(Ui.space(this))
-            body.addView(Ui.text(this, "未来更新保留过去及受保护课程；整表替换包含过去及手动课程。写入前保留最近一次本机副本。每周自动更新尚未实现。", 15f, Ui.muted))
+            body.addView(Ui.text(this, "未来更新保留过去及受保护课程；整表替换包含过去及手动课程。写入前保留最近一次本机副本。每日自动检查在课程表管理中单独开启。", 15f, Ui.muted))
             body.addView(Ui.space(this))
             body.addView(Ui.text(this, "课表备份含课程、教师、教室及学期日期，不含账号、密码或登录凭据。", 15f, Ui.muted))
         }
     }
     private fun showPreview(body: LinearLayout) {
         val data = session.candidate ?: return
+        if (session.schoolPreview && session.warnings.isEmpty() && runCatching { DailySyncPreferences(applicationContext).read().enabled }.getOrDefault(false)) {
+            body.addView(Ui.textButton(this, "确认本次登录用于每日检查（不改课表）") { confirmBackgroundLogin() })
+        }
         val summary = Ui.card(this)
         summary.tag = "schedule.preview.summary"
         summary.addView(Ui.text(this, session.source, 21f, bold = true))
@@ -488,8 +492,11 @@ class ScheduleTransferActivity : Activity() {
                 dialog = AlertDialog.Builder(this).setTitle("确认仅更新今日及未来？").setMessage(details)
                     .setNegativeButton("取消", null).setPositiveButton("确认未来更新") { _, _ ->
                         val current = session; val store = current.store; val appContext = applicationContext
+                        val authorization = current.authorization
+                        val complete = current.warnings.isEmpty()
                         current.work.submit("正在安全更新课程表…", {
                             val saved = store.applyFutureWithBackup(snapshot, school, selected, today)
+                            if (complete) DailySchoolSync.authorizeAfterImport(appContext,authorization,saved.data)
                             val recorded = SchoolImportReminder.mayRecordFutureSuccess(saved.blockedOccurrences) && runCatching { SchoolImportReminder.recordSuccess(appContext) }.getOrDefault(false)
                             Triple(saved, runCatching { store.previousImport() }.getOrNull(), recorded)
                         }, { savedResult ->
@@ -516,8 +523,11 @@ class ScheduleTransferActivity : Activity() {
                 val store = session.store
                 val school = session.schoolPreview
                 val appContext = applicationContext
+                val authorization = session.authorization
+                val complete = session.warnings.isEmpty()
                 session.work.submit("正在保存本地课表…", {
                     val saved = store.replaceWithBackup(before, candidate, schoolImport = school)
+                    if (school && complete) DailySchoolSync.authorizeAfterImport(appContext,authorization,saved)
                     val recorded = !school || runCatching { SchoolImportReminder.recordSuccess(appContext) }.getOrDefault(false)
                     Triple(saved, runCatching { store.previousImport() }.getOrNull(), recorded)
                 }, { result ->
@@ -562,6 +572,24 @@ class ScheduleTransferActivity : Activity() {
                     .onFailure { session.notice = "备份无法读取、格式不支持或超过1MB；请选择校园工具箱导出的JSON。原课表未改。"; render() }
             }, enqueue = true)
         }
+    }
+    private fun confirmBackgroundLogin() {
+        val candidate=session.candidate ?: return
+        val authorization=session.authorization ?: return
+        val app=applicationContext
+        dialog=AlertDialog.Builder(this).setTitle("用于每日课表检查？")
+            .setMessage("请确认学校页面中是你自己的课表。只授权加密保存本次登录凭据，不替换本地课程。需先在课表管理中开启每日检查，且学校与本地学期、作息一致。")
+            .setNegativeButton("取消",null).setPositiveButton("确认") {_,_->
+                session.work.submit("确认后台登录…",{
+                    check(session.schoolPreview && session.warnings.isEmpty())
+                    val local=session.store.load()
+                    require(local.semester==candidate.semester && local.periods==candidate.periods)
+                    DailySchoolSync.authorizeAfterImport(app,authorization,candidate)
+                },{result->
+                    session.notice=if(result.getOrDefault(false))"每日检查已恢复，本地课表未改。" else "尚未启用每日检查，或学期、作息不一致／凭据保存失败；本地课表未改。"
+                    updateStatus()
+                })
+            }.show()
     }
     private fun action(parent: LinearLayout, label: String, enabled: Boolean, primary: Boolean = false, click: () -> Unit) {
         parent.addView(Ui.button(this, label, primary, click).apply { isEnabled = enabled }, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(8) })

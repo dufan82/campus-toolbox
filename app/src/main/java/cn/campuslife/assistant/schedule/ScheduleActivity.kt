@@ -238,6 +238,7 @@ class ScheduleActivity : Activity() {
         val actions = mutableListOf<Pair<String, () -> Unit>>()
         if (session.data?.semester != null) actions.add("新增课程" to { openCourse(null) })
         actions.add("学校导入 / 备份与恢复" to { startActivity(Intent(this, ScheduleTransferActivity::class.java)) })
+        actions.add("每日自动检查课表" to { startActivity(Intent(this, DailySyncSettingsActivity::class.java)) })
         actions.add("学期设置" to { openSemester() })
         actions.add("节次设置" to { openPeriods() })
         actions.add("全部课程" to { draft = Bundle().apply { putString("type", "list") }; showEditor() })

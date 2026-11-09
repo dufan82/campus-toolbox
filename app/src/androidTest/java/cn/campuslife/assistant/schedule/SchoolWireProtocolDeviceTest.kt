@@ -9,13 +9,13 @@ import java.net.URL
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SchoolWireProtocolDeviceTest {
-    private class Connection(url: URL, private val response: String) : HttpURLConnection(url) {
+    private class Connection(url: URL, private val response: String, private val status:Int=200) : HttpURLConnection(url) {
         val body = ByteArrayOutputStream()
         var closed = false
         override fun connect() = Unit
         override fun usingProxy() = false
         override fun disconnect() { closed = true }
-        override fun getResponseCode() = 200
+        override fun getResponseCode() = status
         override fun getInputStream() = response.byteInputStream()
         override fun getOutputStream() = body
     }
@@ -68,5 +68,25 @@ class SchoolWireProtocolDeviceTest {
         }
         assertTrue(runCatching { client.terms() }.exceptionOrNull() is IllegalArgumentException)
         assertFalse(opened)
+    }
+    @Test fun authenticationFailuresAreTypedAndNeverRetriedWithinTermIncludingPeriodRequests() {
+        for(status in listOf(401,403)) {
+            var calls=0
+            val client=SchoolPortalClient.network("Bearer school_wire_token_12345",AtomicBoolean()) {url->
+                calls++;Connection(url,"{}",status)
+            }
+            assertThrows(SchoolAuthenticationException::class.java){client.terms()};assertEquals(1,calls)
+        }
+        assertThrows(SchoolAuthenticationException::class.java){SchoolPortalJson.semesters(JSONObject("""{"code":401}"""))}
+        var calls=0
+        val client=SchoolPortalClient {path,_->calls++
+            when(path) {
+                "/semesterConfig"->JSONObject("""{"code":1,"data":{"semestersConfig":{"startDate":"2026-09-07","totalWeeks":2}}}""")
+                "/schedule"->JSONObject("""{"code":1,"data":{"list":[]}}""")
+                else->throw SchoolAuthenticationException()
+            }
+        }
+        assertThrows(SchoolAuthenticationException::class.java){client.collect(SchoolTerm("synthetic","合成"),AtomicBoolean()){_,_->}}
+        assertEquals(3,calls)
     }
 }

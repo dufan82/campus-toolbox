@@ -30,6 +30,7 @@ class MainActivity : Activity() {
     private var nextLesson: HomeLesson?=null
     private var nextLessonData: cn.campuslife.assistant.schedule.ScheduleData?=null
     private var lessonTicket=0
+    private var syncNeedsLogin=false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val root=Ui.page(this)
@@ -100,10 +101,13 @@ class MainActivity : Activity() {
     private fun loadNextLesson() {
         val ticket=++lessonTicket;val app=applicationContext;val reference=WeakReference(this)
         homePreviewIo.execute {
+            val sync=runCatching { cn.campuslife.assistant.schedule.DailySyncPreferences(app).read() }.getOrNull()
+            runCatching { cn.campuslife.assistant.schedule.DailySyncScheduler.reconcile(app) }
             val result=runCatching { cn.campuslife.assistant.schedule.ScheduleStore(app).load() }
             val data=result.getOrNull()
             val upcoming=data?.let { HomeSchedulePreview.next(it,java.time.LocalDate.now(),java.time.LocalTime.now()) }
             Handler(Looper.getMainLooper()).post { reference.get()?.takeIf { !it.isDestroyed && it.lessonTicket==ticket }?.let {
+                it.syncNeedsLogin=sync?.enabled==true && sync.result==cn.campuslife.assistant.schedule.SyncResult.NEEDS_LOGIN
                 it.nextLesson=upcoming;it.nextLessonData=data;it.renderTools()
             } }
         }
@@ -111,6 +115,12 @@ class MainActivity : Activity() {
     private fun renderTools() {
         toolsBody.removeAllViews()
         val state=homeLayout ?: HomeLayout.defaults()
+        if(syncNeedsLogin) {
+            toolsBody.addView(Ui.textButton(this,"课表自动检查已暂停 · 重新登录") {
+                startActivity(Intent(this,cn.campuslife.assistant.schedule.DailySyncSettingsActivity::class.java))
+            }.apply {tag="school_sync_login_needed"},LinearLayout.LayoutParams(-1,-2))
+            toolsBody.addView(Ui.space(this,8))
+        }
         availableUpdate?.let { update ->
             toolsBody.addView(Ui.button(this,"新版本 ${update.versionName} · 查看更新") {
                 UpdatePrompts.show(this,update,{

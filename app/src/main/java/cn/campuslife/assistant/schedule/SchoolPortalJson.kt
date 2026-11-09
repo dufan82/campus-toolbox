@@ -18,6 +18,7 @@ object SchoolPortalJson {
         return (raw.opt("data") as? JSONObject) ?: raw
     }
     private fun checkStatus(raw: JSONObject) {
+        if (raw.opt("code")?.toString()?.toIntOrNull() in setOf(401,403)) throw SchoolAuthenticationException()
         if (raw.has("code")) require(raw.opt("code")?.toString()?.toIntOrNull() in 1..200) { "学校平台未返回成功结果，请重新登录或稍后再试" }
     }
     fun semesters(raw: JSONObject): List<SchoolTerm> {

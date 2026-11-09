@@ -13,13 +13,15 @@ object SchoolImportReminder {
 
     fun needsInitialCheck(lastSuccess: Long?, hasSchedule: Boolean): Boolean = hasSchedule && (lastSuccess == null || lastSuccess <= 0)
     fun needsInitialCheck(context: Context, hasSchedule: Boolean): Boolean =
-        needsInitialCheck(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(LAST_SUCCESS, 0), hasSchedule)
+        needsInitialCheck(latestSuccess(context), hasSchedule)
     fun mayRecordFutureSuccess(blockedOccurrences: Int): Boolean = blockedOccurrences == 0
 
     fun isDue(context: Context, now: Long = System.currentTimeMillis()): Boolean {
-        val timestamp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getLong(LAST_SUCCESS, 0)
+        val timestamp = latestSuccess(context)
         return isDue(timestamp, now)
     }
+    private fun latestSuccess(context:Context) = maxOf(context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getLong(LAST_SUCCESS,0),
+        DailySyncPreferences(context).read().lastSuccess)
 
     fun recordSuccess(context: Context, now: Long = System.currentTimeMillis()): Boolean =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putLong(LAST_SUCCESS, now).commit()

@@ -37,7 +37,7 @@ class SettingsActivity : Activity() {
         val app=Ui.card(this).apply { setPadding(Ui.dp(context,16),0,Ui.dp(context,12),0) }
         app.addView(item("refresh","检查更新",BuildConfig.VERSION_NAME,"settings_update") { startActivity(Intent(this,UpdateActivity::class.java).putExtra("manual",true)) })
         app.addView(item("shield","隐私说明","","settings_privacy") {
-            AlertDialog.Builder(this).setTitle("资料留在本机").setMessage("照片和水印在本机处理，课程表与日期本地保存。地图按需联网、点击定位后申请权限。学校登录和更新检查使用原有官方服务，不上传你的照片或课表。")
+            AlertDialog.Builder(this).setTitle("资料留在本机").setMessage("照片和水印在本机处理，课程表与日期本地保存。地图按需联网、点击定位后申请权限。学校登录和更新检查使用原有官方服务，不上传你的照片或课表。仅主动开启每日课表同步后，登录Token才会通过Android Keystore与AES-GCM加密保存在本机；不保存密码或其他应用的Cookie，关闭同步或退出登录会清除该Token。")
                 .setPositiveButton("知道了",null).show()
         })
         app.addView(item("info","关于校园工具箱","","settings_about") {
@@ -45,6 +45,12 @@ class SettingsActivity : Activity() {
                 .setPositiveButton("知道了",null).show()
         })
         body.addView(app);body.addView(Ui.space(this,22));body.addView(Ui.text(this,"课表、日期和照片资料保存在本机",11f,Ui.muted).apply { gravity=Gravity.CENTER })
+        body.addView(Ui.space(this,12))
+        body.addView(Ui.textButton(this,"意见反馈") { cn.campuslife.assistant.feedback.FeedbackLauncher.open(this) }.apply {
+            tag="settings_feedback";contentDescription="意见反馈";textSize=13f;setTextColor(Ui.muted)
+            val icon=ToolGlyph(context,"info",Ui.muted).apply { setBounds(0,0,Ui.dp(context,18),Ui.dp(context,18)) }
+            setCompoundDrawablesRelative(icon,null,null,null);compoundDrawablePadding=Ui.dp(context,6)
+        },LinearLayout.LayoutParams(-2,-2).apply { gravity=Gravity.END })
         root.addView(Ui.bottomNavigation(this,"settings"))
     }
     private fun item(glyph: String,title: String,subtitle: String,id: String,click: ()->Unit)=Ui.row(this).apply {
