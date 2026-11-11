@@ -1,6 +1,16 @@
 # 国内更新源
 
-## 当前版本：1.8.1 / code28
+## 当前版本：1.8.3 / code30
+
+2026-11-11已与GitHub同步为最新稳定版。CNB Release ID2120313940453847040；GitHub Release ID441089990。两源三附件分别匿名完整下载，大小/SHA256匹配本机原件；应用源码bec140d，Actions42931475426成功。
+
+- [国内1.8.3下载](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.8.3) · [GitHub备用](https://github.com/dufan82/campus-toolbox/releases/tag/v1.8.3)。
+- APK 79,027,906字节（比1.8.2增加77,560字节），SHA256 `2a9d7ad70d7d45ea7536b5e8c89732b788058f4f2e06f9f157b182dbd00bdf94`。
+- 旧兼容证书、非debuggable、包名和双ARM保留。三附件验证记录在verification/release183-20261110，两源读取无需账号Token。
+- 手机在“我的 → 检查更新”检测；自动检查有24小时缓存，手动短时重复检查至少间隔60秒。系统需本人确认安装，不卸载旧版。当前测试包如为1.8.2/code29可发现code30；实际ARM手机安装与数据保留仍待本人验收。
+- CNB源码压缩包是国内入口页仓库，完整Android和CloudBase源码见GitHub；两源APK字节相同，不二次签名。
+
+## 1.8.1历史发布记录
 
 2026-11-09已与GitHub同步为最新稳定版。CNB Release ID2119669458318352384；匿名latest协议、三附件完整下载的大小/SHA256均通过，不需要账号Token。包名、旧兼容证书、非调试和双ARM库已核对；本轮没有在用户ARM手机执行安装。
 
@@ -10,6 +20,16 @@
 - update.json为276字节，SHA256SUMS.txt为169字节；三附件原始匿名校验记录在verification/daily-sync-20261109/cnb181-assets-verified.json，latest记录在cnb181-latest.json。
 - 更新读取优先国内源。手动入口是“我的→检查更新”，自动缓存24小时，最近请求后手动检查至少间隔60秒。直接覆盖安装，不卸载旧版。手机实际接收提示、系统下载安装及数据保留仍待验收。
 - CNB源码压缩包仍是国内入口页仓库；完整Android源码以GitHub 8d573a2及后续文档提交为准。
+
+## 本机发布令牌
+
+用户在2026-11-11选择将本仓库发布令牌保存到 Windows 凭据管理器，后续发布在同一 Windows 用户下直接复用，仍只作用于 `campus-toolbox/campus-toolbox` 的 Release。Windows 凭据目标是 `CampusCompanion/CNB/campus-toolbox/campus-toolbox/repo-release`，不是 App 内配置，也不上传 GitHub。
+
+发布器使用 `scripts/CnbCredentialStore.ps1` 的 `Get-CampusCnbToken` / `Set-CampusCnbToken`，返回值仅供内存中的官方 API 请求；不要单独运行读取函数把 Token 输出到终端。Windows 默认登录保护，持久化限当前用户/本机、不启用企业漫游。不保证抵御已控制该 Windows 账户的程序。
+
+有效令牌直接复用；实际过期、撤销或权限不足才更换。需要取消保存时，在 Windows“凭据管理器 → Windows 凭据 → 普通凭据”删除上述目标，或调用 `Remove-CampusCnbToken`。这不会删除 CNB 账号或线上发行版。
+
+离线检查：`scripts/Test-CnbCredentialStore.ps1` 只写入随机测试凭据，验证读写、删除及目标限制，不接触现有项目令牌；已在当前 PowerShell 和 Windows PowerShell 5.1 实测通过。
 
 ## 1.7.4历史发布记录
 
