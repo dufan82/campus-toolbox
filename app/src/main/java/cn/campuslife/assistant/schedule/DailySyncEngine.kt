@@ -7,7 +7,7 @@ import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.locks.ReentrantLock
 
-class SchoolAuthenticationException : IOException("School authentication expired")
+class SchoolAuthenticationException(val responseCode:Int?=null) : IOException("School authentication expired")
 enum class SyncResult { READY, CHECKING, NEEDS_LOGIN, NO_CHANGE, UPDATED, CONFLICT, NETWORK_ERROR, INVALID_DATA, INTERRUPTED, SKIPPED }
 data class DailySyncState(val enabled:Boolean=false,val generation:Long=0,val lastAttempt:Long=0,
     val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="")

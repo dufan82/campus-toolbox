@@ -38,18 +38,39 @@ class StoryCloudCache(context:Context,api:String?=StoryCloudConfig.api,auth:Stri
         val rows=j.getJSONArray("stories");require(rows.length()<=100)
         (0 until rows.length()).map {i->val r=rows.getJSONObject(i)
             require(StoryCloudRules.cloudId(r.getString("id")))
-            val body=r.getString("body");require(StoryRules.characterCount(body) in 100..5000)
-            Story(r.getString("id"),r.getString("title"),r.getString("summary"),StoryCategory.valueOf(r.getString("category")),body,r.getString("author"),"同学投稿 · 审核发布")
+            val provenance=StoryProvenanceJson.decode(r,true)
+            val body=r.getString("body")
+            if(provenance.allowsFullText)require(StoryRules.characterCount(body) in 100..20000) else require(body.isEmpty())
+            Story(r.getString("id"),r.getString("title"),r.getString("summary"),StoryCategory.valueOf(r.getString("category")),body,r.getString("author"),"审核发布",
+                r.optInt("readingMinutes",0).takeIf {it in 1..120},provenance)
         }.also {require(it.map {s->s.id}.distinct().size==it.size)}.filterNot {it.id in withdrawn}
     }
     private fun write(stories:List<Story>) {
-        file.write(JSONObject().put("version",1).put("stories",JSONArray(stories.map {s->JSONObject().put("id",s.id).put("title",s.title).put("summary",s.summary)
-            .put("category",s.category.name).put("body",s.body).put("author",s.authorLabel)})))
+        file.write(JSONObject().put("version",1).put("stories",JSONArray(stories.map {original->val s=original.publicCopy()
+            StoryProvenanceJson.encode(s.provenance).put("id",s.id).put("title",s.title).put("summary",s.summary)
+            .put("category",s.category.name).put("body",s.body).put("author",s.authorLabel)
+            .put("readingMinutes",s.estimatedMinutes ?: 0)})))
     }
     fun save(story:Story) = synchronized(lock) {
         require(StoryCloudRules.cloudId(story.id))
         if(isWithdrawn(story.id))throw StoryCloudException("STORY_NOT_FOUND","作品已撤下或暂不可用")
-        write((listOf(story)+read().filter {it.id!=story.id}).take(100))
+        write((listOf(story.publicCopy())+read().filter {it.id!=story.id}).take(100))
+    }
+    /** Fresh server rights outrank an old cached full body, even if the next detail request fails. */
+    fun applyPublicMetadata(rows:List<Story>) = synchronized(lock) {
+        val restricted=rows.filterNot {it.provenance.allowsFullText}.associateBy {it.id}
+        if(restricted.isEmpty())return@synchronized
+        val old=read()
+        val affected=old.filter {it.id in restricted}
+        if(affected.isEmpty())return@synchronized
+        val safe=old.map {story->restricted[story.id]?.let {meta->
+            story.copy(title=meta.title,summary=meta.summary,authorLabel=meta.authorLabel,provenance=meta.provenance).publicCopy()
+        } ?: story}
+        try {write(safe)}catch(error:Exception) {
+            // As with authoritative withdrawal, never reveal stale full text after a failed write.
+            affected.forEach {blocked.add(it.id)}
+            throw error
+        }
     }
     fun remove(id:String) = synchronized(lock) {
         require(StoryCloudRules.cloudId(id))

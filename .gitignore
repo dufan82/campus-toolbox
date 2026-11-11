@@ -91,3 +91,9 @@ desktop.ini
 # Local test source backups are not runnable/public test sources
 /app/src/test/java/cn/campuslife/assistant/schedule/original-backup-20261107/
 /app/src/test/java/cn/campuslife/assistant/schedule/original-backup-20261107-session/
+# User-supplied manuscripts pending public reproduction permission; local opt-in Debug review only.
+private/suiji-review-assets/
+
+# Public curation provenance and maintenance handoff
+!/docs/SUIJI_CONTENT.md
+!/docs/SUIJI_ADMIN.md

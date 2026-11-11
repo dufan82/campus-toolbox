@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self'; font-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'">
-  <title>小故事审核 · 校伴</title>
+  <title>随记审核 · 校伴</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./config.js" defer></script>
   <script src="./main.js" type="module"></script>
@@ -18,7 +18,7 @@
   </header>
   <main id="main" tabindex="-1">
     <section id="login-view" class="login-layout" aria-labelledby="login-title">
-      <div class="login-context"><span class="section-label">小故事</span><h1>投稿审核</h1><p>查看投稿，审核内容，管理公开故事。</p><div class="context-rule"></div><p class="muted">使用独立管理员账号登录。<br>与 Android 端的匿名投稿身份分开。</p></div>
+      <div class="login-context"><span class="section-label">随记</span><h1>投稿审核</h1><p>查看投稿，审核内容，管理公开随记。</p><div class="context-rule"></div><p class="muted">使用独立管理员账号登录。<br>与 Android 端的匿名投稿身份分开。</p></div>
       <div class="login-card">
         <h2 id="login-title">管理员登录</h2><p class="muted">登录权限由服务端验证。</p>
         <p id="config-message" class="notice warning" hidden></p>
@@ -33,7 +33,7 @@
     </section>
 
     <section id="workspace" class="workspace" aria-labelledby="workspace-title" hidden>
-      <div class="page-heading"><div><p class="section-label">小故事</p><h1 id="workspace-title" tabindex="-1">投稿审核</h1><p class="muted">通过后公开展示；拒绝备注仅供内部查看。</p></div><button id="refresh" class="button secondary" type="button">刷新列表</button></div>
+      <div class="page-heading"><div><p class="section-label">随记</p><h1 id="workspace-title" tabindex="-1">精选与投稿管理</h1><p class="muted">先保存草稿，再确认公开；来源和授权由服务端重新检查。</p></div><div class="heading-actions"><button id="create-editorial" class="button primary" type="button">新增精选</button><button id="refresh" class="button secondary" type="button">刷新列表</button></div></div>
       <div class="stats" aria-label="投稿计数">
         <div class="stat"><span><span class="status-dot pending-dot" aria-hidden="true"></span>待审核</span><strong id="count-pending">—</strong></div>
         <div class="stat"><span><span class="status-dot approved-dot" aria-hidden="true"></span>已通过</span><strong id="count-approved">—</strong></div>
@@ -42,7 +42,7 @@
       <section class="list-panel" aria-label="投稿列表">
         <div class="list-toolbar"><div class="filters" role="group" aria-label="按审核状态筛选"><button class="filter active" type="button" data-status="pending" aria-pressed="true">待审核</button><button class="filter" type="button" data-status="approved" aria-pressed="false">已通过</button><button class="filter" type="button" data-status="rejected" aria-pressed="false">已拒绝</button><button class="filter" type="button" data-status="all" aria-pressed="false">全部投稿</button></div><span id="list-summary" class="muted">每页 20 条</span></div>
         <p id="workspace-message" class="panel-message" role="status" aria-live="polite"></p>
-        <div class="table-scroll"><table><caption class="sr-only">投稿列表。点击查看打开纯文本详情。</caption><thead><tr><th scope="col">故事标题</th><th scope="col">分类</th><th scope="col">署名</th><th scope="col">状态</th><th scope="col">投稿时间</th><th scope="col"><span class="sr-only">操作</span></th></tr></thead><tbody id="story-rows"></tbody></table></div>
+        <div class="table-scroll"><table><caption class="sr-only">投稿列表。点击查看打开纯文本详情。</caption><thead><tr><th scope="col">随记标题</th><th scope="col">分类</th><th scope="col">署名</th><th scope="col">状态</th><th scope="col">投稿时间</th><th scope="col"><span class="sr-only">操作</span></th></tr></thead><tbody id="story-rows"></tbody></table></div>
         <div id="empty-state" class="empty-state" hidden><span class="empty-symbol" aria-hidden="true">□</span><h2>暂无符合条件的投稿</h2><p>可切换筛选条件，或稍后手动刷新。</p></div>
         <nav class="pagination" aria-label="列表分页"><span id="page-info">第 1 页</span><div><button id="previous-page" class="button quiet" type="button" disabled>上一页</button><button id="next-page" class="button secondary" type="button" disabled>下一页</button></div></nav>
       </section>
@@ -54,8 +54,31 @@
   <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title">
     <div class="dialog-heading"><div><p class="section-label">投稿详情 <span class="environment mock" data-mock-badge hidden>本地Mock</span></p><h2 id="detail-title" tabindex="-1">正在读取…</h2></div><button id="detail-close" class="button quiet" type="button" autofocus>关闭详情</button></div>
     <p id="detail-message" class="feedback" role="alert"></p>
-    <div id="detail-body" hidden><dl id="detail-meta" class="detail-meta"></dl><h3 class="body-heading">故事正文</h3><div id="story-content" class="story-content"></div><section class="internal-note"><h3>内部审核备注</h3><p id="reviewer-note"></p><small>不向投稿者及公开阅读端展示。</small></section></div>
-    <div class="dialog-actions"><button id="reject" class="button danger-outline" type="button" hidden>拒绝投稿</button><button id="withdraw" class="button danger-outline" type="button" hidden>撤下公开故事</button><button id="approve" class="button primary" type="button" hidden>通过并发布</button></div>
+    <div id="detail-body" hidden><dl id="detail-meta" class="detail-meta"></dl><h3 class="body-heading">随记正文</h3><div id="story-content" class="story-content"></div><section class="internal-note"><h3>内部审核备注</h3><p id="reviewer-note"></p><small>不向投稿者及公开阅读端展示。</small></section></div>
+    <section id="managed-editor" hidden aria-label="作品与来源授权管理">
+      <h3>作品、来源与授权</h3>
+      <p class="muted">未授权的完整正文只存管理员草稿。介绍须独立撰写，摘录最多80码点；只有已授权、公有领域、用户授权可公开全文。前三篇由Android本地管理，本页排序不覆盖本地。</p>
+      <form id="editor-form" class="editor-grid">
+        <label>随记标题（最多120码点）<input id="edit-title" maxlength="120" required></label>
+        <label>分类<select id="edit-category"><option value="LIFE">人生</option><option value="GROWTH">成长</option><option value="WARMTH">温暖</option><option value="TWIST">反转</option><option value="OTHER">其他</option></select></label>
+        <label>正文作者 / 评论作者<input id="edit-authorName"></label>
+        <label>作品发布者（不同于评论作者）<input id="edit-publisherName"></label>
+        <label>来源类型<select id="edit-sourceType"><option value="douyin_post">抖音作品</option><option value="douyin_image">抖音图文</option><option value="douyin_comment">抖音评论</option><option value="other_platform">其他平台</option><option value="user_submission">用户投稿</option></select></label>
+        <label>原文HTTPS链接<input id="edit-sourceUrl" type="url" placeholder="粘贴完整HTTPS原文链接"></label>
+        <label>来源作品标题<input id="edit-sourceWorkTitle"></label>
+        <label>评论定位（楼层 / 时间 / 摘录位置）<input id="edit-commentLocator"></label>
+        <label>当前正文授权<select id="edit-rightsStatus"><option value="unverified">未核实（不公开全文）</option><option value="excerpt_only">仅必要摘录</option><option value="authorized">已授权全文</option><option value="public_domain">公有领域</option><option value="user_authorized">用户授权全文</option><option value="revoked">授权已撤销（不公开全文）</option></select></label>
+        <label>云端排序（整数，越小越靠前）<input id="edit-editorialRank" type="number" step="1" min="-1000000000" max="1000000000" value="0" required></label>
+        <label class="editor-wide">公开介绍（最多240码点，不从草稿自动截取）<textarea id="edit-summary" rows="3"></textarea></label>
+        <label class="editor-wide">必要短摘录（最多80码点）<textarea id="edit-excerpt" rows="2"></textarea></label>
+        <label class="editor-wide">作品正文 / 管理员完整草稿（最多20000码点）<textarea id="edit-content" rows="8" maxlength="20000"></textarea></label>
+        <label class="editor-wide">授权凭据与备注（仅管理员可读）<textarea id="edit-rightsNote" rows="3"></textarea></label>
+        <label class="editor-wide check-label"><input id="edit-hidden" type="checkbox">隐藏（保留记录，公开列表与详情不可见；取消隐藏须确认）</label>
+        <p id="editor-message" class="feedback editor-wide" role="alert"></p>
+        <div class="editor-wide"><button id="save" class="button secondary" type="submit">保存草稿 / 修改</button></div>
+      </form>
+    </section>
+    <div class="dialog-actions"><button id="reject" class="button danger-outline" type="button" hidden>拒绝投稿</button><button id="withdraw" class="button danger-outline" type="button" hidden>撤下公开随记</button><button id="approve" class="button primary" type="button" hidden>通过并发布</button></div>
   </dialog>
 
   <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description">

@@ -8,9 +8,20 @@ object StoryRules {
     fun fontSize(value: Int) = value.coerceIn(16,18)
     fun progress(value: Double) = if (value.isFinite()) value.coerceIn(0.0,1.0) else 0.0
     fun filter(entries: List<Story>, category: StoryCategory?, favoritesOnly: Boolean, favorites: Set<String>) =
-        entries.filter { (category==null || it.category==category) && (!favoritesOnly || it.id in favorites) }
+        ordered(entries.filter { !it.provenance.hidden && (!it.provenance.archived || (favoritesOnly && it.id in favorites)) &&
+            (category==null || it.category==category) && (!favoritesOnly || it.id in favorites) })
+    fun ordered(entries:List<Story>):List<Story> {
+        val pinned=listOf("story-suiji-001","story-suiji-002","story-suiji-003")
+        return entries.sortedWith(compareBy<Story> {pinned.indexOf(it.id).takeIf {index->index>=0} ?: 3}
+            .thenBy {it.provenance.editorialRank})
+    }
     fun next(entries: List<Story>, currentId: String): Story? =
         if (entries.isEmpty()) null else entries[(entries.indexOfFirst { it.id==currentId }+1)%entries.size]
+    fun adjacent(entries:List<Story>,id:String,delta:Int):Story? {
+        val list=ordered(entries.filterNot {it.provenance.hidden || it.provenance.archived})
+        val index=list.indexOfFirst {it.id==id}
+        return if(index<0) if(delta>0)list.firstOrNull() else null else list.getOrNull(index+delta)
+    }
     fun validate(draft: StoryDraft): List<StoryDraftError> = buildList {
         if (characterCount(draft.title) !in 2..30) add(StoryDraftError.TITLE)
         if (draft.category==null) add(StoryDraftError.CATEGORY)

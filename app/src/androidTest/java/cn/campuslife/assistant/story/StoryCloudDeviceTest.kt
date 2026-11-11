@@ -49,6 +49,7 @@ class StoryCloudDeviceTest {
             "withdraw" -> withdraw()
             "failedSubmit" -> failedSubmission()
             "retrySubmit" -> retrySubmission()
+            "editorial" -> editorialSourceAndRights()
             else -> assumeTrue("Use explicit local Mock phase",false)
         }
     }
@@ -126,5 +127,37 @@ class StoryCloudDeviceTest {
         val done=CountDownLatch(1);var failed=false
         StoryRepository.get(app).detail(id){failed=it.isFailure;done.countDown()};assertTrue(done.await(10,TimeUnit.SECONDS));assertTrue(failed)
         assertTrue(StoryCloudCache(app).read().none {it.id==id})
+    }
+    private fun editorialSourceAndRights() {
+        val token=admin();val full="这是本机Mock的授权切换测试，不是真实转载授权。".repeat(12)
+        val p=JSONObject().put("editorialId",java.util.UUID.randomUUID().toString()).put("title","精选协议联调")
+            .put("category","LIFE").put("content",full).put("summary","独立的测试介绍").put("authorName","Mock作者")
+            .put("sourceType","douyin_image").put("sourceUrl","https://www.douyin.com/note/7422916853426621732")
+            .put("rightsStatus","unverified").put("rightsNote","仅本机的内部测试备注").put("editorialRank",1)
+        val id=api("createEditorialStory",p,token).getString("id")
+        val published=api("approveStory",JSONObject().put("id",id),token).getString("publishedStoryId")
+        val client=StoryCloudClient(app)
+        val row=client.list().items.single {it.id==published}
+        assertEquals(StoryRights.UNVERIFIED,row.provenance.rights)
+        assertEquals("Mock作者",row.authorName)
+        assertEquals("",client.detail(published).body)
+        fun changeRights(rights:String) {
+            val revision=api("getSubmissionDetail",JSONObject().put("id",id),token).getInt("revision")
+            api("updateManagedStory",JSONObject().put("id",id).put("revision",revision)
+                .put("patch",JSONObject().put("rightsStatus",rights)).put("confirmPublic",true),token)
+        }
+        changeRights("authorized")
+        val authorized=client.detail(published)
+        assertEquals(full,authorized.readableBody)
+        val seed=StoryAsset.load(app.assets).single {it.id=="story-suiji-001"}
+        val combined=StoryCloudRules.combine(listOf(seed),listOf(authorized))
+        assertEquals(listOf(seed.id),combined.map {it.id});assertEquals(published,combined.single().remoteId)
+        StoryCloudCache(app).save(authorized)
+        changeRights("revoked")
+        val revoked=client.detail(published);assertEquals("",revoked.body)
+        StoryCloudCache(app).applyPublicMetadata(listOf(revoked))
+        assertEquals("",StoryCloudCache(app).read().single {it.id==published}.body)
+        api("deletePublishedStory",JSONObject().put("id",id),token)
+        assertTrue(client.list().items.none {it.id==published})
     }
 }

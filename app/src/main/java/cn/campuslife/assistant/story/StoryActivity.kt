@@ -3,6 +3,7 @@ package cn.campuslife.assistant.story
 import android.os.Bundle
 import android.view.View
 import android.widget.*
+import androidx.core.graphics.drawable.toDrawable
 import cn.campuslife.assistant.ui.Ui
 
 class StoryActivity : StoryScreen() {
@@ -20,28 +21,31 @@ class StoryActivity : StoryScreen() {
         super.onCreate(savedInstanceState)
         category=StoryCategory.entries.firstOrNull { it.name==savedInstanceState?.getString("story_filter") }
         favoritesOnly=savedInstanceState?.getBoolean("story_favorites_only") ?: false
-        val root=Ui.page(this); heading(root,"小故事",true)
+        val root=Ui.page(this); heading(root,"随记",true)
         if(StoryCloudConfig.configured) {
             refresh=Ui.textButton(this,"刷新") {refreshCloud(force=true)}.apply {tag="story_cloud_refresh"}
-            ((root.getChildAt(0) as LinearLayout).getChildAt(0) as LinearLayout).addView(refresh,2)
+
         }
         val body=body()
-        body.addView(Spinner(this).apply {
-            tag="story_filter"; contentDescription="故事分类"
+        val controls=Ui.row(this).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
+        controls.addView(Spinner(this).apply {
+            tag="story_filter"; contentDescription="随记分类"
             minimumHeight=Ui.dp(context,48)
-            adapter=ArrayAdapter(context,android.R.layout.simple_spinner_dropdown_item,listOf("全部分类")+StoryCategory.entries.map { it.label })
+            adapter=ArrayAdapter(context,android.R.layout.simple_spinner_dropdown_item,listOf("全部")+StoryCategory.entries.map { it.label })
             setSelection(category?.ordinal?.plus(1) ?: 0)
             onItemSelectedListener=object: AdapterView.OnItemSelectedListener {
                 override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { category=StoryCategory.entries.getOrNull(position-1); render() }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-        },LinearLayout.LayoutParams(-1,-2))
-        body.addView(CheckBox(this).apply {
-            text="只看收藏"; tag="story_favorites_only"; textSize=15f; setTextColor(Ui.ink)
+        },LinearLayout.LayoutParams(0,-2,1f))
+        controls.addView(CheckBox(this).apply {
+            text="收藏"; tag="story_favorites_only"; textSize=15f; setTextColor(Ui.ink)
             minimumHeight=Ui.dp(context,48); isChecked=favoritesOnly
             setOnCheckedChangeListener { _,checked -> favoritesOnly=checked; render() }
         })
-        message=status("正在读取故事…").apply { tag="story_list_status" }; body.addView(message)
+        if(::refresh.isInitialized)controls.addView(refresh)
+        body.addView(controls)
+        message=status("正在读取…").apply { tag="story_list_status" }; body.addView(message)
         cards=Ui.column(this); body.addView(cards)
         root.addView(Ui.scroll(this,body),LinearLayout.LayoutParams(-1,0,1f))
     }
@@ -56,7 +60,7 @@ class StoryActivity : StoryScreen() {
         cloudLoading=true;if(::refresh.isInitialized)refresh.isEnabled=false
         repository.refresh(cursor,force) {result->onUi {
             cloudLoading=false;if(::refresh.isInitialized)refresh.isEnabled=true
-            result.fold({(items,next)->entries=items;nextCursor=next;render()}, {error(message,it);message.text="暂时无法刷新，已保留本机故事"})
+            result.fold({(items,next)->entries=items;nextCursor=next;render()}, {error(message,it);message.text="暂时无法刷新，已保留本机内容"})
         }}
     }
     private fun render() {
@@ -64,20 +68,24 @@ class StoryActivity : StoryScreen() {
         cards.removeAllViews()
         val visible=StoryRules.filter(entries,category,favoritesOnly,state.favorites)
         val cachedCount=visible.count {it.source==StoryCloudRules.CACHED_SOURCE}
-        message.text=when {visible.isEmpty()->"暂无符合条件的故事。";cachedCount>0->"保留 $cachedCount 篇已缓存故事供离线阅读，不代表本次在线分页结果。";else->""}
+        message.text=when {visible.isEmpty()->"暂无符合条件的随记。";cachedCount>0->"离线缓存";else->""}
         message.visibility=if (message.text.isEmpty()) View.GONE else View.VISIBLE
-        visible.forEach { story ->
+        visible.forEachIndexed { index, story ->
+            if(index>0)cards.addView(View(this).apply {setBackgroundColor(Ui.line)},LinearLayout.LayoutParams(-1,Ui.dp(this,1)))
             val progress=((state.progress[story.id] ?: 0.0)*100).toInt()
-            val card=Ui.card(this).apply {
+            val card=Ui.column(this).apply {
+                setPadding(0,Ui.dp(context,18),0,Ui.dp(context,18))
+                background=android.graphics.drawable.RippleDrawable(android.content.res.ColorStateList.valueOf(0x16172b49),android.graphics.Color.TRANSPARENT.toDrawable(),null)
                 tag="story_card_${story.id}"; isClickable=true; isFocusable=true
-                contentDescription="${story.title}，${story.category.label}，${story.readingMinutes}分钟"+if(story.source==StoryCloudRules.CACHED_SOURCE)"，已缓存，非当前在线分页结果" else ""
+                contentDescription="${story.title}，${story.category.label}，${story.readingTimeLabel}"+if(story.source==StoryCloudRules.CACHED_SOURCE)"，离线缓存" else ""
                 setOnClickListener { startActivity(StoryReaderActivity.intent(this@StoryActivity,story.id)) }
             }
-            card.addView(Ui.text(this,story.title,18f,bold=true)); card.addView(Ui.space(this,9))
-            card.addView(Ui.text(this,story.summary,14f,Ui.muted)); card.addView(Ui.space(this,12))
-            card.addView(Ui.text(this,"${story.category.label} · ${story.authorLabel} · 约${story.readingMinutes}分钟",12f,Ui.muted))
+            card.addView(Ui.text(this,story.title,19f,bold=true)); card.addView(Ui.space(this,9))
+            card.addView(Ui.text(this,story.summary,14f,Ui.muted).apply {maxLines=3;ellipsize=android.text.TextUtils.TruncateAt.END}); card.addView(Ui.space(this,12))
+            card.addView(Ui.text(this,"${story.authorLabel} · ${story.readingTimeLabel}",12f,Ui.muted))
             val markers=buildList {
-                if(story.source==StoryCloudRules.CACHED_SOURCE)add(StoryCloudRules.CACHED_SOURCE)
+                if(story.source==StoryCloudRules.CACHED_SOURCE)add("离线缓存")
+                if(story.provenance.archived)add("历史归档")
                 if (story.id in state.favorites) add("已收藏")
                 if (progress>0) add("读至${progress}%")
             }
@@ -85,7 +93,7 @@ class StoryActivity : StoryScreen() {
                 card.addView(Ui.space(this,8))
                 card.addView(Ui.text(this,markers.joinToString(" · "),12f,Ui.teal))
             }
-            cards.addView(card,LinearLayout.LayoutParams(-1,-2).apply { topMargin=Ui.dp(this@StoryActivity,12) })
+            cards.addView(card,LinearLayout.LayoutParams(-1,-2).apply { topMargin=Ui.dp(this@StoryActivity,0) })
         }
         nextCursor?.let {cursor->cards.addView(Ui.textButton(this,if(cloudLoading)"正在加载…" else "加载更多") {refreshCloud(cursor)}.apply {tag="story_load_more";isEnabled=!cloudLoading})}
     }

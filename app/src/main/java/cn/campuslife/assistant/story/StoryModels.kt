@@ -2,12 +2,18 @@ package cn.campuslife.assistant.story
 
 enum class StoryCategory(val label: String) { LIFE("人生"), GROWTH("成长"), WARMTH("温暖"), TWIST("反转"), OTHER("其他") }
 
-/** Content markers, not a real author identity or a user submission. */
+/** Stable IDs and existing local state are independent from the visible column name. */
 data class Story(
     val id: String, val title: String, val summary: String, val category: StoryCategory, val body: String,
-    val authorLabel: String = "原创短篇", val source: String = "本项目创作", val estimatedMinutes: Int? = null
+    val authorLabel: String = "匿名", val source: String = "", val estimatedMinutes: Int? = null,
+    val provenance:StoryProvenance=StoryProvenance(), val remoteId:String?=null,
+    val privateReview:Boolean=false
 ) {
     val readingMinutes: Int get() = estimatedMinutes ?: ((StoryRules.characterCount(body)+299)/300).coerceAtLeast(1)
+    val hasFullText:Boolean get()=(provenance.allowsFullText || privateReview) && body.isNotBlank()
+    val readableBody:String get()=if(hasFullText)body else provenance.excerpt
+    val readingTimeLabel:String get()=if(estimatedMinutes!=null || ((provenance.allowsFullText || privateReview) && body.isNotBlank()))"约${readingMinutes}分钟" else "原文阅读"
+    fun publicCopy()=if(provenance.allowsFullText)copy(privateReview=false) else copy(body="",privateReview=false)
 }
 
 data class StoryDraft(

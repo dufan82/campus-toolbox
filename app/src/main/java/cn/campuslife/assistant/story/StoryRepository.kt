@@ -12,19 +12,34 @@ import java.util.concurrent.Executors
 object StoryAsset {
     fun load(assets: AssetManager): List<Story> {
         val json=assets.open("stories.json").bufferedReader(Charsets.UTF_8).use { JSONObject(it.readText()) }
-        return decode(json)
+        val legacy=assets.open("legacy_stories.json").bufferedReader(Charsets.UTF_8).use {decode(JSONObject(it.readText()))}
+        val current=decode(json)
+        if(cn.campuslife.assistant.BuildConfig.DEBUG && cn.campuslife.assistant.BuildConfig.SUIJI_PRIVATE_REVIEW) {
+            val reviews=assets.open("suiji_private_review.json").bufferedReader(Charsets.UTF_8).use {JSONObject(it.readText()).getJSONArray("reviews")}
+            require(reviews.length()<=10)
+            val bodies=(0 until reviews.length()).associate {i->val row=reviews.getJSONObject(i)
+                row.getString("id") to row.getString("body").also {require(StoryRules.characterCount(it) in 100..20000)}}
+            require(bodies.keys.all {id->current.any {it.id==id}})
+            return current.map {row->bodies[row.id]?.let {row.copy(body=it,privateReview=true)} ?: row}+legacy
+        }
+        return current+legacy
     }
     fun decode(json: JSONObject): List<Story> {
-        require(json.get("version") is Int && json.getInt("version")==1)
+        require(json.get("version") is Int && json.getInt("version") in 1..2)
+        val legacy=json.getInt("version")==1
         val items=json.getJSONArray("stories")
         require(items.length() in 1..100)
         val entries=(0 until items.length()).map { index ->
             val item=items.getJSONObject(index)
             Story(item.getString("id"),item.getString("title"),item.getString("summary"),
                 StoryCategory.valueOf(item.getString("category")),item.getString("body"),
-                item.getString("authorLabel"),item.getString("source")).also {
+                item.getString("authorLabel"),item.getString("source"),
+                item.optInt("readingMinutes",0).takeIf {it in 1..120},
+                if(legacy)StoryProvenance(sourceType="legacy_original",rights=StoryRights.AUTHORIZED,archived=true)
+                else StoryProvenanceJson.decode(item)).also {
                 require(StoryRules.validId(it.id) && it.title.isNotBlank() && it.summary.isNotBlank())
-                require(StoryRules.characterCount(it.body) in 100..20000)
+                if(it.provenance.allowsFullText)require(it.body.isEmpty() || StoryRules.characterCount(it.body) in 100..20000)
+                else require(it.body.isEmpty()) {"Unlicensed full text must not be bundled"}
                 require(it.source.isNotBlank() && it.authorLabel.isNotBlank())
             }
         }
@@ -38,7 +53,7 @@ class StoryStore(context: Context) {
     private val file=AtomicJsonFile(context,FILE_NAME)
     fun read(): StoryLocalState = file.read()?.let {
         try { decode(it) } catch (error: Exception) {
-            throw IOException("小故事本机记录无法读取，原文件已保留；暂不保存，请勿清除应用数据。",error)
+            throw IOException("随记本机记录无法读取，原文件已保留；暂不保存，请勿清除应用数据。",error)
         }
     } ?: StoryLocalState()
     fun write(state: StoryLocalState) { file.write(encode(state)) }
@@ -103,11 +118,15 @@ class StoryRepository private constructor(context: Context) {
     fun refresh(cursor:String?,force:Boolean=false,complete:(Result<Pair<List<Story>,String?>>)->Unit)=executor.execute {
         complete(runCatching {
             if(cursor==null && !force && hasOnline && System.currentTimeMillis()-refreshedAt<5*60*1000) return@runCatching available() to savedCursor
-            val page=cloud.list(cursor)
-            val rows=page.items.map {Story(it.id,it.title,it.summary,it.category,"",it.authorName,"同学投稿 · 审核发布",it.readingMinutes)}
-            online=if(cursor==null)rows else (online+rows).distinctBy {it.id}
+            var effectiveCursor=cursor
+            val page=try {cloud.list(cursor)} catch(error:StoryCloudException) {
+                if(cursor!=null && error.code=="INVALID_CURSOR") {effectiveCursor=null;cloud.list(null)} else throw error
+            }
+            val rows=page.items.map {Story(it.id,it.title,it.summary,it.category,"",it.authorName,"审核发布",it.readingMinutes,it.provenance)}
+            cloudCache.applyPublicMetadata(rows)
+            online=if(effectiveCursor==null)rows else (online+rows).distinctBy {it.id}
             online=online.take(500);hasOnline=true;savedCursor=if(online.size>=500)null else page.nextCursor
-            if(cursor==null)refreshedAt=System.currentTimeMillis()
+            if(effectiveCursor==null)refreshedAt=System.currentTimeMillis()
             available() to savedCursor
         })
     }

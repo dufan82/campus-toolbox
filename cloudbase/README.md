@@ -1,4 +1,8 @@
-# 小故事 CloudBase 服务端
+# 随记管理扩展（仅本地，2026-11-11）
+
+管理员精选新增/编辑、来源/授权、排序、隐藏及撤下见[CONTRACT](CONTRACT.md)和[本地交接](../docs/SUIJI_ADMIN.md)。无新集合/依赖/配置迁移，未授权草稿仅管理员可读。真实云端仍旧版，本轮未部署或调用；以下历史接入说明不表示新版已上线。离线验证入口：node cloudbase/scripts/verify-suiji-admin.js（项目根）。
+
+# 随记 CloudBase 服务端
 
 ## 已有上海 PG 环境接入进度（2026-11-10）
 
@@ -81,7 +85,7 @@ adb -s <专用模拟器serial> reverse tcp:8787 tcp:8787
 
 1. 先确认文档集合可用；PG环境启用pgdoc后也可使用本项目Node SDK事务，权限必须采用ADMINONLY基础ACL，不支持CUSTOM规则。填入真实运行时环境变量（见 `.env.example`）；先 `node scripts/init-db.js --plan`，默认只输出离线计划，不联网。
 2. 在云控制台创建以下五个集合，立即选择“仅管理端可读写”，或将 `database/security-rules.json` 的 `{read:false,write:false}` 分别应用于每一个集合：
-   `story_submissions`、`published_stories`、`story_rate_limits`、`story_audit_log`、`story_stats`。**公开故事也拒绝客户端直读，只经服务 API 输出 DTO。** 等规则生效后，用匿名及普通登录客户端实际验证增删改查全拒绝。
+   `story_submissions`、`published_stories`、`story_rate_limits`、`story_audit_log`、`story_stats`。**公开随记也拒绝客户端直读，只经服务 API 输出 DTO。** 等规则生效后，用匿名及普通登录客户端实际验证增删改查全拒绝。
 3. 如已明确授权脚本建集合，可在已有环境的受信任运行时执行 `node scripts/init-db.js --create-collections --confirm-env=<真实环境ID>`。该阶段只建集合，**不会假装已配置规则/索引**。仅忽略官方 `DATABASE_COLLECTION_ALREADY_EXIST`，其他失败中止。集合新建后仍需先完成上一步权限，不得暴露 API。
 4. 控制台根据 `database/indexes.json` 逐项建索引并等状态正常。JSON 是可读的**控制台计划**，不是虚构的 node-sdk createIndex API：
    - story_submissions：submissionId ASC唯一；sortKey DESC；status ASC + sortKey DESC。
@@ -124,7 +128,7 @@ adb -s <专用模拟器serial> reverse tcp:8787 tcp:8787
 
 目前测试覆盖：输入/emoji边界、owner与幂等竞态、UTC额度与滚动分钟、全站额度、管理权限、审核竞态/回滚/审计、撤下404、DTO与游标、Mock真实HTTP及重开持久化、官方认证URL/超时/拒绝跳转/账号状态/allowlist、跨实例登录限额、SDK事务/普通读取形状、安全初始化及生产打包隔离。最终数量与命令以 `20-final-tests.tap`、`commands.json` 为准；不是云端实测或Android验收。
 
-本目录新增服务端，不替换 App 原件。需恢复时先停止 Mock/撤销未来云端路由，保留 mock/data 数据和所需证据，再将源码切回集成前备份；不提供会删除用户故事或清空数据库的恢复命令。已有数据不能在降级时被隐式重建/重置。正常文件仓库重开/原子异常回滚在临时隔离库测试，日常演示库不会被自动测试写入。
+本目录新增服务端，不替换 App 原件。需恢复时先停止 Mock/撤销未来云端路由，保留 mock/data 数据和所需证据，再将源码切回集成前备份；不提供会删除用户随记或清空数据库的恢复命令。已有数据不能在降级时被隐式重建/重置。正常文件仓库重开/原子异常回滚在临时隔离库测试，日常演示库不会被自动测试写入。
 
 ## 2026-11-10 官方核对依据
 

@@ -1,6 +1,7 @@
 'use strict';const{test}=require('node:test');const assert=require('node:assert/strict');const http=require('node:http');const{start,validateApi}=require('../scripts/local-admin');
 test('local review serves only assets and never handles passwords or APIs',async t=>{const server=await start({apiUrl:'https://api.test/api',port:0});t.after(()=>server.close());const origin='http://127.0.0.1:'+server.address().port;
  assert.equal((await fetch(origin)).status,200);const config=await(await fetch(origin+'/config.js')).text();assert(config.includes('localCloud'));assert(!config.includes('password'));
+ assert.equal((await fetch(origin+'/editor.js')).status,200);
  for(const name of ['/api','/../package.json','/secret.env'])assert.equal((await fetch(origin+name)).status,404);
  assert.equal((await fetch(origin,{method:'POST',body:'synthetic-invalid'})).status,405);
  assert.equal((await fetch(origin,{headers:{Origin:'https://evil.test'}})).status,403);

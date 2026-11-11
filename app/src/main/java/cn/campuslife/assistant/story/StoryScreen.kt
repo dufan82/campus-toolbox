@@ -19,6 +19,7 @@ abstract class StoryScreen : Activity() {
     }
     protected fun heading(root: LinearLayout,title: String,submission: Boolean=false) {
         val header=Ui.header(this,title)
+        ((header.getChildAt(0) as LinearLayout).getChildAt(1) as TextView).gravity=Gravity.CENTER
         if (submission) (header.getChildAt(0) as LinearLayout).addView(Ui.textButton(this,"投稿") { StorySubmissionLauncher.open(this) }.apply { tag="story_submission" })
         root.addView(header)
     }

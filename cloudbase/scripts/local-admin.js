@@ -2,7 +2,7 @@
 // Owner's browser UI only. Authentication goes directly to the HTTPS cloud API;
 // this loopback file server neither receives nor proxies passwords/tokens.
 const http=require('node:http'),fs=require('node:fs/promises'),path=require('node:path');
-const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/api.js':'api.js','/app.js':'app.js','/main.js':'main.js'};
+const files={'/':'index.html','/index.html':'index.html','/styles.css':'styles.css','/api.js':'api.js','/app.js':'app.js','/editor.js':'editor.js','/main.js':'main.js'};
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 function validateApi(value){const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||['localhost','127.0.0.1','[::1]'].includes(url.hostname))throw new Error('A fixed HTTPS cloud API is required');return url.href;}
 async function start({apiUrl,port=8791}={}){

@@ -25,7 +25,7 @@ function id(p, note = false) {
   if (note && p.note !== undefined) string(p.note, 0, 500);
   return p.id;
 }
-function page(p, kind) {
+function page(p, kind, revision = 0) {
   shape(p, kind === 'public' ? ['limit','cursor','category'] : ['limit','cursor','status']);
   const limit = p.limit === undefined ? 20 : p.limit;
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) fail(400, 'INVALID_PAYLOAD', '分页大小应为1至50');
@@ -36,10 +36,12 @@ function page(p, kind) {
     try {
       if (typeof p.cursor !== 'string' || p.cursor.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(p.cursor)) throw Error();
       const c = JSON.parse(Buffer.from(p.cursor, 'base64url').toString('utf8'));
-      if (c.v !== 1 || c.kind !== kind || c.filter !== filter || typeof c.last !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z\|[a-z0-9-]{1,80}$/.test(c.last)) throw Error();
+      const key = kind === 'public' ? /^(?:[!~]\d{10}\|)?\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z\|[a-z0-9-]{1,80}$/ : /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z\|[a-z0-9-]{1,80}$/;
+      if (![1,2].includes(c.v) || c.kind !== kind || c.filter !== filter || typeof c.last !== 'string' || !key.test(c.last) ||
+          (kind === 'public' && (c.v === 1 ? revision !== 0 : c.revision !== revision))) throw Error();
       before = c.last;
     } catch { fail(400, 'INVALID_CURSOR', '分页游标无效或筛选条件已改变'); }
   }
-  return { limit, filter, before, cursor: last => Buffer.from(JSON.stringify({ v: 1, kind, filter, last })).toString('base64url') };
+  return { limit, filter, before, cursor: last => Buffer.from(JSON.stringify({ v: kind === 'public' ? 2 : 1, kind, filter, last, ...(kind === 'public' ? { revision } : {}) })).toString('base64url') };
 }
-module.exports = { CATEGORIES, CONSENT, PUBLIC_ID, UUID, shape, string, submission, id, page };
+module.exports = { CATEGORIES, CONSENT, PUBLIC_ID, UUID, shape, string, plain, submission, id, page };

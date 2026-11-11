@@ -94,16 +94,21 @@ class StoryCloudClient(context:Context,private val requestDeadlineMs:Long=40_000
     private fun summary(j:JSONObject):StoryCloudSummary {
         val id=j.getString("id");require(StoryCloudRules.cloudId(id))
         val title=j.getString("title");val author=j.getString("authorName");val short=j.getString("summary")
-        require(StoryRules.characterCount(title) in 2..30 && StoryRules.characterCount(author) in 1..30 && short.length<=250)
-        return StoryCloudSummary(id,title,StoryCategory.valueOf(j.getString("category")),short,author,j.getString("publishedAt"),j.optInt("readingMinutes",1).coerceIn(1,30))
+        require(StoryRules.characterCount(title) in 2..120 && StoryRules.characterCount(author) in 1..80 && short.length<=250)
+        return StoryCloudSummary(id,title,StoryCategory.valueOf(j.getString("category")),short,author,j.getString("publishedAt"),j.optInt("readingMinutes",1).coerceIn(1,120),StoryProvenanceJson.decode(j,true))
     }
     fun detail(id:String):Story {
         require(StoryCloudRules.cloudId(id))
         val j=call("getStoryDetail",JSONObject().put("id",id));require(j.getString("id")==id)
-        val text=j.getString("content");require(StoryRules.characterCount(text) in 100..5000)
+        val provenance=StoryProvenanceJson.decode(j,true)
+        val raw=j.optString("content")
+        val text=if(provenance.allowsFullText)raw else ""
+        require(StoryRules.characterCount(raw)<=20000)
+        if(provenance.allowsFullText)require(StoryRules.characterCount(text) in 100..20000)
         val title=j.getString("title");val author=j.getString("authorName")
-        require(StoryRules.characterCount(title) in 2..30 && StoryRules.characterCount(author) in 1..30)
-        return Story(id,title,text.take(65),StoryCategory.valueOf(j.getString("category")),text,author,"同学投稿 · 审核发布")
+        require(StoryRules.characterCount(title) in 2..120 && StoryRules.characterCount(author) in 1..80)
+        return Story(id,title,j.optString("summary").ifBlank {text.take(65)},StoryCategory.valueOf(j.getString("category")),text,author,"审核发布",
+            j.optInt("readingMinutes",0).takeIf {it in 1..120},provenance)
     }
     private companion object {
         val deadlines=java.util.concurrent.ScheduledThreadPoolExecutor(1) {task->Thread(task,"story-request-deadline").apply {isDaemon=true}}.apply {removeOnCancelPolicy=true}

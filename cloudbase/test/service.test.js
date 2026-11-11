@@ -104,9 +104,10 @@ test('reject is idempotent and rejected cannot approve', async t => {
 test('public DTO omits all private fields and body in metadata, adds readingMinutes', async t => {
   const { service } = await setup(t); const p = payload(); const s = await service.submitStory(p, user); const a = await service.approveStory({ id: s.id }, admin);
   const list = await service.getPublishedStories({}); assert.equal(list.items[0].readingMinutes, Math.ceil(Array.from(p.content).length / 300));
-  assert.deepEqual(Object.keys(list.items[0]).sort(), ['id','title','category','summary','authorName','publishedAt','sourceType','readingMinutes'].sort());
+  const publicKeys = ['id','title','category','summary','content','authorName','publishedAt','sourceType','readingMinutes','sourceUrl','publisherName','sourceWorkTitle','commentLocator','rightsStatus','editorialRank','excerpt','hidden'];
+  assert.deepEqual(Object.keys(list.items[0]).sort(), publicKeys.sort());
   const detail = await service.getStoryDetail({ id: a.publishedStoryId });
-  assert.deepEqual(Object.keys(detail).sort(), ['id','title','category','content','authorName','publishedAt','sourceType'].sort());
+  assert.deepEqual(Object.keys(detail).sort(), publicKeys.sort());
 });
 test('pending is never public and withdrawn detail uses fixed 404 code', async t => {
   const { service } = await setup(t); const s = await service.submitStory(payload(), user);

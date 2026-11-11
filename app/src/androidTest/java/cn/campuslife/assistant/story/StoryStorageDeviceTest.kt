@@ -22,7 +22,7 @@ class StoryStorageDeviceTest {
         }
     }
     @Test fun bundledStoriesAreIndependentOriginalAndSubstantial() {
-        val entries=StoryAsset.load(InstrumentationRegistry.getInstrumentation().targetContext.assets)
+        val entries=StoryAsset.load(InstrumentationRegistry.getInstrumentation().targetContext.assets).filter {it.provenance.archived}
         assertEquals(12,entries.size)
         assertEquals(12,entries.map { it.id }.toSet().size)
         assertEquals(StoryCategory.entries.filter { it!=StoryCategory.OTHER }.toSet(),entries.map { it.category }.toSet())
@@ -45,7 +45,7 @@ class StoryStorageDeviceTest {
             .put("id","story-long-reviewed").put("title","审核稿件").put("summary","说明")
             .put("category","OTHER").put("body","字".repeat(5000)).put("authorLabel","测试署名").put("source","合成测试来源")))
         assertEquals(5000,StoryAsset.decode(document()).single().body.length)
-        listOf(2,"1").forEach { version -> assertThrows(Exception::class.java) { StoryAsset.decode(document().put("version",version)) } }
+        listOf(999,"1").forEach { version -> assertThrows(Exception::class.java) { StoryAsset.decode(document().put("version",version)) } }
         val invalid=document().apply { getJSONArray("stories").getJSONObject(0).put("id","poem-001") }
         assertThrows(Exception::class.java) { StoryAsset.decode(invalid) }
     }

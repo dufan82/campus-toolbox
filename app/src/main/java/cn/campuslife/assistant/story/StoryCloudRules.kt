@@ -6,7 +6,8 @@ import java.security.MessageDigest
 import java.util.Locale
 
 data class StoryReceipt(val submissionId:String,val id:String,val status:String,val duplicate:Boolean)
-data class StoryCloudSummary(val id:String,val title:String,val category:StoryCategory,val summary:String,val authorName:String,val publishedAt:String,val readingMinutes:Int=1)
+data class StoryCloudSummary(val id:String,val title:String,val category:StoryCategory,val summary:String,val authorName:String,val publishedAt:String,val readingMinutes:Int=1,
+    val provenance:StoryProvenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED))
 data class StoryCloudPage(val items:List<StoryCloudSummary>,val nextCursor:String?)
 class StoryCloudException(val code:String,message:String,val httpStatus:Int=0):IOException(message)
 
@@ -43,7 +44,33 @@ object StoryCloudRules {
     fun cloudId(id:String)=id.startsWith("story-cloud-") && StoryRules.validId(id)
     fun authoritativeMissing(error:Throwable)=error is StoryCloudException &&
         (error.httpStatus==404 || error.code in setOf("STORY_NOT_FOUND","NOT_FOUND","HTTP_404"))
-    fun combine(local:List<Story>,cloud:List<Story>,cached:List<Story> = emptyList(),withdrawn:Set<String> = emptySet()):List<Story> =
-        (local+cloud.filter {cloudId(it.id)}+cached.filter {cloudId(it.id)}.map {it.copy(source=CACHED_SOURCE)})
-            .filterNot {cloudId(it.id) && it.id in withdrawn}.distinctBy {it.id}
+    fun combine(local:List<Story>,cloud:List<Story>,cached:List<Story> = emptyList(),withdrawn:Set<String> = emptySet()):List<Story> {
+        val remote=(cloud.filter {cloudId(it.id)}+cached.filter {cloudId(it.id)}.map {it.copy(source=CACHED_SOURCE)})
+            .filterNot {it.id in withdrawn}.distinctBy {it.id}.distinctBy {story->
+                val p=story.provenance
+                val key=StoryProvenance.sourceKey(p.sourceUrl)
+                when {
+                    p.sourceType=="user_submission" || key==null -> "id:${story.id}"
+                    p.sourceType=="douyin_comment" && p.commentLocator.isBlank() -> "id:${story.id}"
+                    p.sourceType=="douyin_comment" -> listOf("comment",key,story.authorLabel,p.commentLocator)
+                    else -> listOf("work",key)
+                }
+            }
+        val used=mutableSetOf<String>()
+        val merged=local.map {seed->
+            val keys=(listOf(seed.provenance.sourceUrl)+seed.provenance.sourceAliases).mapNotNull(StoryProvenance::sourceKey).toSet()
+            val replacement=if(seed.provenance.archived || keys.isEmpty())null else remote.firstOrNull {
+                it.provenance.sourceType!="user_submission" && StoryProvenance.sourceKey(it.provenance.sourceUrl) in keys &&
+                    (if(seed.provenance.sourceType=="douyin_comment" || it.provenance.sourceType=="douyin_comment")
+                        seed.provenance.sourceType==it.provenance.sourceType && seed.authorLabel==it.authorLabel &&
+                            seed.provenance.commentLocator.isNotBlank() && seed.provenance.commentLocator==it.provenance.commentLocator
+                    else true)
+            }
+            if(replacement==null)seed else {
+                used.add(replacement.id)
+                replacement.copy(id=seed.id,remoteId=replacement.id,provenance=replacement.provenance.copy(editorialRank=seed.provenance.editorialRank))
+            }
+        }
+        return StoryRules.ordered((merged+remote.filterNot {it.id in used}).filterNot {it.provenance.hidden}.distinctBy {it.id})
+    }
 }

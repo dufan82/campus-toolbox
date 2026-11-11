@@ -27,6 +27,7 @@ listOf(storyApiUrl,storyAuthUrl).filter {it.isNotEmpty()}.forEach {
 }
 require(storyApiUrl.isEmpty()==storyAuthUrl.isEmpty()) {"Configure both STORY_API_URL and STORY_AUTH_URL, or neither"}
 val storyMock=providers.gradleProperty("storyMock").orNull=="true"
+val suijiPrivateReview=providers.gradleProperty("suijiPrivateReview").orNull=="true"
 val releaseSigning = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD").associateWith {
     providers.environmentVariable("CAMPUS_SIGNING_$it").orNull
 }
@@ -41,8 +42,8 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 30
-        versionName = "1.8.3"
+        versionCode = 31
+        versionName = "1.8.4"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
         buildConfigField("String", "CNB_REPOSITORY", "\"$domesticUpdateRepository\"")
@@ -50,12 +51,18 @@ android {
         buildConfigField("String", "STORY_API_URL", "\"$storyApiUrl\"")
         buildConfigField("String", "STORY_AUTH_URL", "\"$storyAuthUrl\"")
         buildConfigField("boolean", "STORY_MOCK", "false")
+        buildConfigField("boolean", "SUIJI_PRIVATE_REVIEW", "false")
     }
     buildFeatures { buildConfig = true }
     if(storyMock) buildTypes.getByName("debug") {
         buildConfigField("String", "STORY_API_URL", "\"http://127.0.0.1:8787/api\"")
         buildConfigField("String", "STORY_AUTH_URL", "\"http://127.0.0.1:8787\"")
         buildConfigField("boolean", "STORY_MOCK", "true")
+    }
+    // Explicit local review only. This ignored source directory is NEVER a release asset.
+    if(suijiPrivateReview) {
+        buildTypes.getByName("debug").buildConfigField("boolean","SUIJI_PRIVATE_REVIEW","true")
+        sourceSets.getByName("debug").assets.srcDir(rootProject.file("private/suiji-review-assets"))
     }
     if (hasReleaseSigning) {
         val privateRelease = signingConfigs.create("privateRelease") {

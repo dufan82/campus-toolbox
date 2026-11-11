@@ -16,9 +16,9 @@ import java.io.IOException
 class StoryCloudReaderRaceDeviceTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val context get()=instrumentation.targetContext
-    private val local=Story("story-001","本机起点","简介",StoryCategory.LIFE,"本机故事。".repeat(100))
-    private val cloudB=Story("story-cloud-reader-race-b","云端乙","简介",StoryCategory.GROWTH,"云端乙的完整故事。\n\n".repeat(100))
-    private val cloudC=Story("story-cloud-reader-race-c","云端丙","简介",StoryCategory.WARMTH,"云端丙的完整故事。\n\n".repeat(100))
+    private val local=Story("story-001","本机起点","简介",StoryCategory.LIFE,"本机故事。".repeat(100),provenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED))
+    private val cloudB=Story("story-cloud-reader-race-b","云端乙","简介",StoryCategory.GROWTH,"云端乙的完整故事。\n\n".repeat(100),provenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED))
+    private val cloudC=Story("story-cloud-reader-race-c","云端丙","简介",StoryCategory.WARMTH,"云端丙的完整故事。\n\n".repeat(100),provenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED))
 
     private class Pending(val id:String,val complete:(Result<Story>)->Unit)
     private class FakeLoader(private val stories:List<Story>):StoryReaderActivity.Loader {

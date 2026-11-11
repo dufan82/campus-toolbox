@@ -25,12 +25,12 @@ class StoryCloudStorageTest {
  @Test fun onlyReadCloudBodiesAreBoundedAndAuthoritativeRemovalLeavesLocalState() {
   val app=isolated();val cache=StoryCloudCache(app)
   StoryStore(app).write(StoryLocalState(favorites=setOf("story-001")))
-  repeat(101){i->cache.save(Story("story-cloud-$i","测试标题","简介",StoryCategory.LIFE,"正文".repeat(60),"匿名","审核发布"))}
+  repeat(101){i->cache.save(Story("story-cloud-$i","测试标题","简介",StoryCategory.LIFE,"正文".repeat(60),"匿名","审核发布",provenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED)))}
   assertEquals(100,cache.read().size);assertFalse(cache.read().any {it.id=="story-cloud-0"})
   cache.remove("story-cloud-100");assertEquals(99,cache.read().size)
   assertEquals(setOf("story-001"),StoryStore(app).read().favorites)
  }
- private fun story(id:String="story-cloud-withdrawn")=Story(id,"测试标题","简介",StoryCategory.LIFE,"正文".repeat(100),"匿名","审核发布")
+ private fun story(id:String="story-cloud-withdrawn")=Story(id,"测试标题","简介",StoryCategory.LIFE,"正文".repeat(100),"匿名","审核发布",provenance=StoryProvenance(sourceType="user_submission",rights=StoryRights.USER_AUTHORIZED))
  private fun blockAtomicWrite(app:Context,name:String) {
   val directory=File(app.filesDir,"$name.new");assertTrue(directory.mkdir())
   File(directory,"blocker").writeText("Force AtomicFile.startWrite failure; preserve original")

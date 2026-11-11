@@ -50,7 +50,7 @@ class StoryReaderActivity : StoryScreen() {
         targetId=savedInstanceState?.getString("story_current_id") ?: intent.getStringExtra(EXTRA_STORY_ID)
         targetPosition=if(savedInstanceState?.containsKey("story_position")==true) StoryRules.progress(savedInstanceState.getDouble("story_position")) else null
         val root=Ui.page(this)
-        val header=Ui.header(this,"阅读")
+        val header=Ui.header(this,"随记")
         val toolbar=header.getChildAt(0) as LinearLayout
         fontChoice=Spinner(this).apply {
             tag="story_font_size"; contentDescription="阅读字号"; minimumHeight=Ui.dp(context,48)
@@ -74,7 +74,7 @@ class StoryReaderActivity : StoryScreen() {
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
         }
-        toolbar.addView(fontChoice,LinearLayout.LayoutParams(Ui.dp(this,88),-2))
+        toolbar.addView(fontChoice,LinearLayout.LayoutParams(Ui.dp(this,112),-2))
         favorite=Ui.textButton(this,"收藏") {
             if(!ready)return@textButton
             val selected=current ?: return@textButton
@@ -91,7 +91,7 @@ class StoryReaderActivity : StoryScreen() {
         scroller=Ui.scroll(this,content).apply { tag="story_reader_scroll"; isSaveEnabled=false }
         root.addView(scroller,LinearLayout.LayoutParams(-1,0,1f))
         scroller.setOnScrollChangeListener { _: View, _: Int, y: Int, _: Int, _: Int ->
-            if (ready && !restoring) {
+            if (ready && !restoring && current?.hasFullText==true) {
                 val range=(content.height-scroller.height+scroller.paddingTop+scroller.paddingBottom).coerceAtLeast(0)
                 position=if (range==0) 1.0 else StoryRules.progress(y.toDouble()/range)
                 main.removeCallbacks(saveTask); main.postDelayed(saveTask,500)
@@ -123,7 +123,7 @@ class StoryReaderActivity : StoryScreen() {
         } }
     }
     private fun unavailable() {
-        message.text="这篇故事暂不可用。"
+        message.text="这篇随记暂不可用。"
         content.addView(Ui.button(this,"返回列表") {returnToList()}.apply {tag="story_back_list_unknown"})
     }
     internal fun openStory(id:String,ratio:Double) {
@@ -135,14 +135,19 @@ class StoryReaderActivity : StoryScreen() {
         nextStory?.isEnabled=false;fontChoice.isEnabled=false;favorite.isEnabled=false
         content.removeAllViews()
         message=status("正在读取…").apply {tag="story_reader_status"};content.addView(message)
-        if(!StoryCloudRules.cloudId(id)) {
+        val listed=entries.firstOrNull {it.id==id}
+        val remote=listed?.remoteId ?: id
+        if(!StoryCloudRules.cloudId(remote)) {
             entries.firstOrNull {it.id==id}?.let {display(it,ratio)} ?: unavailable();return
         }
         loadingStory=true
-        loader.detail(id) {result->onUi {
+        loader.detail(remote) {result->onUi {
             if(request!=requestGeneration || targetId!=id || !loadingStory)return@onUi
             loadingStory=false
-            result.mapCatching {check(it.id==id) {"故事响应与请求不匹配"};it}.fold({story->
+            result.mapCatching {
+                check(it.id==remote && !it.provenance.hidden) {"作品响应与请求不匹配"}
+                it.copy(id=id,remoteId=remote.takeIf {key->key!=id},provenance=it.provenance.copy(editorialRank=listed?.provenance?.editorialRank ?: it.provenance.editorialRank))
+            }.fold({story->
                 entries=entries.map {if(it.id==id)story else it};display(story,ratio)
             },{error(message,it);content.addView(Ui.button(this,"返回列表") {returnToList()})})
         }}
@@ -151,24 +156,38 @@ class StoryReaderActivity : StoryScreen() {
         ready=false; main.removeCallbacks(saveTask); current=story; position=StoryRules.progress(ratio)
         targetId=story.id;targetPosition=position
         content.removeAllViews()
-        content.addView(Ui.text(this,story.title,25f,bold=true).apply { tag="story_reader_title" })
+        content.addView(Ui.text(this,story.title,24f,bold=true).apply { tag="story_reader_title" })
         content.addView(Ui.space(this,12))
-        content.addView(Ui.text(this,"${story.category.label} · ${story.authorLabel} · 约${story.readingMinutes}分钟",13f,Ui.muted))
+        val attribution=Ui.row(this).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
+        attribution.addView(Ui.text(this,story.authorLabel,13f,Ui.muted).apply {tag="story_reader_author"},LinearLayout.LayoutParams(0,-2,1f))
+        story.provenance.link?.let {url->attribution.addView(Ui.textButton(this,"查看原文 ↗") {StorySourceLauncher.open(this,url)}.apply {tag="story_source_link"})}
+        content.addView(attribution)
+        content.addView(Ui.text(this,story.readingTimeLabel,12f,Ui.muted))
+        if(story.provenance.commentLocator.isNotBlank())content.addView(Ui.text(this,story.provenance.commentLocator,12f,Ui.muted).apply {tag="story_comment_locator"})
         fontChoice.setSelection(fontSp-16);fontChoice.isEnabled=true
         favorite.text=if(story.id in state.favorites) "已收藏" else "收藏";favorite.isEnabled=true
         content.addView(Ui.space(this,22))
         message=status("").apply { tag="story_reader_status" }; content.addView(message)
-        bodyText=Ui.text(this,story.body,fontSp.toFloat()).apply {
-            tag="story_reader_body"; setTextIsSelectable(true); setLineSpacing(Ui.dp(context,8).toFloat(),1.15f)
+        if(story.privateReview || !story.hasFullText) {
+            content.addView(Ui.text(this,if(story.privateReview)"私人排版预览 · 未授权公开" else if(!story.provenance.sourceVerified)"原文待核实 · 以下为内容介绍" else if(story.provenance.allowsFullText)"原生正文待整理 · 可先查看原文" else "全文待授权 · 可先查看原文",12f,Ui.muted).apply {tag="story_rights_notice"})
+            content.addView(Ui.space(this,12))
+        }
+        bodyText=Ui.text(this,story.readableBody.ifBlank {story.summary},fontSp.toFloat()).apply {
+            tag="story_reader_body"; setTextIsSelectable(true); setLineSpacing(Ui.dp(context,4).toFloat(),1.35f)
         }
         content.addView(bodyText); content.addView(Ui.space(this,24))
-        content.addView(Ui.text(this,story.source,12f,Ui.muted))
-        content.addView(Ui.space(this,18))
-        nextStory=Ui.button(this,"换一篇") {
+        content.addView(Ui.text(this,StoryProvenance.COPYRIGHT,11f,Ui.muted).apply {tag="story_copyright"})
+        content.addView(Ui.space(this,12))
+        val navigation=Ui.row(this)
+        val previous=Ui.button(this,"上一篇") {
+            if(ready && !loadingStory)StoryRules.adjacent(entries,story.id,-1)?.let {openStory(it.id,state.progress[it.id] ?: 0.0)}
+        }.apply {tag="story_previous";isEnabled=StoryRules.adjacent(entries,story.id,-1)!=null}
+        navigation.addView(previous,LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=Ui.dp(this@StoryReaderActivity,8)})
+        nextStory=Ui.button(this,"下一篇") {
             if(!ready || loadingStory)return@button
-            StoryRules.next(entries,story.id)?.let { openStory(it.id,state.progress[it.id] ?: 0.0) }
-        }.apply { tag="story_next" }
-        content.addView(nextStory)
+            StoryRules.adjacent(entries,story.id,1)?.let { openStory(it.id,state.progress[it.id] ?: 0.0) }
+        }.apply { tag="story_next";isEnabled=StoryRules.adjacent(entries,story.id,1)!=null }
+        navigation.addView(nextStory,LinearLayout.LayoutParams(0,-2,1f));content.addView(navigation)
         content.addView(Ui.space(this,8))
         content.addView(Ui.textButton(this,"返回列表") { returnToList() }.apply { tag="story_back_list" })
         ready=true; restoreScroll(position)
@@ -183,14 +202,14 @@ class StoryReaderActivity : StoryScreen() {
                 if (isDestroyed || generation!=layoutGeneration) return
                 val range=(content.height-scroller.height+scroller.paddingTop+scroller.paddingBottom).coerceAtLeast(0)
                 scroller.scrollTo(0,(range*ratio).toInt())
-                position=if (range==0) 1.0 else StoryRules.progress(ratio)
+                position=if (range==0 && current?.hasFullText==true) 1.0 else StoryRules.progress(ratio)
                 restoring=false
             }
         })
         content.requestLayout()
     }
     private fun savePosition() {
-        if (!ready) return
+        if (!ready || current?.hasFullText!=true) return
         val id=current?.id ?: return
         val ratio=position; val size=fontSp
         val request=requestGeneration

@@ -326,7 +326,7 @@ class ScheduleTransferActivity : Activity() {
         session.cancelled.set(false); session.downloading = true
         val cancelled = session.cancelled
         val app=applicationContext
-        session.work.submit("正在读取学期…", { SchoolCheckHistoryStore(app).recordingFailure("检查未完成，学期读取失败") {SchoolPortalClient.network(authorization, cancelled).terms()} }, { result ->
+        session.work.submit("正在读取学期…", { SchoolCheckHistoryStore(app).recordingFailure({SchoolReadFailure.message(it,"学期")}) {SchoolPortalClient.network(authorization, cancelled).terms()} }, { result ->
             session.downloading = false
             result.onSuccess { terms ->
                 if (!session.cancelled.get()) {
@@ -336,9 +336,9 @@ class ScheduleTransferActivity : Activity() {
                     session.stage = Stage.TERMS
                     session.notice = "学校未返回唯一的当前学期，请在下方选择；未改动原课表。"
                 }
-            }.onFailure {
-                session.notice = "学期读取失败，请检查网络或重新登录重试；本地课表未改。"
-                rememberCheckFailure("检查未完成，学期读取失败")
+            }.onFailure { error ->
+                session.notice = SchoolReadFailure.message(error,"学期")
+                rememberCheckFailure(session.notice)
             }
             if (session.cancelled.get()) home() else render()
         })
@@ -349,7 +349,7 @@ class ScheduleTransferActivity : Activity() {
         val current = session
         val app=applicationContext
         session.work.submit("准备读取整学期…", {
-            SchoolCheckHistoryStore(app).recordingFailure("检查未完成，课表读取失败") {
+            SchoolCheckHistoryStore(app).recordingFailure({SchoolReadFailure.message(it,"课表")}) {
             val baseline = current.store.loadSnapshot()
             val result = SchoolPortalClient.network(authorization, current.cancelled).collect(term, current.cancelled) { done, total ->
                 Handler(Looper.getMainLooper()).post { current.progress = "已读取 $done / $total 周"; current.owner?.get()?.updateStatus() }
@@ -363,7 +363,7 @@ class ScheduleTransferActivity : Activity() {
                 session.baselineSnapshot = before
                 preview(imported.data, term.label, imported.warnings, before.data, school = true)
             }
-                .onFailure { session.notice = "课表未完整读取，请检查网络或重新登录重试；本地课表未改。"; rememberCheckFailure("检查未完成，课表读取失败"); render() }
+                .onFailure { session.notice = SchoolReadFailure.message(it,"课表"); rememberCheckFailure(session.notice); render() }
         })
     }
     private fun preview(data: ScheduleData, source: String, warnings: List<String>, baseline: ScheduleData, school: Boolean = false) {

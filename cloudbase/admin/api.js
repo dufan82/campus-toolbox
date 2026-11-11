@@ -1,5 +1,5 @@
 // Contract transport. No persistent storage, client UID, credentials log or retry.
-const ADMIN_ACTIONS = new Set(['getPendingStories', 'getSubmissionDetail', 'approveStory', 'rejectStory', 'deletePublishedStory']);
+const ADMIN_ACTIONS = new Set(['getPendingStories', 'getSubmissionDetail', 'approveStory', 'rejectStory', 'deletePublishedStory', 'createEditorialStory', 'updateManagedStory']);
 const MAX_BYTES = 256 * 1024;
 const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
 

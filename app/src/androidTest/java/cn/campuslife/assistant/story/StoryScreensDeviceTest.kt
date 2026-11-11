@@ -68,7 +68,7 @@ class StoryScreensDeviceTest {
     }
     @Test fun listFlowHasNoIntroOrUnreadBoilerplate() {
         val activity=launch(Intent(context,StoryActivity::class.java))
-        view(activity,"story_card_story-001")
+        view(activity,"story_card_story-suiji-001")
         instrumentation.runOnMainSync {
             fun inspect(node: View) {
                 if (node is TextView) {
@@ -139,7 +139,7 @@ class StoryScreensDeviceTest {
             assertEquals("已收藏",(activity.window.decorView.findViewWithTag<View>("story_favorite") as Button).text.toString())
         }
         drain();assertTrue(StoryStore(context).read().progress.getValue("story-001")>0.0)
-        val list=launch(Intent(context,StoryActivity::class.java));view(list,"story_card_story-001")
+        val list=launch(Intent(context,StoryActivity::class.java));view(list,"story_card_story-suiji-001")
         instrumentation.runOnMainSync {(list.window.decorView.findViewWithTag<View>("story_favorites_only") as CheckBox).isChecked=true}
         assertNotNull(view(list,"story_card_story-001"))
         instrumentation.runOnMainSync {assertNull(list.window.decorView.findViewWithTag<View>("story_card_story-002"))}

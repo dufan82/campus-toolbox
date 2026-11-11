@@ -53,4 +53,10 @@ AndroidX、Kotlin、JUnit 等依赖由 Gradle 按各自坐标获取，版本见�
 
 本地精选272条古诗词摘自[chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry/tree/b8594f81a89752241442f2ce267d6f66f96704ee)，固定来源版本，保留古代作者与作品署名，不包含现代译文或点评。数据库整理采用MIT，Copyright (c) 2016 JackeyGao；[完整条款](LICENSES/chinese-poetry-MIT.txt)另随APK置于`assets/licenses/chinese-poetry-MIT.txt`。来源、筛选与逐条校验见[POETRY_SOURCES.md](docs/POETRY_SOURCES.md)。这不是项目整体许可证。
 
-小故事首批内容为本项目创作的12篇短篇，不来自其他平台现代小说，不冒充学生投稿或虚构署名。见[STORY_CONTENT.md](docs/STORY_CONTENT.md)。
+## 随记内容
+
+《背影》保留朱自清署名、1925年作品信息及[维基文库转录原文链接](https://zh.wikisource.org/wiki/背影)，仅收录公版原作，不含现代译注。未对照初刊影印本。
+
+其他精选的作者、来源、许可与核实程度见[SUIJI_CONTENT.md](docs/SUIJI_CONTENT.md)。除已具备全文许可的正文外，公开资产仅含独立介绍、必要短摘录和原文链接。用户提供的第一篇完整稿仅在本机显式启用的私人Debug预览，不进入Release。Eltrac站点CC BY-SA 4.0已核实，本轮未收录其完整正文。
+
+历史12篇项目创作示例以原ID归档，供旧收藏继续阅读，不再列入新精选，不冒充学生投稿。项目整体许可证不变。

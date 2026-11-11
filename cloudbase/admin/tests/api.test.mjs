@@ -10,6 +10,18 @@ const ok = (data) => json({ ok: true, data });
 const auth = { accessToken: 'synthetic-memory-token', expiresIn: 3600 };
 const production = { url: 'https://admin.test/api', isMock: false };
 
+test('editorial actions use existing authenticated transport', async () => {
+  const calls = [];
+  const client = createApiClient({ endpoint: production, fetchImpl: async (_, options) => {
+    const body = JSON.parse(options.body); calls.push(body);
+    return ok(body.action === 'adminLogin' ? auth : { id: 'fixture' });
+  }});
+  await client.login('test', 'test');
+  await client.call('createEditorialStory', { editorialId: 'fixture' });
+  await client.call('updateManagedStory', { id: 'fixture', revision: 0, patch: { hidden: true } });
+  assert.equal(calls.length, 3);
+});
+
 test('empty production config fails closed; only exact loopback auto-selects /api', () => {
   assert.throws(() => resolveEndpoint({}, location('https://admin.test/admin/')), /CONFIG/);
   for (const host of ['localhost', '127.0.0.1', '[::1]']) {

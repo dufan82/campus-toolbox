@@ -38,7 +38,7 @@ class StorySubmissionActivity : StoryScreen() {
             back=android.window.OnBackInvokedCallback {onBackPressed()}.also {onBackInvokedDispatcher.registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,it)}
         }
         pendingSavedState=savedInstanceState
-        val root=Ui.page(this); heading(root,"故事投稿")
+        val root=Ui.page(this); heading(root,"随记投稿")
         form=body(); message=status("正在读取草稿…").apply { tag="story_draft_status" }
         form.addView(message); root.addView(Ui.scroll(this,form).apply { tag="story_submission_scroll" },LinearLayout.LayoutParams(-1,0,1f))
         repository.loadState { result -> onUi {
@@ -88,11 +88,11 @@ class StorySubmissionActivity : StoryScreen() {
         else if(StoryCloudConfig.mock) form.addView(Ui.text(this,"本地Mock测试 · 不会发送正式投稿",13f,Ui.muted).apply {tag="story_mock_notice"})
         fun label(value: String) { form.addView(Ui.space(this,18)); form.addView(Ui.text(this,value,15f,bold=true)); form.addView(Ui.space(this,8)) }
         label("标题（2–30字）")
-        titleInput=field(draft.title,"故事标题",30) { changed(draft.copy(title=it)) }.apply { tag="story_draft_title"; contentDescription="故事标题，2至30字" }
+        titleInput=field(draft.title,"作品标题",30) { changed(draft.copy(title=it)) }.apply { tag="story_draft_title"; contentDescription="作品标题，2至30字" }
         form.addView(titleInput,LinearLayout.LayoutParams(-1,-2))
         label("分类（必选）")
         form.addView(Spinner(this).apply {
-            tag="story_draft_category"; contentDescription="故事分类，必选"; minimumHeight=Ui.dp(context,48)
+            tag="story_draft_category"; contentDescription="作品分类，必选"; minimumHeight=Ui.dp(context,48)
             adapter=ArrayAdapter(context,android.R.layout.simple_spinner_dropdown_item,listOf("请选择分类")+StoryCategory.entries.map { it.label })
             setSelection(draft.category?.ordinal?.plus(1) ?: 0)
             onItemSelectedListener=object: AdapterView.OnItemSelectedListener {
@@ -105,9 +105,9 @@ class StorySubmissionActivity : StoryScreen() {
         },LinearLayout.LayoutParams(-1,-2))
         label("正文（100–5000字）")
         val counter=Ui.text(this,"${StoryRules.characterCount(draft.body)}/5000",12f,Ui.muted).apply { tag="story_draft_count" }
-        bodyInput=field(draft.body,"写下有开头、经过与结尾的故事",5000,true) {
+        bodyInput=field(draft.body,"写下你的经历、生活片段或随笔",5000,true) {
             changed(draft.copy(body=it)); counter.text="${StoryRules.characterCount(it)}/5000"
-        }.apply { tag="story_draft_body"; contentDescription="故事正文，100至5000字"; minLines=8; maxLines=14 }
+        }.apply { tag="story_draft_body"; contentDescription="作品正文，100至5000字"; minLines=8; maxLines=14 }
         form.addView(bodyInput,LinearLayout.LayoutParams(-1,-2)); form.addView(counter)
         label("昵称（选填，留空为匿名）")
         nicknameInput=field(draft.nickname,"匿名",30) { changed(draft.copy(nickname=it)) }.apply { tag="story_draft_nickname"; contentDescription="投稿昵称，可留空" }
@@ -123,7 +123,7 @@ class StorySubmissionActivity : StoryScreen() {
         form.addView(Ui.space(this,18))
         message=status(sending.failure.orEmpty()).apply { tag="story_draft_status" }; form.addView(message)
         if(StoryCloudConfig.configured) {
-            form.addView(Ui.button(this,if(sending.running)"提交中…" else "提交故事",true) {submitStory()}.apply {tag="story_submit"})
+            form.addView(Ui.button(this,if(sending.running)"提交中…" else "提交随记",true) {submitStory()}.apply {tag="story_submit"})
             form.addView(Ui.space(this,8))
         }
         form.addView(Ui.button(this,"校验草稿") {
@@ -137,7 +137,7 @@ class StorySubmissionActivity : StoryScreen() {
         form.addView(Ui.button(this,"保存本机草稿") { saveDraft(true) }.apply { tag="story_draft_save" })
         form.addView(Ui.space(this,8))
         form.addView(Ui.textButton(this,"清除本机草稿") {
-            AlertDialog.Builder(this).setTitle("清除本机草稿？").setMessage("仅清除这份故事草稿，不影响收藏、阅读进度或其他资料。")
+            AlertDialog.Builder(this).setTitle("清除本机草稿？").setMessage("仅清除这份随记草稿，不影响收藏、阅读进度或其他资料。")
                 .setNegativeButton("取消",null).setPositiveButton("清除") { _,_ ->
                     main.removeCallbacks(saveTask); draft=StoryDraft(); revision++; render(); saveDraft(true)
                 }.show()
@@ -172,7 +172,7 @@ class StorySubmissionActivity : StoryScreen() {
         form.addView(Ui.space(this,30))
         form.addView(Ui.text(this,if(receipt.status=="pending")"投稿成功，等待审核" else "这份投稿已接收",23f,bold=true).apply {tag="story_submission_success"})
         form.addView(Ui.space(this,18));form.addView(Ui.text(this,"投稿编号：${receipt.submissionId}",13f,Ui.muted))
-        form.addView(Ui.space(this,24));form.addView(Ui.button(this,"返回小故事",true) {
+        form.addView(Ui.space(this,24));form.addView(Ui.button(this,"返回随记",true) {
             startActivity(android.content.Intent(this,StoryActivity::class.java).addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));finish()
         }.apply {tag="story_submission_done"})
     }

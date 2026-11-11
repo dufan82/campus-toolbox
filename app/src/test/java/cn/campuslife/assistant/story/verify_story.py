@@ -42,14 +42,18 @@ def command(argv):
 
 
 stories = json.loads(asset.read_text(encoding="utf-8"))["stories"]
-assert len(stories) == 12
-assert len({s["id"] for s in stories}) == 12
+assert len(stories) == 10
+assert len({s["id"] for s in stories}) == 10
+assert [s["id"] for s in stories[:3]] == ["story-suiji-001", "story-suiji-002", "story-suiji-003"]
 for story in stories:
     assert re.fullmatch(r"story-[a-z0-9][a-z0-9-]{0,69}", story["id"])
-    assert 400 <= len(story["body"].strip()) <= 900, story["id"]
-    assert story["source"] == "本项目创作" and story["authorLabel"] == "原创短篇"
-    assert story["title"].strip() and story["summary"].strip()
-assert {s["category"] for s in stories} == {"LIFE", "GROWTH", "WARMTH", "TWIST"}
+    assert story["sourceUrl"].startswith("https://")
+    assert story["title"].strip() and story["summary"].strip() and story["authorLabel"].strip()
+    if story["rightsStatus"] not in {"authorized", "public_domain", "user_authorized"}:
+        assert not story["body"]
+legacy = json.loads((asset.parent / "legacy_stories.json").read_text(encoding="utf-8"))["stories"]
+assert len(legacy) == 12
+assert {s["id"] for s in legacy} == {f"story-{i:03}" for i in range(1, 13)}
 report["content"] = [{"id": s["id"], "characters": len(s["body"].strip())} for s in stories]
 for path in sorted(list(source.glob("*.kt")) + list(here.glob("*.kt")) + [asset]):
     report["source_sha256"][str(path.relative_to(project))] = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -60,7 +64,7 @@ runtime_cp = os.pathsep.join(str(p) for p in [out / "rules-tests.jar", stdlib, j
 compiler = ["java", "-Dfile.encoding=UTF-8", "-cp", str(lib / "*"), "org.jetbrains.kotlin.cli.jvm.K2JVMCompiler",
             "-no-stdlib", "-no-reflect", "-jvm-target", "17"]
 command(compiler + ["-classpath", os.pathsep.join([str(stdlib), str(junit)]), "-d", out / "rules-tests.jar",
-                    source / "StoryModels.kt", source / "StoryRules.kt", source / "StorySubmissionConfig.kt", here / "StoryRulesTest.kt"])
+                    source / "StoryModels.kt", source / "StoryProvenance.kt", source / "StoryRules.kt", source / "StorySubmissionConfig.kt", here / "StoryRulesTest.kt"])
 command(["java", "-Dfile.encoding=UTF-8", "-cp", runtime_cp, "org.junit.runner.JUnitCore", "cn.campuslife.assistant.story.StoryRulesTest"])
 if args.app_jar:
     assert args.android_jar and args.android_jar.is_file()
@@ -77,4 +81,4 @@ if args.app_jar:
         command(compiler + ["-classpath", test_cp, "-d", out / "story-device-tests.jar"] + device_tests)
 report["finished_utc"] = datetime.now(timezone.utc).isoformat()
 (out / "results.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-print("Content: 12 passed; raw command evidence: " + str(out / "results.json"))
+print("Content: 10 curated plus 12 archived passed; raw command evidence: " + str(out / "results.json"))

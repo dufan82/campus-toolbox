@@ -2,9 +2,9 @@
 const { ApiError, fail } = require('./errors');
 const v = require('./validation');
 const MAX_BYTES = 256 * 1024;
-const ACTIONS = new Set(['submitStory','getPublishedStories','getStoryDetail','adminLogin','getPendingStories','getSubmissionDetail','approveStory','rejectStory','deletePublishedStory']);
+const ACTIONS = new Set(['submitStory','getPublishedStories','getStoryDetail','adminLogin','getPendingStories','getSubmissionDetail','approveStory','rejectStory','deletePublishedStory','createEditorialStory','updateManagedStory']);
 const PUBLIC = new Set(['getPublishedStories','getStoryDetail']);
-const ADMIN = new Set(['getPendingStories','getSubmissionDetail','approveStory','rejectStory','deletePublishedStory']);
+const ADMIN = new Set(['getPendingStories','getSubmissionDetail','approveStory','rejectStory','deletePublishedStory','createEditorialStory','updateManagedStory']);
 function result(status, data, headers = {}) {
   let body = JSON.stringify(data);
   if (Buffer.byteLength(body) > MAX_BYTES) { status = 500; body = JSON.stringify({ ok: false, error: { code: 'RESPONSE_TOO_LARGE', message: '响应超出大小限制' } }); }

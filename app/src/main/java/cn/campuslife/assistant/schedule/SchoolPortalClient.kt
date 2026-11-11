@@ -1,5 +1,6 @@
 package cn.campuslife.assistant.schedule
 
+import android.webkit.CookieManager
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -55,7 +56,8 @@ class SchoolPortalClient(private val request: (String, JSONObject?) -> JSONObjec
             require(SchoolPortalPolicy.timetableAuthorization("https://jw-api.fjpit.com/api/semesters", mapOf("ba-token" to token)) == authorization) {
                 "School authorization is not valid"
             }
-            val connection = open(URL("https://jw-api.fjpit.com/api$path"))
+            val endpoint = URL("https://jw-api.fjpit.com/api$path")
+            val connection = open(endpoint)
             try {
                 connection.instanceFollowRedirects = false
                 connection.connectTimeout = 12000; connection.readTimeout = 15000
@@ -64,13 +66,21 @@ class SchoolPortalClient(private val request: (String, JSONObject?) -> JSONObjec
                 connection.setRequestProperty("server", "1")
                 connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("platform", "h5")
+                // The school's current H5 binds login to its device-session cookie.
+                // Reuse only this app's exact API-origin session; never initialise a
+                // different device, follow a redirect, export or separately persist it.
+                CookieManager.getInstance().getCookie(endpoint.toString())?.takeIf { it.isNotEmpty() }?.let { cookie ->
+                    if (cookie.length > 16384 || cookie.any { it.isISOControl() }) throw SchoolAuthenticationException()
+                    connection.setRequestProperty("Cookie", cookie)
+                }
                 body?.let {
                     connection.doOutput = true
                     connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                     connection.outputStream.use { output -> output.write(it.toString().toByteArray(Charsets.UTF_8)) }
                 }
-                if (connection.responseCode in setOf(401,403)) throw SchoolAuthenticationException()
-                if (connection.responseCode != 200) throw IOException("School request failed")
+                val status = connection.responseCode
+                if (status in setOf(401,403)) throw SchoolAuthenticationException(status)
+                if (status != 200) throw SchoolHttpException(status)
                 val output = ByteArrayOutputStream()
                 connection.inputStream.use { input ->
                     val buffer = ByteArray(8192)

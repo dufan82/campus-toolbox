@@ -173,3 +173,12 @@ dd { margin: 0; overflow-wrap: anywhere; }
   .dialog-actions .button { flex: 1; padding: 8px 12px; white-space: nowrap; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+/* Extend the existing management surface; no remote assets or new UI framework. */
+.heading-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.editor-grid label { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.editor-grid input:not([type=checkbox]), .editor-grid select, .editor-grid textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #CDD5DF; border-radius: 7px; font: inherit; background: white; color: #172B49; }
+.editor-wide { grid-column: 1 / -1; }
+.editor-grid .check-label { flex-direction: row; align-items: center; }
+#managed-editor { border-top: 1px solid #CDD5DF; padding-top: 18px; margin-top: 20px; }
+@media (max-width: 640px) { .editor-grid { grid-template-columns: 1fr; } }
