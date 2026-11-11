@@ -1,8 +1,10 @@
 # 开发进度
 
-## REL-185 · GitHub 发布准备（进行中）
+## REL-185 · GitHub 1.8.5 已发布（2026-11-11）
 
-按用户本次要求只更新GitHub，不修改CNB；版本1.8.5/code32，私人原稿不包含在公开包。Release已构建并完成签名及资源检查，8篇公开全文，用户私人稿未打包；APK 79,081,569字节，SHA256 79d3aafd88acba52ef9d678850b6903ca36518764f1acf9e0726d4575661acb8。发布尚未完成。国内源仍为1.8.4时，使用国内源优先的旧版可能不会提示GitHub新版本。
+按本次要求只更新GitHub：源码提交fbe29bc，Release [v1.8.5](https://github.com/dufan82/campus-toolbox/releases/tag/v1.8.5)，1.8.5/code32，正式附件APK、update.json和SHA256SUMS均核对GitHub大小与摘要。APK 79,081,569字节，SHA256 `79d3aafd88acba52ef9d678850b6903ca36518764f1acf9e0726d4575661acb8`，沿用既有兼容证书；桌面安装包副本已核验。8篇已获使用依据的全文进入公开包，用户私人稿未包含。
+
+本次371项JVM通过，Debug/Release Lint零错误（74/76警告），Release构建通过；前一轮同代码113项离线模拟器通过，本轮未重跑真机/模拟器。GitHub Actions [43025184217](https://github.com/dufan82/campus-toolbox/actions/runs/43025184217)发布时仍在运行，结果待核实。Git远程推送网络超时，使用官方Git数据API核对相同tree后以非强制方式同步main；CNB未更新，仍为1.8.4。当前旧版本优先使用CNB，国内源可访问时不会主动比较GitHub的新版本，因此用户可能不会收到1.8.5更新提示。公开版需手动从GitHub下载安装；私人预览中的首篇未授权全文不在公开包。
 
 ## READ-006 / UX-009 · 全文精选与文案精简本地完成（2026-11-11 20:40 +08:00）
 
