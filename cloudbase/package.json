@@ -1,0 +1,19 @@
+{
+  "name": "campus-story-cloud",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Story review API and loopback mock",
+  "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node scripts/run-tests.js",
+    "mock": "node mock/server.js",
+    "start": "node http-server.js",
+    "init:plan": "node scripts/init-db.js"
+  },
+  "dependencies": {
+    "@cloudbase/node-sdk": "3.18.7"
+  }
+}

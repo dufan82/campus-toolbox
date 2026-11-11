@@ -27,31 +27,24 @@ class ScheduleSessionOfflineTest {
     private fun timetable(name: String) = ScheduleData(Semester(LocalDate.now().with(DayOfWeek.MONDAY), 4)).add(Course(
         "00000000-0000-0000-0000-000000000111", name, "", "", 1, 1, 2, 1, 4, WeekPattern.EVERY, null))
 
-    @Test fun schoolPreviewCancelThenConfirmAllowsReplacementAndRecordsTime() {
-        val store = ScheduleStore(context)
-        val before = store.load()
-        val candidate = timetable("离线学校课程")
-        context.getSharedPreferences("schedule-school-import-history", 0).edit().clear().commit()
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            fun preview() = scenario.onActivity {
-                ScheduleTransferActivity::class.java.getDeclaredMethod("preview", ScheduleData::class.java,
-                    String::class.java, List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType)
-                    .apply { isAccessible = true }.invoke(it, candidate, "离线学期", emptyList<String>(), before, true)
+    @Test fun schoolPreviewCancelThenConfirmUpdatesOnlyFutureAndRecordsTime() {
+        val store=ScheduleStore(context);val before=store.loadSnapshot()
+        val candidate=if(before.data.semester==null)timetable("离线学校课程") else before.data.copy(courses=before.data.courses.map {it.copy(classroom="离线更新教室")})
+        context.getSharedPreferences("schedule-school-import-history",0).edit().clear().commit()
+        ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
+            await {enabled("登录学校平台")}
+            fun preview()=scenario.onActivity {activity->
+                val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
+                session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,before)
+                activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,candidate,"离线学期",emptyList<String>(),before.data,true)
             }
-            preview()
-            await { enabled("确认保存到本机") }
-            assertTrue(textContains("整表替换"))
-            tap("取消，不修改原课表")
-            await { enabled("登录学校平台") }
-            assertEquals(before, store.load())
-            assertEquals(0, context.getSharedPreferences("schedule-school-import-history", 0).getLong("last-success-ms", 0))
-            preview()
-            await { enabled("确认保存到本机") }
-            tap("确认保存到本机"); await { enabled("确认替换") }; tap("确认替换")
-            await { store.load() == candidate }
-            assertEquals(before, store.previousImport())
-            assertTrue(context.getSharedPreferences("schedule-school-import-history", 0).getLong("last-success-ms", 0) > 0)
+            val plan=SchoolUpdateCheck.preview(before,candidate,LocalDate.now())
+            preview();await {enabled("返回")};assertFalse(enabled("确认保存到本机"))
+            tap("返回");await {enabled("登录学校平台")};assertEquals(before,store.loadSnapshot())
+            if(plan.plan.data!=before.data){
+                preview();await {enabled("更新课表")};tap("更新课表");await {enabled("确认更新")};tap("确认更新")
+                await {store.load()==plan.plan.data};assertEquals(before.data,store.previousImport())
+            }
         }
     }
 
@@ -73,7 +66,7 @@ class ScheduleSessionOfflineTest {
             }
             assertTrue(cookie.getCookie("https://m.fjpit.com/").orEmpty().contains("offline_session=fixture"))
             assertEquals("\"synthetic\"", webValue("return localStorage.getItem('offline_fixture');"))
-            tap("清除 / 退出学校登录"); await { enabled("清除并退出") }; tap("清除并退出")
+            tap("退出学校登录"); await { enabled("清除并退出") }; tap("清除并退出")
             await { enabled("登录学校平台") && textContains("已清除本应用网页") }
             assertFalse(cookie.getCookie("https://m.fjpit.com/").orEmpty().contains("offline_session=fixture"))
             assertEquals("null", webValue("return localStorage.getItem('offline_fixture');"))
@@ -108,12 +101,12 @@ class ScheduleSessionOfflineTest {
             assertEquals("\"synthetic\"", webValue("return localStorage.getItem('offline_lifecycle');"))
         }
     }
-    @Test fun sevenDayReminderAppearsOnTimetableWithoutNetworkWork() {
-        val prefs = context.getSharedPreferences("schedule-school-import-history", 0)
-        prefs.edit().putLong("last-success-ms", System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000).commit()
+    @Test fun oldReminderDataDoesNotAddNoisyTimetablePromptOrStartNetworkWork() {
+        val prefs=context.getSharedPreferences("schedule-school-import-history",0)
+        prefs.edit().putLong("last-success-ms",System.currentTimeMillis()-7L*24*60*60*1000).commit()
+        val before=ScheduleStore(context).loadSnapshot()
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            await { textContains("距上次学校导入已满7天") }
-            assertTrue(textContains("不会自动更新"))
+            await {enabled("管理")};assertFalse(textContains("距上次学校导入已满7天"));assertEquals(before,ScheduleStore(context).loadSnapshot())
         }
     }
     private fun webValue(script: String): String {

@@ -27,12 +27,15 @@ class SettingsActivity : Activity() {
             setImageDrawable(ToolGlyph(context,"user",Ui.blue));setPadding(Ui.dp(context,13),Ui.dp(context,13),Ui.dp(context,13),Ui.dp(context,13));background=Ui.shape(context,Ui.pale,18)
             importantForAccessibility=android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO
         },LinearLayout.LayoutParams(Ui.dp(this,54),Ui.dp(this,54)).apply { marginEnd=Ui.dp(this@SettingsActivity,14) })
-        val intro=Ui.column(this);intro.addView(Ui.text(this,"我的工具箱",20f,bold=true));intro.addView(Ui.space(this,6));intro.addView(Ui.text(this,"不需要注册账号",12f,Ui.muted));summary.addView(intro)
+        val intro=Ui.column(this);intro.addView(Ui.text(this,"我的工具箱",20f,bold=true));summary.addView(intro)
         body.addView(summary);body.addView(Ui.space(this,26));body.addView(Ui.text(this,"常用设置",12f,Ui.muted));body.addView(Ui.space(this,10))
         val common=Ui.card(this).apply { setPadding(Ui.dp(context,16),0,Ui.dp(context,12),0) }
         common.addView(item("user","水印资料","只填写需要展示的信息","settings_profile") { open(ProfileActivity::class.java) })
         common.addView(item("layout","首页布局","排序、隐藏和恢复工具","settings_layout") { startActivity(Intent(this,ToolManagementActivity::class.java).putExtra("manage",true)) })
         common.addView(item("package","快递入口设置","查看和调整已有链接","settings_express") { open(ExpressActivity::class.java) })
+        common.addView(item("calendar","课表设置","","settings_schedule") {
+            startActivity(Intent(this, cn.campuslife.assistant.schedule.ScheduleActivity::class.java).putExtra("schedule.settings", true))
+        })
         body.addView(common);body.addView(Ui.space(this,22));body.addView(Ui.text(this,"应用",12f,Ui.muted));body.addView(Ui.space(this,10))
         val app=Ui.card(this).apply { setPadding(Ui.dp(context,16),0,Ui.dp(context,12),0) }
         app.addView(item("refresh","检查更新",BuildConfig.VERSION_NAME,"settings_update") { startActivity(Intent(this,UpdateActivity::class.java).putExtra("manual",true)) })
@@ -41,7 +44,7 @@ class SettingsActivity : Activity() {
                 .setPositiveButton("知道了",null).show()
         })
         app.addView(item("info","关于校伴","","settings_about") { Brand.showAbout(this) })
-        body.addView(app);body.addView(Ui.space(this,22));body.addView(Ui.text(this,"课表、日期和照片资料保存在本机",11f,Ui.muted).apply { gravity=Gravity.CENTER })
+        body.addView(app);body.addView(Ui.space(this,12))
         body.addView(Ui.space(this,12))
         body.addView(Ui.textButton(this,"意见反馈") { cn.campuslife.assistant.feedback.FeedbackLauncher.open(this) }.apply {
             tag="settings_feedback";contentDescription="意见反馈";textSize=13f;setTextColor(Ui.muted)

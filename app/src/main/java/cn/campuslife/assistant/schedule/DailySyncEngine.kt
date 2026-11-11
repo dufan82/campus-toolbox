@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock
 class SchoolAuthenticationException : IOException("School authentication expired")
 enum class SyncResult { READY, CHECKING, NEEDS_LOGIN, NO_CHANGE, UPDATED, CONFLICT, NETWORK_ERROR, INVALID_DATA, INTERRUPTED, SKIPPED }
 data class DailySyncState(val enabled:Boolean=false,val generation:Long=0,val lastAttempt:Long=0,
-    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="")
+    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="")
 /** Contains only the explicitly authorised timetable token, never passwords or WebView cookies. */
 class SchoolSyncCredential(val authorization:String,val semester:Semester) {
     override fun toString() = "SchoolSyncCredential(redacted)"
@@ -43,7 +43,7 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
             if(!initial.enabled || cancelled.get() || initial.result==SyncResult.NEEDS_LOGIN || initial.lastAttemptDay==now.toLocalDate().toString())return SyncResult.SKIPPED
             fun active()=repo.state().let {it.enabled && it.generation==generation} && !cancelled.get()
             fun checkActive(){if(!active())throw InterruptedIOException("Sync stopped")}
-            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="")}
+            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="",details="")}
             var result:SyncResult
             try {
                 checkActive()
@@ -58,7 +58,7 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
                 require(fetched.data.semester==credential.semester){"学校当前学期与本地不一致"}
                 val plan=repo.apply(snapshot,fetched.data,now.toLocalDate(),generation)
                 result=when {plan.conflicts>0->SyncResult.CONFLICT;plan.changes.total>0->SyncResult.UPDATED;else->SyncResult.NO_CHANGE}
-                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,
+                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(snapshot.data,plan.data,now.toLocalDate()),
                     summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化")}
                 if(plan.changes.total>0 && active())runCatching {repo.notify(plan.changes)}
             }catch(_:SchoolAuthenticationException){

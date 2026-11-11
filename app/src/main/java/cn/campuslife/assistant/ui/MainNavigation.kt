@@ -31,8 +31,7 @@ object MainNavigation {
             "schedule" -> ScheduleActivity::class.java
             else -> SettingsActivity::class.java
         }
-        val flags=if(destination=="home") Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            else Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        val flags=Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
         val enter=if(direction==Direction.FROM_LEFT) R.anim.main_nav_enter_left else R.anim.main_nav_enter_right
         val exit=if(direction==Direction.FROM_LEFT) R.anim.main_nav_exit_right else R.anim.main_nav_exit_left
         // Attach options to the launch, including reused/REORDER_TO_FRONT Activities.

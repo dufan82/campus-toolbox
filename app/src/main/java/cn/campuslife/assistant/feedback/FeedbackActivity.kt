@@ -35,13 +35,14 @@ class FeedbackActivity : Activity() {
         }
         root.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
         val reason = intent.getStringExtra(FeedbackLauncher.EXTRA_UNAVAILABLE_REASON)
-        val availability = if (reason == FeedbackLauncher.BROWSER_UNAVAILABLE || reason == FeedbackLauncher.INVALID_CONFIGURATION)
+        val configured = FeedbackRules.formUrl(FeedbackConfig.FEEDBACK_FORM_URL) != null
+        val availability = if (configured || reason == FeedbackLauncher.BROWSER_UNAVAILABLE || reason == FeedbackLauncher.INVALID_CONFIGURATION)
             "暂时无法打开反馈表单" else "反馈入口暂未开放，敬请期待"
         body.addView(Ui.text(this, availability, 17f, bold = true).apply { tag = "feedback_availability" })
         val explanation = when (reason) {
             FeedbackLauncher.INVALID_CONFIGURATION -> "反馈链接配置无效，暂时无法打开在线表单。"
             FeedbackLauncher.BROWSER_UNAVAILABLE -> "未能打开在线表单，请检查是否有可用浏览器后重试。"
-            else -> "开发者尚未配置在线问卷。"
+            else -> if (configured) "可从“我的”重新打开在线反馈。" else "开发者尚未配置在线问卷。"
         }
         body.addView(Ui.space(this, 10))
         body.addView(Ui.text(this, "$explanation 以下仅供本地草拟，不会提交。返回离开后不保存草稿。", 14f, Ui.muted))

@@ -1,4 +1,5 @@
 import java.util.Properties
+import java.net.URI
 
 plugins {
     id("com.android.application")
@@ -17,6 +18,15 @@ val domesticUpdateRepository = (providers.environmentVariable("CAMPUS_CNB_REPOSI
 require(domesticUpdateRepository.isEmpty() || domesticUpdateRepository.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,99}/[A-Za-z0-9][A-Za-z0-9._-]{0,99}"))) {
     "CAMPUS_CNB_REPOSITORY must be empty or a fixed public owner/repository path."
 }
+// Public endpoint configuration only; never credentials. Empty keeps local stories/drafts.
+val storyApiUrl=(providers.environmentVariable("STORY_API_URL").orNull ?: privateMapProperties.getProperty("STORY_API_URL", "")).trim()
+val storyAuthUrl=(providers.environmentVariable("STORY_AUTH_URL").orNull ?: privateMapProperties.getProperty("STORY_AUTH_URL", "")).trim()
+listOf(storyApiUrl,storyAuthUrl).filter {it.isNotEmpty()}.forEach {
+    val uri=URI(it)
+    require(uri.scheme=="https" && uri.host!=null && uri.rawUserInfo==null && uri.rawQuery==null && uri.rawFragment==null && uri.port in setOf(-1,443)) {"Story endpoints must be fixed HTTPS URLs without credentials/query/fragment"}
+}
+require(storyApiUrl.isEmpty()==storyAuthUrl.isEmpty()) {"Configure both STORY_API_URL and STORY_AUTH_URL, or neither"}
+val storyMock=providers.gradleProperty("storyMock").orNull=="true"
 val releaseSigning = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD").associateWith {
     providers.environmentVariable("CAMPUS_SIGNING_$it").orNull
 }
@@ -31,14 +41,22 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 29
-        versionName = "1.8.2"
+        versionCode = 30
+        versionName = "1.8.3"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
         buildConfigField("String", "CNB_REPOSITORY", "\"$domesticUpdateRepository\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "STORY_API_URL", "\"$storyApiUrl\"")
+        buildConfigField("String", "STORY_AUTH_URL", "\"$storyAuthUrl\"")
+        buildConfigField("boolean", "STORY_MOCK", "false")
     }
     buildFeatures { buildConfig = true }
+    if(storyMock) buildTypes.getByName("debug") {
+        buildConfigField("String", "STORY_API_URL", "\"http://127.0.0.1:8787/api\"")
+        buildConfigField("String", "STORY_AUTH_URL", "\"http://127.0.0.1:8787\"")
+        buildConfigField("boolean", "STORY_MOCK", "true")
+    }
     if (hasReleaseSigning) {
         val privateRelease = signingConfigs.create("privateRelease") {
             storeFile = file(releaseSigning.getValue("STORE_FILE")!!)

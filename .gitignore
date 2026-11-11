@@ -68,3 +68,26 @@ local.properties
 Thumbs.db
 desktop.ini
 .vscode/
+
+# Reading data provenance and third-party notices
+!/docs/POETRY_SOURCES.md
+!/docs/STORY_CONTENT.md
+!/docs/READING_FEATURES.md
+
+# CloudBase dependencies, local mock records and browser test output
+/cloudbase/node_modules/
+/cloudbase/.mock-data/
+/cloudbase/admin/node_modules/
+/cloudbase/admin/test-results/
+/cloudbase/admin/playwright-report/
+
+!/docs/STORY_CLOUD.md
+
+/cloudbase/admin/tests/artifacts/
+/cloudbase/admin/tests/__pycache__/
+
+!/docs/CLOUD_CONNECT.md
+
+# Local test source backups are not runnable/public test sources
+/app/src/test/java/cn/campuslife/assistant/schedule/original-backup-20261107/
+/app/src/test/java/cn/campuslife/assistant/schedule/original-backup-20261107-session/

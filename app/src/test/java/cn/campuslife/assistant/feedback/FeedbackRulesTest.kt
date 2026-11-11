@@ -5,9 +5,10 @@ import org.junit.Test
 
 /** Pure JVM tests: no Android APIs, network, school accounts or real survey requests. */
 class FeedbackRulesTest {
-    @Test fun feedbackIsUnavailableUntilDeveloperConfiguresARealForm() {
-        assertEquals("", FeedbackConfig.FEEDBACK_FORM_URL)
-        assertNull(FeedbackRules.formUrl(FeedbackConfig.FEEDBACK_FORM_URL))
+    @Test fun publishedFeedbackIsConfiguredAndEmptyConfigurationStillFallsBack() {
+        assertEquals("https://wj.qq.com/s2/28616104/3ezx/", FeedbackConfig.FEEDBACK_FORM_URL)
+        assertEquals(FeedbackConfig.FEEDBACK_FORM_URL, FeedbackRules.formUrl(FeedbackConfig.FEEDBACK_FORM_URL))
+        assertNull(FeedbackRules.formUrl(""))
     }
 
     @Test fun categoriesMatchTheRequestedListAndHaveNoDefaultSelection() {

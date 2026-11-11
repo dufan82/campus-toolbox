@@ -59,7 +59,7 @@ class ScheduleTransferFlowTest {
                 val view = nodes().filterIsInstance<android.webkit.WebView>().single()
                 loadSchoolFixture(view)
             }
-            try { await { textContains("当前学期读取失败") && enabled("导入当前学期") } }
+            try { await { textContains("学期读取失败") && enabled("导入当前学期") } }
             catch (error: AssertionError) {
                 scenario.onActivity { activity ->
                     val state = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
@@ -72,12 +72,13 @@ class ScheduleTransferFlowTest {
             scenario.recreate()
             await { enabled("导入当前学期") }
             SystemClock.sleep(1800) // Cross one scheduled observation tick: failure must not auto-loop.
-            assertTrue(textContains("当前学期读取失败"))
+            assertTrue(textContains("学期读取失败"))
+            assertEquals("检查未完成，学期读取失败",SchoolCheckHistoryStore(context).read()?.result)
             val loaded = CountDownLatch(1)
             scenario.onActivity { loadSchoolFixture(nodes().filterIsInstance<android.webkit.WebView>().single(), loaded) }
             assertTrue("Logged-in school fixture did not finish", loaded.await(5, TimeUnit.SECONDS))
             tap("导入当前学期")
-            await { textContains("当前学期读取失败") && enabled("导入当前学期") }
+            await { textContains("学期读取失败") && enabled("导入当前学期") }
             assertEquals(before, ScheduleStore(context).load())
         }
     }
@@ -116,8 +117,11 @@ class ScheduleTransferFlowTest {
                 val state = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
                 state.javaClass.getDeclaredField("authorization").apply { isAccessible = true }.set(state, "Bearer synthetic_logged_out_account")
                 state.javaClass.getDeclaredField("autoImportAttempted").apply { isAccessible = true }.setBoolean(state, true)
-                nodes().filterIsInstance<android.webkit.WebView>().single().stopLoading()
+                nodes().filterIsInstance<android.webkit.WebView>().single().apply {
+                    stopLoading(); evaluateJavascript("localStorage.removeItem('user')", null)
+                }
             }
+            await { enabled("导入当前学期") }
             tap("导入当前学期")
             await { textContains("尚未识别到登录状态") && enabled("导入当前学期") }
             assertEquals(before, ScheduleStore(context).load())
@@ -135,8 +139,8 @@ class ScheduleTransferFlowTest {
             val store = ScheduleStore(context)
             store.commit(store.load(), timetable("原来课程"))
             backup.outputStream().use { ScheduleBackup.write(it, timetable("离线新课程")) }
-            launchTransfer().use { scenario ->
-                await { enabled("登录学校平台") }
+            launchTransfer(backup = true).use { scenario ->
+                await { enabled("从备份恢复") }
                 assertFalse(hasWebView())
                 capture("school-transfer-home.png")
                 scenario.onActivity { deliverRestore(it, backup) }
@@ -146,7 +150,7 @@ class ScheduleTransferFlowTest {
                 scenario.recreate()
                 await { enabled("确认保存到本机") }
                 tap("取消，不修改原课表")
-                await { enabled("登录学校平台") }
+                await { enabled("从备份恢复") }
                 assertEquals("原来课程", store.load().courses.single().name)
                 scenario.onActivity { deliverRestore(it, backup) }
                 await { enabled("确认保存到本机") }
@@ -154,9 +158,9 @@ class ScheduleTransferFlowTest {
                 await { store.load().courses.single().name == "离线新课程" }
                 assertEquals("原来课程", store.previousImport()!!.courses.single().name)
                 scenario.recreate()
-                await { enabled("恢复上次替换前的课表") }
+                await { enabled("恢复上次更新前课表") }
                 assertFalse(hasWebView())
-                tap("恢复上次替换前的课表"); await { enabled("确认保存到本机") }
+                tap("恢复上次更新前课表"); await { enabled("确认保存到本机") }
                 tap("确认保存到本机"); await { enabled("确认替换") }; tap("确认替换")
                 await { store.load().courses.single().name == "原来课程" }
             }
@@ -172,7 +176,7 @@ class ScheduleTransferFlowTest {
         val store = ScheduleStore(context); val before = store.load()
         try {
             file.writeText("broken")
-            launchTransfer().use { scenario ->
+            launchTransfer(backup = true).use { scenario ->
                 await { enabled("从备份恢复") }
                 scenario.onActivity { deliverRestore(it, file) }
                 await { textContains("备份无法读取") }
@@ -239,8 +243,8 @@ class ScheduleTransferFlowTest {
         try { File(context.getExternalFilesDir(null), name).outputStream().use { assertTrue(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)) } }
         finally { bitmap.recycle() }
     }
-    private fun launchTransfer(): ActivityScenario<ScheduleTransferActivity> {
-        val scenario = ActivityScenario.launch(ScheduleTransferActivity::class.java)
+    private fun launchTransfer(backup: Boolean = false): ActivityScenario<ScheduleTransferActivity> {
+        val scenario = ActivityScenario.launch<ScheduleTransferActivity>(Intent(context, ScheduleTransferActivity::class.java).putExtra("schedule.backup", backup).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         val orientation = InstrumentationRegistry.getArguments().getString("transferOrientation")
         if (orientation != null) {
             scenario.onActivity { it.requestedOrientation = if (orientation == "landscape")

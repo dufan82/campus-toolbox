@@ -1,0 +1,6 @@
+{
+  "name": "campus-companion-story-admin",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/api.test.mjs tests/static.test.mjs" }
+}

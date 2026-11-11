@@ -1,0 +1,18 @@
+{
+  "format": "console-index-plan-v1",
+  "note": "控制台逐集合创建；不是node-sdk createIndex参数。每集合已自带_id唯一索引。",
+  "collections": {
+    "story_submissions": [
+      { "name": "submission_id_unique", "unique": true, "fields": [{ "name": "submissionId", "direction": "asc" }] },
+      { "name": "submission_order", "unique": false, "fields": [{ "name": "sortKey", "direction": "desc" }] },
+      { "name": "submission_status_order", "unique": false, "fields": [{ "name": "status", "direction": "asc" }, { "name": "sortKey", "direction": "desc" }] }
+    ],
+    "published_stories": [
+      { "name": "publication_order", "unique": false, "fields": [{ "name": "sortKey", "direction": "desc" }] },
+      { "name": "publication_category_order", "unique": false, "fields": [{ "name": "category", "direction": "asc" }, { "name": "sortKey", "direction": "desc" }] }
+    ],
+    "story_rate_limits": [],
+    "story_audit_log": [],
+    "story_stats": []
+  }
+}

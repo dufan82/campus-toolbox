@@ -41,6 +41,11 @@ class ScheduleActivity : Activity() {
     }
     private lateinit var session: Session
     private lateinit var page: LinearLayout
+    private var renderPending = false
+    private val renderFrame = Runnable {
+        renderPending = false
+        if (!isDestroyed && !isFinishing) renderNow()
+    }
     private var draft: Bundle? = null
     // A narrow baseline: settings plus only the course being edited, never unrelated records.
     private var draftBase: ScheduleData? = null
@@ -50,6 +55,7 @@ class ScheduleActivity : Activity() {
     private var editorError: TextView? = null
     private var mode = "week"
     private var selectedWeek = 0
+    private var lowFrequencyRequested = false
     private var detailCourseId: String? = null
     private var displayedCourse: Course? = null
     private var platformBack: android.window.OnBackInvokedCallback? = null
@@ -65,6 +71,7 @@ class ScheduleActivity : Activity() {
         }
         mode = savedInstanceState?.getString("schedule.mode") ?: "week"
         selectedWeek = savedInstanceState?.getInt("schedule.week", 0) ?: 0
+        lowFrequencyRequested = savedInstanceState?.getBoolean("schedule.settings.pending") ?: intent.getBooleanExtra("schedule.settings", false)
         detailCourseId = savedInstanceState?.getString("schedule.detail")
         page = Ui.page(this)
         if (Build.VERSION.SDK_INT >= 33) {
@@ -116,10 +123,12 @@ class ScheduleActivity : Activity() {
         draft?.let { outState.putBundle("schedule.editor", Bundle(it)) }
         draftBase?.let { outState.putString("schedule.editorBase", ScheduleStore.encode(it).toString()) }
         outState.putString("schedule.mode", mode); outState.putInt("schedule.week", selectedWeek)
+        outState.putBoolean("schedule.settings.pending", lowFrequencyRequested)
         detailCourseId?.let { outState.putString("schedule.detail", it) }
         super.onSaveInstanceState(outState)
     }
     override fun onDestroy() {
+        page.removeCallbacks(renderFrame)
         if (Build.VERSION.SDK_INT >= 33) platformBack?.let { onBackInvokedDispatcher.unregisterOnBackInvokedCallback(it) }
         session.work.detach(this)
         prompt?.setOnDismissListener(null); prompt?.dismiss()
@@ -129,10 +138,29 @@ class ScheduleActivity : Activity() {
     }
 
     private fun render() {
+        // Draft restoration and modal controls retain their synchronous lifecycle contract.
+        // Only the tab's ordinary page rendering is coalesced.
+        if (draft != null || editor != null || detailCourseId != null || prompt != null) {
+            page.removeCallbacks(renderFrame)
+            renderPending = false
+            renderNow()
+            return
+        }
+        // RetainedWork notifies at start, submit return, completion and idle. Those
+        // callbacks can share a frame; build the latest state once, not four trees.
+        if (renderPending) return
+        renderPending = true
+        page.postOnAnimation(renderFrame)
+    }
+
+    private fun renderNow() {
         page.removeAllViews()
         page.setBackgroundColor(Color.WHITE)
         val header = Ui.row(this).apply { setPadding(dp(18), dp(5), dp(12), dp(5)) }
         header.addView(Ui.text(this, "课程表", 23f, bold = true), LinearLayout.LayoutParams(0, -2, 1f))
+        header.addView(Ui.iconButton(this, "plus", "新增课程") {
+            if (session.data?.semester == null) openSemester() else openCourse(null)
+        }.apply { isEnabled = ready; tag = "schedule.add"; minimumWidth = dp(48); minimumHeight = dp(48) }, LinearLayout.LayoutParams(dp(48), dp(48)))
         header.addView(quietButton("管理") { openSettings() }.apply { isEnabled = ready; tag = "schedule.manage" })
         page.addView(header)
         val body = Ui.column(this).apply { setPadding(dp(12), 0, dp(12), dp(16)) }
@@ -146,11 +174,6 @@ class ScheduleActivity : Activity() {
         if (status.isNotEmpty()) body.addView(Ui.text(this, status, 14f, Ui.muted).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
         })
-        if (SchoolImportReminder.needsInitialCheck(this, data?.semester != null)) {
-            body.addView(Ui.text(this, "尚未记录更新时间，建议检查学校课表", 13f, Ui.muted))
-        } else if (data != null && SchoolImportReminder.isDue(this)) {
-            body.addView(Ui.text(this, "距上次学校导入已满7天，可在管理中检查。不会自动更新。", 13f, Ui.muted))
-        }
         val semester = data?.semester
         if (data != null && semester != null) {
             val today = LocalDate.now()
@@ -203,14 +226,9 @@ class ScheduleActivity : Activity() {
             }
         } else if (data != null) {
             body.addView(Ui.text(this, "请先设置学期", 20f, bold = true).apply { setPadding(dp(8), dp(28), dp(8), dp(12)) })
-            body.addView(Ui.text(this, "从管理中导入学校课表，或设置学期后添加课程。", 15f, Ui.muted))
+            body.addView(Ui.text(this, "从“检查更新”导入，或点右上角＋手动添加。", 15f, Ui.muted))
         }
         page.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
-        val footer = Ui.row(this).apply { setPadding(dp(16), 0, dp(12), 0) }
-        footer.addView(Ui.text(this, if (semester != null) "已保存到本机" else "本机课表", 12f, Ui.muted),
-            LinearLayout.LayoutParams(0, -2, 1f))
-        footer.addView(quietButton("检查变动") { startActivity(Intent(this, ScheduleTransferActivity::class.java)) }.apply { isEnabled = ready })
-        page.addView(footer)
         page.addView(Ui.bottomNavigation(this, "schedule").apply { Ui.enabled(this, !session.work.busy) })
         editorBody?.let { Ui.enabled(it, ready) }
         editor?.let { dialog ->
@@ -230,20 +248,33 @@ class ScheduleActivity : Activity() {
                 render(); return
             } else if (prompt == null || (displayedCourse != null && displayedCourse != course)) openCourseDetails(course)
         }
+        if (lowFrequencyRequested && ready && prompt == null && editor == null) {
+            lowFrequencyRequested = false
+            openLowFrequency()
+        }
         updateNavigation()
     }
 
     private fun openSettings() {
         if (!ready) return
-        val actions = mutableListOf<Pair<String, () -> Unit>>()
-        if (session.data?.semester != null) actions.add("新增课程" to { openCourse(null) })
-        actions.add("学校导入 / 备份与恢复" to { startActivity(Intent(this, ScheduleTransferActivity::class.java)) })
-        actions.add("每日自动检查课表" to { startActivity(Intent(this, DailySyncSettingsActivity::class.java)) })
-        actions.add("学期设置" to { openSemester() })
-        actions.add("节次设置" to { openPeriods() })
-        actions.add("全部课程" to { draft = Bundle().apply { putString("type", "list") }; showEditor() })
+        showActions("课程表管理", listOf(
+            "检查更新" to { startActivity(Intent(this, ScheduleTransferActivity::class.java)) },
+            "备份与恢复" to { startActivity(Intent(this, ScheduleTransferActivity::class.java).putExtra("schedule.backup", true)) }
+        ))
+    }
+
+    private fun openLowFrequency() {
+        if (!ready) return
+        showActions("课表设置", listOf(
+            "学期设置" to { openSemester() },
+            "节次设置" to { openPeriods() },
+            "全部课程" to { draft = Bundle().apply { putString("type", "list") }; showEditor() }
+        ))
+    }
+
+    private fun showActions(title: String, actions: List<Pair<String, () -> Unit>>) {
         prompt?.dismiss()
-        val sheet = Ui.bottomSheet(this, "课程表管理") { content, dialog ->
+        val sheet = Ui.bottomSheet(this, title) { content, dialog ->
             val list = object : ListView(this) {
                 override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
                     super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(Int.MAX_VALUE shr 2, View.MeasureSpec.AT_MOST))

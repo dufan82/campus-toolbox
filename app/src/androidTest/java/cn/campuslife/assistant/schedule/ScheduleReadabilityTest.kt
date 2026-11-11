@@ -76,7 +76,7 @@ class ScheduleReadabilityTest {
             await { mainCheck {
                 nodes().filterIsInstance<ListView>().any { list ->
                     val labels = (0 until list.adapter.count).map { list.adapter.getItem(it).toString() }
-                    labels.containsAll(listOf("新增课程", "学校导入 / 备份与恢复", "全部课程"))
+                    labels == listOf("检查更新", "备份与恢复")
                 }
             } }
             tap("取消")

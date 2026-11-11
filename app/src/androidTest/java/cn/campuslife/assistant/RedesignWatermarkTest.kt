@@ -75,6 +75,13 @@ class RedesignWatermarkTest {
     private fun tap(label: String) {
         val deadline = SystemClock.uptimeMillis() + 5000
         while (SystemClock.uptimeMillis() < deadline) {
+            // On a 320dp display the existing bottom sheet scrolls; bring the real button into view.
+            instrumentation.runOnMainSync {
+                fun walk(v: View): List<View> = listOf(v)+if(v is android.view.ViewGroup)(0 until v.childCount).flatMap {walk(v.getChildAt(it))}else emptyList()
+                android.view.inspector.WindowInspector.getGlobalWindowViews().flatMap(::walk).filterIsInstance<Button>()
+                    .firstOrNull {it.text.toString()==label && it.isEnabled}?.let {it.requestRectangleOnScreen(Rect(0,0,it.width,it.height),true)}
+            }
+            instrumentation.waitForIdleSync()
             val nodes = instrumentation.uiAutomation.rootInActiveWindow?.findAccessibilityNodeInfosByText(label).orEmpty()
             val node = nodes.firstOrNull { it.isClickable && it.isVisibleToUser && it.isEnabled }
             if (node?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {

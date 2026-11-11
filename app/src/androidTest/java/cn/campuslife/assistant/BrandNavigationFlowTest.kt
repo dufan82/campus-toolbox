@@ -28,7 +28,7 @@ class BrandNavigationFlowTest {
         ActivityScenario.launch(MainActivity::class.java).use {scenario->
             scenario.onActivity {home=it};inst.waitForIdleSync()
             tap("schedule");val schedule=awaitSuffix("ScheduleActivity");SystemClock.sleep(250)
-            tap("settings");awaitSuffix("SettingsActivity");SystemClock.sleep(250)
+            tap("settings");val settings=awaitSuffix("SettingsActivity");SystemClock.sleep(250)
             tap("schedule");assertSame(schedule,awaitSuffix("ScheduleActivity"));SystemClock.sleep(250)
             tap("settings");awaitSuffix("SettingsActivity");SystemClock.sleep(250)
             tap("home")
@@ -39,6 +39,16 @@ class BrandNavigationFlowTest {
                 SystemClock.sleep(20)
             }
             assertSame(home,awaitSuffix("MainActivity"))
+            SystemClock.sleep(250)
+            tap("schedule");assertSame("Home must not destroy the existing schedule tab",schedule,awaitSuffix("ScheduleActivity"));SystemClock.sleep(250)
+            tap("settings");assertSame("Home must not destroy the existing settings tab",settings,awaitSuffix("SettingsActivity"));SystemClock.sleep(250)
+            tap("home");assertSame(home,awaitSuffix("MainActivity"));SystemClock.sleep(250)
+            repeat(3) {
+                inst.runOnMainSync {home!!.window.decorView.findViewWithTag<View>("home_tool_schedule").performClick()}
+                assertSame("The home tool must reuse the bottom-tab schedule",schedule,awaitSuffix("ScheduleActivity"));SystemClock.sleep(250)
+                tap("home");assertSame(home,awaitSuffix("MainActivity"));SystemClock.sleep(250)
+            }
+            inst.runOnMainSync { schedule.finish();settings.finish() }
         }
     }
 }

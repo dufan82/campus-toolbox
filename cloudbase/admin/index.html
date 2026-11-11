@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https:; img-src 'self'; font-src 'self'; base-uri 'none'; object-src 'none'; form-action 'none'">
+  <title>小故事审核 · 校伴</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
+  <script src="./main.js" type="module"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主内容</a>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">伴</span><span>校伴<span class="brand-divider">/</span><span class="brand-section">内容管理</span></span></div>
+    <div class="topbar-actions"><span id="environment" class="environment">检查配置中</span><button id="logout" class="button quiet" type="button" hidden>退出登录</button></div>
+  </header>
+  <main id="main" tabindex="-1">
+    <section id="login-view" class="login-layout" aria-labelledby="login-title">
+      <div class="login-context"><span class="section-label">小故事</span><h1>投稿审核</h1><p>查看投稿，审核内容，管理公开故事。</p><div class="context-rule"></div><p class="muted">使用独立管理员账号登录。<br>与 Android 端的匿名投稿身份分开。</p></div>
+      <div class="login-card">
+        <h2 id="login-title">管理员登录</h2><p class="muted">登录权限由服务端验证。</p>
+        <p id="config-message" class="notice warning" hidden></p>
+        <form id="login-form">
+          <label for="username">管理员账号</label><input id="username" name="username" autocomplete="username" maxlength="200" required spellcheck="false" autocapitalize="none">
+          <label for="password">密码</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="1024" required>
+          <p id="login-message" class="feedback" role="alert"></p>
+          <button id="login-submit" class="button primary full" type="submit" disabled>登录</button>
+        </form>
+        <p class="login-footnote">会话仅保留在当前页面内存，刷新或关闭页面后需重新登录。</p>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace" aria-labelledby="workspace-title" hidden>
+      <div class="page-heading"><div><p class="section-label">小故事</p><h1 id="workspace-title" tabindex="-1">投稿审核</h1><p class="muted">通过后公开展示；拒绝备注仅供内部查看。</p></div><button id="refresh" class="button secondary" type="button">刷新列表</button></div>
+      <div class="stats" aria-label="投稿计数">
+        <div class="stat"><span><span class="status-dot pending-dot" aria-hidden="true"></span>待审核</span><strong id="count-pending">—</strong></div>
+        <div class="stat"><span><span class="status-dot approved-dot" aria-hidden="true"></span>已通过</span><strong id="count-approved">—</strong></div>
+        <div class="stat"><span><span class="status-dot rejected-dot" aria-hidden="true"></span>已拒绝</span><strong id="count-rejected">—</strong></div>
+      </div>
+      <section class="list-panel" aria-label="投稿列表">
+        <div class="list-toolbar"><div class="filters" role="group" aria-label="按审核状态筛选"><button class="filter active" type="button" data-status="pending" aria-pressed="true">待审核</button><button class="filter" type="button" data-status="approved" aria-pressed="false">已通过</button><button class="filter" type="button" data-status="rejected" aria-pressed="false">已拒绝</button><button class="filter" type="button" data-status="all" aria-pressed="false">全部投稿</button></div><span id="list-summary" class="muted">每页 20 条</span></div>
+        <p id="workspace-message" class="panel-message" role="status" aria-live="polite"></p>
+        <div class="table-scroll"><table><caption class="sr-only">投稿列表。点击查看打开纯文本详情。</caption><thead><tr><th scope="col">故事标题</th><th scope="col">分类</th><th scope="col">署名</th><th scope="col">状态</th><th scope="col">投稿时间</th><th scope="col"><span class="sr-only">操作</span></th></tr></thead><tbody id="story-rows"></tbody></table></div>
+        <div id="empty-state" class="empty-state" hidden><span class="empty-symbol" aria-hidden="true">□</span><h2>暂无符合条件的投稿</h2><p>可切换筛选条件，或稍后手动刷新。</p></div>
+        <nav class="pagination" aria-label="列表分页"><span id="page-info">第 1 页</span><div><button id="previous-page" class="button quiet" type="button" disabled>上一页</button><button id="next-page" class="button secondary" type="button" disabled>下一页</button></div></nav>
+      </section>
+      <p class="workspace-footnote">计数由服务端返回。已通过计数包含已撤下投稿；页面不会自动轮询。</p>
+    </section>
+  </main>
+  <noscript><p class="notice">请启用 JavaScript 后使用审核后台。</p></noscript>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title">
+    <div class="dialog-heading"><div><p class="section-label">投稿详情 <span class="environment mock" data-mock-badge hidden>本地Mock</span></p><h2 id="detail-title" tabindex="-1">正在读取…</h2></div><button id="detail-close" class="button quiet" type="button" autofocus>关闭详情</button></div>
+    <p id="detail-message" class="feedback" role="alert"></p>
+    <div id="detail-body" hidden><dl id="detail-meta" class="detail-meta"></dl><h3 class="body-heading">故事正文</h3><div id="story-content" class="story-content"></div><section class="internal-note"><h3>内部审核备注</h3><p id="reviewer-note"></p><small>不向投稿者及公开阅读端展示。</small></section></div>
+    <div class="dialog-actions"><button id="reject" class="button danger-outline" type="button" hidden>拒绝投稿</button><button id="withdraw" class="button danger-outline" type="button" hidden>撤下公开故事</button><button id="approve" class="button primary" type="button" hidden>通过并发布</button></div>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-description">
+    <p class="section-label">操作确认 <span class="environment mock" data-mock-badge hidden>本地Mock</span></p><h2 id="confirm-title"></h2><p id="confirm-description"></p><p id="confirm-story" class="confirm-story"></p>
+    <div id="note-field" hidden><label for="review-note">内部备注 <span class="muted">（选填）</span></label><textarea id="review-note" rows="4" maxlength="500" aria-describedby="note-help note-count"></textarea><div class="note-help"><small id="note-help">仅供管理员查看，不作为公开拒绝理由。</small><small id="note-count">0 / 500</small></div></div>
+    <p id="confirm-message" class="feedback" role="alert"></p>
+    <div class="dialog-actions"><button id="confirm-cancel" class="button secondary" type="button" autofocus>取消</button><button id="confirm-submit" class="button primary" type="button">确认</button></div>
+  </dialog>
+</body>
+</html>

@@ -10,3 +10,4 @@ gradlew text eol=lf
 *.jar binary
 *.jpg binary
 *.png binary
+cloudbase/scf_bootstrap text eol=lf

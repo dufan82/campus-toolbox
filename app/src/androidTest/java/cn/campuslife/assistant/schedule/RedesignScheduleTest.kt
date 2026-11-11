@@ -87,56 +87,33 @@ class RedesignScheduleTest {
         }
     }
 
-    @Test fun managementKeepsAllExistingActionsAndCancelPreservesData() = isolated { before ->
+    @Test fun managementHasTwoActionsAndCancelPreservesData() = isolated { before ->
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            await { enabled("管理") }; tap("管理")
-            await { text("课程表管理") }
+            await { enabled("管理") }; tap("管理"); await { text("课程表管理") }
             inst.runOnMainSync {
                 val list = nodes().filterIsInstance<ListView>().single()
-                val labels = (0 until list.adapter.count).map { list.adapter.getItem(it).toString() }
-                assertTrue(labels.containsAll(listOf("新增课程", "学校导入 / 备份与恢复", "学期设置", "节次设置", "全部课程")))
+                assertEquals(listOf("检查更新", "备份与恢复"), (0 until list.adapter.count).map { list.adapter.getItem(it).toString() })
                 (0 until list.childCount).forEach { assertTouch(list.getChildAt(it)) }
             }
-            tap("节次设置")
-            await { text("节次列表") }
-            tap("取消")
-            assertEquals(before, ScheduleStore(context).load())
+            tap("取消"); assertEquals(before, ScheduleStore(context).load())
         }
     }
-
-    @Test fun schoolDifferenceSeparatesFutureAndWholeReplacementWithoutSaving() = isolated { before ->
-        val store = ScheduleStore(context)
-        val snapshot = store.loadSnapshot()
-        val candidate = before.copy(courses = before.courses.mapIndexed { index, course ->
-            if (index == 0) course.copy(name = "学校调整后的离线课", classroom = "离线教室501") else course
-        })
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            scenario.onActivity { activity ->
-                val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
-                session.javaClass.getDeclaredField("baselineSnapshot").apply { isAccessible = true }.set(session, snapshot)
-                activity.javaClass.getDeclaredMethod("preview", ScheduleData::class.java, String::class.java,
-                    List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                    .invoke(activity, candidate, "离线差异夹具", emptyList<String>(), before, true)
+    @Test fun schoolDifferenceOnlyOffersSafeFutureUpdatesWithoutReplacement() = isolated { before ->
+        val store=ScheduleStore(context);store.replaceWithBackup(before,before,true)
+        val snapshot=store.loadSnapshot()
+        val candidate=before.copy(courses=before.courses.mapIndexed {index,course->if(index==0)course.copy(classroom="离线新教室501") else course})
+        ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
+            await {enabled("登录学校平台")}
+            scenario.onActivity {activity->
+                val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
+                session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
+                activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,candidate,"离线差异夹具",emptyList<String>(),before,true)
             }
-            await { enabled("预览仅今日及未来更新") }
-            assertTrue(hasTag("schedule.diff.local")); assertTrue(hasTag("schedule.diff.school"))
-            assertTrue(hasTag("schedule.future.options")); assertTrue(hasTag("schedule.replace.options"))
-            assertTrue(textContains("未登记来源的旧课程默认全部保护"))
-            assertTrue(enabled("选择旧课程（已选0/${before.courses.size}）"))
-            assertTrue(textContains("不是未来合并"))
-            tap("预览仅今日及未来更新")
-            await { enabled("确认未来更新") }
-            assertTrue(textContains("过去课程和受保护课程保留"))
-            tap("取消")
-            await { enabled("确认保存到本机") }
-            tap("确认保存到本机")
-            await { enabled("确认替换") }
-            assertTrue(textContains("包括过去及手动课程"))
-            tap("返回核对")
-            tap("取消，不修改原课表")
-            await { enabled("登录学校平台") }
-            assertEquals(snapshot, store.loadSnapshot())
+            await {enabled("更新课表")}
+            assertTrue(hasTag("schedule.diff.local"));assertTrue(hasTag("schedule.diff.school"))
+            assertFalse(hasTag("schedule.replace.options"));assertFalse(enabled("确认保存到本机"))
+            tap("更新课表");await {enabled("确认更新")};tap("取消")
+            tap("返回");await {enabled("登录学校平台")};assertEquals(snapshot,store.loadSnapshot())
         }
     }
 

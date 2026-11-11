@@ -7,7 +7,8 @@ object ToolCatalog {
         ToolboxTool("map","校园地图","平潭校区 · 搜楼栋","map"),
         ToolboxTool("schedule","课程表","本周安排与今日课程","calendar"),
         ToolboxTool("watermark","照片水印","单张制作 · 高清另存","image"),
-        ToolboxTool("planner","倒数日","记录重要日期与纪念日","clock")
+        ToolboxTool("planner","倒数日","记录重要日期与纪念日","clock"),
+        ToolboxTool("story","小故事","短篇阅读","book")
     )
 }
 

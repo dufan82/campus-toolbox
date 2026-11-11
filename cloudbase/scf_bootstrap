@@ -1,0 +1,4 @@
+#!/bin/bash
+set -e
+cd /var/user
+exec /var/lang/node20/bin/node /var/user/http-server.js

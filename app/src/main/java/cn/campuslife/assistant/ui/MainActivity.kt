@@ -30,21 +30,33 @@ class MainActivity : Activity() {
     private var nextLesson: HomeLesson?=null
     private var nextLessonData: cn.campuslife.assistant.schedule.ScheduleData?=null
     private var lessonTicket=0
+    private var lessonDate: java.time.LocalDate?=null
     private var syncNeedsLogin=false
+    private lateinit var poemText: android.widget.TextView
+    private lateinit var poemCredit: android.widget.TextView
+    private var poemDialog: android.app.Dialog?=null
+    private var poemBusy=false
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(cn.campuslife.assistant.R.style.AppTheme)
         super.onCreate(savedInstanceState)
         val root=Ui.page(this)
         val content=Ui.column(this).apply { setPadding(Ui.dp(context,20),Ui.dp(context,12),Ui.dp(context,20),Ui.dp(context,16)) }
         root.addView(content,LinearLayout.LayoutParams(-1,-2))
-        val compact=resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        if(!compact) { content.addView(Ui.text(this,getString(cn.campuslife.assistant.R.string.brand_english),10f,Ui.muted).apply {letterSpacing=.14f});content.addView(Ui.space(this,5)) }
-        val header=Ui.row(this)
-        header.addView(ImageView(this).apply {setImageResource(cn.campuslife.assistant.R.drawable.logo_symbol);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO},LinearLayout.LayoutParams(Ui.dp(this,32),Ui.dp(this,32)).apply {marginEnd=Ui.dp(this@MainActivity,9)})
-        header.addView(Ui.text(this,Brand.name,26f,bold=true).apply {tag="brand_name"},LinearLayout.LayoutParams(0,-2,1f))
-        header.addView(Ui.iconButton(this,"settings","设置") { settings() },LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
-        content.addView(header)
-        if(!compact) {content.addView(Ui.text(this,getString(cn.campuslife.assistant.R.string.brand_tagline),12f,Ui.muted).apply {tag="brand_tagline"});content.addView(Ui.space(this,10));content.addView(Ui.text(this,"快递直达",16f,bold=true));content.addView(Ui.space(this,10))}
-        else content.addView(Ui.space(this,10))
+        val header=Ui.column(this).apply { tag="home_poem";minimumHeight=Ui.dp(context,52) }
+        val poem=Ui.column(this).apply {
+            tag="home_poem_content";isClickable=true;isFocusable=true;minimumHeight=Ui.dp(context,48)
+            setPadding(0,0,0,Ui.dp(context,3))
+            setOnClickListener { showPoem() }
+        }
+        val current=cn.campuslife.assistant.poetry.PoemSession.peek()
+        poemText=Ui.text(this,current?.text.orEmpty(),14.5f).apply {tag="home_poem_text";setLineSpacing(Ui.dp(context,3).toFloat(),1f)}
+        poemCredit=Ui.text(this,current?.credit.orEmpty(),10.5f,Ui.muted).apply {tag="home_poem_credit";gravity=Gravity.END;textAlignment=View.TEXT_ALIGNMENT_VIEW_END}
+        val poemLine=Ui.row(this)
+        poemLine.addView(poemText,LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=Ui.dp(this@MainActivity,8)})
+        poemLine.addView(Ui.iconButton(this,"settings","设置") { settings() },LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
+        poem.addView(poemLine,LinearLayout.LayoutParams(-1,-2));poem.addView(poemCredit,LinearLayout.LayoutParams(-1,-2))
+        header.addView(poem,LinearLayout.LayoutParams(-1,-2))
+        content.addView(header);content.addView(Ui.space(this,8))
         val quick=Ui.row(this).apply { background=Ui.shape(context,Color.WHITE,16,Ui.line) }
         val launcher=ExpressLauncher(this,ExpressConfiguration(ExpressPreferences(this)))
         ExpressCatalog.entries.forEachIndexed { index,entry ->
@@ -77,10 +89,10 @@ class MainActivity : Activity() {
         root.addView(Ui.bottomNavigation(this,"home"))
         renderTools()
         // After the first layout; all network and preference reads stay off the UI thread.
-        root.post { if (!isDestroyed) { updateStarted=true;checkUpdate() } }
+        root.post { if (!isDestroyed) { loadPoem();updateStarted=true;checkUpdate() } }
     }
     override fun onResume() { super.onResume();if(::toolsBody.isInitialized) { reloadLayout();loadNextLesson();if(updateStarted) checkUpdate() } }
-    override fun onDestroy() { updateTicket++;lessonTicket++;super.onDestroy() }
+    override fun onDestroy() { updateTicket++;lessonTicket++;poemDialog?.dismiss();super.onDestroy() }
     private fun checkUpdate() {
         val ticket=++updateTicket
         val reference=WeakReference(this)
@@ -89,8 +101,11 @@ class MainActivity : Activity() {
             val result=runCatching { UpdateRepository(app).check(false) }
             Handler(Looper.getMainLooper()).post {
                 reference.get()?.takeIf { !it.isDestroyed && it.updateTicket==ticket }?.let { activity ->
-                    activity.availableUpdate=result.getOrNull()?.takeIf { it.offer }?.update
-                    activity.renderTools()
+                    val update=result.getOrNull()?.takeIf { it.offer }?.update
+                    if (activity.availableUpdate!=update) {
+                        activity.availableUpdate=update
+                        activity.renderTools()
+                    }
                 }
             }
         }
@@ -98,7 +113,9 @@ class MainActivity : Activity() {
     private fun reloadLayout() {
         val ticket=++layoutTicket
         HomeLayoutRepository(this).load { result -> if(!isDestroyed && ticket==layoutTicket) {
-            result.fold({ homeLayout=it;layoutError=false },{ layoutError=true;homeLayout=null });renderTools()
+            val previous=homeLayout;val wasError=layoutError
+            result.fold({ homeLayout=it;layoutError=false },{ layoutError=true;homeLayout=null })
+            if (previous!=homeLayout || wasError!=layoutError) renderTools()
         } }
     }
     private fun loadNextLesson() {
@@ -108,10 +125,15 @@ class MainActivity : Activity() {
             runCatching { cn.campuslife.assistant.schedule.DailySyncScheduler.reconcile(app) }
             val result=runCatching { cn.campuslife.assistant.schedule.ScheduleStore(app).load() }
             val data=result.getOrNull()
-            val upcoming=data?.let { HomeSchedulePreview.next(it,java.time.LocalDate.now(),java.time.LocalTime.now()) }
+            val today=java.time.LocalDate.now()
+            val upcoming=data?.let { HomeSchedulePreview.next(it,today,java.time.LocalTime.now()) }
             Handler(Looper.getMainLooper()).post { reference.get()?.takeIf { !it.isDestroyed && it.lessonTicket==ticket }?.let {
-                it.syncNeedsLogin=sync?.enabled==true && sync.result==cn.campuslife.assistant.schedule.SyncResult.NEEDS_LOGIN
-                it.nextLesson=upcoming;it.nextLessonData=data;it.renderTools()
+                val needsLogin=sync?.enabled==true && sync.result==cn.campuslife.assistant.schedule.SyncResult.NEEDS_LOGIN
+                val changed=it.syncNeedsLogin!=needsLogin || it.nextLesson!=upcoming || it.nextLessonData!=data || it.lessonDate!=today
+                it.syncNeedsLogin=needsLogin;it.nextLesson=upcoming;it.nextLessonData=data
+                it.lessonDate=today
+                // onResume still reloads every source; equal immutable results need no new Views.
+                if (changed) it.renderTools()
             } }
         }
     }
@@ -163,7 +185,7 @@ class MainActivity : Activity() {
                 val badge=ImageView(this).apply { setImageDrawable(ToolGlyph(context,if(id=="planner") "clock" else tool.glyph,Ui.ink));setPadding(Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7),Ui.dp(context,7));background=Ui.shape(context,when(id) { "map"->Ui.tealTint;"watermark"->Ui.orangeTint;else->Ui.pale },11);importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO }
                 tile.addView(badge,LinearLayout.LayoutParams(Ui.dp(this,35),Ui.dp(this,35)).apply { marginEnd=Ui.dp(this@MainActivity,9) })
                 val title=when(id) { "schedule"->"课程表";"planner"->"倒数日";else->tool.title }
-                val subtitle=when(id) { "map"->"搜楼栋、找位置";"schedule"->"查看本周安排";"watermark"->"选照片，加水印";else->"记住重要日期" }
+                val subtitle=when(id) { "map"->"搜楼栋、找位置";"schedule"->"查看本周安排";"watermark"->"选照片，加水印";"planner"->"记住重要日期";else->tool.subtitle }
                 val labels=Ui.column(this);labels.addView(Ui.text(this,title,15f,bold=true));labels.addView(Ui.space(this,5));labels.addView(Ui.text(this,subtitle,11f,Ui.muted))
                 tile.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
                 row.addView(tile,LinearLayout.LayoutParams(0,-2,1f).apply { if(index==0) marginEnd=Ui.dp(this@MainActivity,10) })
@@ -188,9 +210,44 @@ class MainActivity : Activity() {
         } else {
             toolsBody.addView(Ui.textButton(this,if(nextLessonData?.semester==null) "添加或导入课表" else "查看课程安排") { ToolNavigation.open(this,"schedule") },LinearLayout.LayoutParams(-1,-2))
         }
-        toolsBody.addView(Ui.space(this,18));toolsBody.addView(Ui.text(this,"不用注册，也能使用本地工具",11f,Ui.muted).apply { gravity=Gravity.CENTER })
+
+    }
+    private fun loadPoem(next:Boolean=false) {
+        if(poemBusy)return
+        poemBusy=true
+        val app=applicationContext;val reference=WeakReference(this)
+        homePreviewIo.execute {
+            val result=runCatching {if(next)cn.campuslife.assistant.poetry.PoemSession.next(app) else cn.campuslife.assistant.poetry.PoemSession.current(app)}
+            Handler(Looper.getMainLooper()).post {reference.get()?.takeIf {!it.isDestroyed}?.let {activity->
+                activity.poemBusy=false
+                result.onSuccess {poem->
+                    activity.poemText.text=poem.text;activity.poemCredit.text=poem.credit
+                    activity.poemDialog?.takeIf {it.isShowing}?.window?.decorView?.let {sheet->
+                        sheet.findViewWithTag<android.widget.TextView>("poem_sheet_text")?.text=poem.text
+                        sheet.findViewWithTag<android.widget.TextView>("poem_sheet_credit")?.text=poem.credit
+                    }
+                }
+                    .onFailure {if(next) Ui.toast(activity,"暂时无法换句，请重试")}
+            }}
+        }
+    }
+    private fun showPoem() {
+        val current=cn.campuslife.assistant.poetry.PoemSession.peek() ?: return
+        poemDialog?.dismiss()
+        poemDialog=Ui.bottomSheet(this,"诗词") {body,_->
+            val text=Ui.text(this,current.text,18f).apply {tag="poem_sheet_text";setLineSpacing(Ui.dp(context,6).toFloat(),1f)}
+            val credit=Ui.text(this,current.credit,12f,Ui.muted).apply {tag="poem_sheet_credit";gravity=Gravity.END}
+            body.addView(text);body.addView(Ui.space(this,10));body.addView(credit,LinearLayout.LayoutParams(-1,-2));body.addView(Ui.space(this,20))
+            val buttons=Ui.row(this)
+            buttons.addView(Ui.button(this,"复制") {
+                (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("诗句",text.text.toString()+"\n"+credit.text))
+                Ui.toast(this,"已复制")
+            }.apply {tag="poem_copy"},LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=Ui.dp(this@MainActivity,10)})
+            buttons.addView(Ui.button(this,"换一句",true) {loadPoem(true)}.apply {tag="poem_next"},LinearLayout.LayoutParams(0,-2,1f))
+            body.addView(buttons)
+        }
     }
     private fun open(type: Class<out Activity>) { startActivity(Intent(this,type)) }
     companion object { private val homePreviewIo=java.util.concurrent.Executors.newSingleThreadExecutor { Thread(it,"home-schedule-preview") } }
-    private fun settings() { open(SettingsActivity::class.java) }
+    private fun settings() { MainNavigation.navigate(this,"home","settings") }
 }

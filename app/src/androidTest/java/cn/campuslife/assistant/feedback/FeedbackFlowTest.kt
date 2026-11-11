@@ -24,9 +24,9 @@ import org.junit.Test
 class FeedbackFlowTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
-    @Test fun settingsHasSmallRightAlignedLowerPageEntryAndOpensLocalFeedback() {
-        assertEquals("", FeedbackConfig.FEEDBACK_FORM_URL)
-        val monitor = instrumentation.addMonitor(FeedbackActivity::class.java.name,
+    @Test fun settingsHasSmallRightAlignedEntryAndOpensPublishedFeedback() {
+        assertEquals("https://wj.qq.com/s2/28616104/3ezx/", FeedbackConfig.FEEDBACK_FORM_URL)
+        val monitor = instrumentation.addMonitor(android.content.IntentFilter(Intent.ACTION_VIEW).apply { addCategory(Intent.CATEGORY_BROWSABLE); addDataScheme("https") },
             Instrumentation.ActivityResult(Activity.RESULT_CANCELED, null), true)
         try {
             ActivityScenario.launch(SettingsActivity::class.java).use { scenario ->
@@ -54,11 +54,11 @@ class FeedbackFlowTest {
         } finally { instrumentation.removeMonitor(monitor) }
     }
 
-    @Test fun unavailableFormListsAllTypesAndHasNoSubmitOrSuccess() {
+    @Test fun fallbackDraftListsAllTypesAndHasNoSubmitOrSuccess() {
         ActivityScenario.launch(FeedbackActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val root = activity.window.decorView
-                assertEquals("反馈入口暂未开放，敬请期待", root.findViewWithTag<TextView>("feedback_availability").text.toString())
+                assertEquals("暂时无法打开反馈表单", root.findViewWithTag<TextView>("feedback_availability").text.toString())
                 assertEquals(FeedbackCategory.entries.map { it.label }, views(root).filterIsInstance<RadioButton>().map { it.text.toString() })
                 assertFalse(views(root).filterIsInstance<RadioButton>().any { it.isChecked })
                 assertFalse(views(root).filterIsInstance<Button>().any { it.text.toString().contains("提交") })

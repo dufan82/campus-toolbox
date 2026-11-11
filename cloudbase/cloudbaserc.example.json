@@ -1,0 +1,32 @@
+{
+  "$schema": "https://static.cloudbase.net/cli/cloudbaserc.schema.json",
+  "envId": "{{env.TCB_ENV_ID}}",
+  "functions": [
+    {
+      "name": "story-api",
+      "dir": "./build/production",
+      "type": "Event",
+      "runtime": "Nodejs20.19",
+      "handler": "index.main",
+      "timeout": 3,
+      "memorySize": 256,
+      "installDependency": false,
+      "envVariables": {
+        "TCB_ENV_ID": "{{env.TCB_ENV_ID}}",
+        "TCB_REGION": "{{env.TCB_REGION}}",
+        "TCB_AUTH_ORIGIN": "{{env.TCB_AUTH_ORIGIN}}",
+        "ADMIN_UIDS": "{{env.ADMIN_UIDS}}",
+        "ADMIN_ALLOWED_ORIGINS": "{{env.ADMIN_ALLOWED_ORIGINS}}"
+      },
+      "ignoreSysLog": true
+    }
+  ],
+  "gateway": {
+    "routes": [
+      {
+        "path": "/api",
+        "target": "function:story-api"
+      }
+    ]
+  }
+}

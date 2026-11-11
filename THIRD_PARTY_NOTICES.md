@@ -48,3 +48,9 @@ AndroidX、Kotlin、JUnit 等依赖由 Gradle 按各自坐标获取，版本见�
 - [隐私政策](https://lbs.amap.com/pages/privacy/)
 
 2026-10-26用户明确确认已经通过针对本App的技术服务许可／公开使用授权，并授权发布包含内置地图的兼容安装包。此为用户确认，不冒充已从控制台独立核验，也不承诺免费、无限配额或永久许可；未代用户购买、充值或开通付费服务。Android客户端Key绑定原包名及原证书，不随源码、CI配置或更新元数据提交，但按SDK客户端鉴权方式会嵌入获准发布的APK。原证书保留只为兼容覆盖，不代表新正式证书。
+
+## 首页诗词数据
+
+本地精选272条古诗词摘自[chinese-poetry/chinese-poetry](https://github.com/chinese-poetry/chinese-poetry/tree/b8594f81a89752241442f2ce267d6f66f96704ee)，固定来源版本，保留古代作者与作品署名，不包含现代译文或点评。数据库整理采用MIT，Copyright (c) 2016 JackeyGao；[完整条款](LICENSES/chinese-poetry-MIT.txt)另随APK置于`assets/licenses/chinese-poetry-MIT.txt`。来源、筛选与逐条校验见[POETRY_SOURCES.md](docs/POETRY_SOURCES.md)。这不是项目整体许可证。
+
+小故事首批内容为本项目创作的12篇短篇，不来自其他平台现代小说，不冒充学生投稿或虚构署名。见[STORY_CONTENT.md](docs/STORY_CONTENT.md)。

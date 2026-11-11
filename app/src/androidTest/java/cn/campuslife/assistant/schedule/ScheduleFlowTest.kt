@@ -30,7 +30,7 @@ class ScheduleFlowTest {
         val course = Course("00000000-0000-0000-0000-000000000001", "Original", "", "", 1, 1, 1, 1, 20, WeekPattern.EVERY, null)
         isolated(fixture().add(course)) {
             ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-                tap("管理"); tap("全部课程"); tap("编辑：Original"); set("教师（可选）", "Unsaved teacher")
+                openLowFrequency("全部课程"); tap("编辑：Original"); set("教师（可选）", "Unsaved teacher")
                 scenario.moveToState(Lifecycle.State.CREATED)
                 val other = ScheduleStore(context); val before = other.load()
                 other.commit(before, before.delete(course.id))
@@ -47,7 +47,7 @@ class ScheduleFlowTest {
 
     @Test fun resumedSemesterDraftCannotOverwriteAnotherScreensSettings() = isolated(fixture()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-            tap("管理"); tap("学期设置"); set("总周数", "25")
+            openLowFrequency("学期设置"); set("总周数", "25")
             scenario.moveToState(Lifecycle.State.CREATED)
             val other = ScheduleStore(context); val before = other.load()
             other.commit(before, before.copy(semester = Semester(monday, 30)))
@@ -63,7 +63,7 @@ class ScheduleFlowTest {
         val removed = Course("00000000-0000-0000-0000-000000000001", "Removed", "", "", 1, 1, 1, 1, 20, WeekPattern.EVERY, null)
         isolated(fixture().add(removed)) {
             ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-                tap("管理"); tap("新增课程"); set("课程名称", "Local addition"); set("星期（1为周一，7为周日）", "1")
+                tapAdd(); set("课程名称", "Local addition"); set("星期（1为周一，7为周日）", "1")
                 scenario.moveToState(Lifecycle.State.CREATED)
                 val other = ScheduleStore(context); val before = other.load()
                 val added = removed.copy(id = "00000000-0000-0000-0000-000000000002", name = "Remote addition", weekday = 2)
@@ -83,7 +83,7 @@ class ScheduleFlowTest {
         val course = Course("00000000-0000-0000-0000-000000000001", "Original", "", "", 1, 1, 1, 1, 20, WeekPattern.EVERY, null)
         isolated(fixture().add(course)) {
             ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-                tap("管理"); tap("全部课程"); tap("编辑：Original"); set("课程名称", "Local draft")
+                openLowFrequency("全部课程"); tap("编辑：Original"); set("课程名称", "Local draft")
                 scenario.moveToState(Lifecycle.State.CREATED)
                 val other = ScheduleStore(context); val before = other.load()
                 val extra = course.copy(id = "00000000-0000-0000-0000-000000000002", name = "Independent", weekday = 2)
@@ -96,7 +96,7 @@ class ScheduleFlowTest {
                 val latest = other.load()
                 assertEquals(2, latest.courses.size)
                 assertEquals("Remote edit", latest.courses.single { it.id == course.id }.name)
-                tap("取消"); tap("管理"); tap("全部课程"); find("编辑：Independent")
+                tap("取消"); openLowFrequency("全部课程"); find("编辑：Independent")
             }
         }
     }
@@ -130,7 +130,7 @@ class ScheduleFlowTest {
     @Test @SdkSuppress(minSdkVersion = 29)
     fun invalidCourseBringsItsErrorIntoViewWithoutSaving() = isolated(fixture()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-            tap("管理"); tap("新增课程"); tap("保存课程")
+            tapAdd(); tap("保存课程")
             instrumentation.waitForIdleSync()
             scenario.onActivity {
                 val error = WindowInspector.getGlobalWindowViews().flatMap(::descendants).filterIsInstance<TextView>()
@@ -170,7 +170,7 @@ class ScheduleFlowTest {
                 assertTrue(add.height >= minimum); assertTrue(today.height >= minimum)
                 assertFalse(buttons.any { it.text.toString() in listOf("新增课程", "学期设置", "节次设置", "全部课程", "学校导入 / 备份与恢复") })
             }
-            tap("管理"); tap("节次设置")
+            openLowFrequency("节次设置")
             set("节次列表", "测试节次|08:00|08:50"); tap("保存节次")
             await { ScheduleStore(context).load().periods.size == 1 }
             assertEquals("测试节次", ScheduleStore(context).load().periods.single().label)
@@ -180,7 +180,7 @@ class ScheduleFlowTest {
     @Test @SdkSuppress(minSdkVersion = 29)
     fun backAndRepeatedSaveCannotLeaveAnInFlightWriteOrDuplicateTheCourse() = isolated(fixture()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-            tap("管理"); tap("新增课程"); set("课程名称", "保存返回测试")
+            tapAdd(); set("课程名称", "保存返回测试")
             scenario.onActivity { activity ->
                 val save = WindowInspector.getGlobalWindowViews().flatMap(::descendants).filterIsInstance<Button>()
                     .single { it.text.toString() == "保存课程" }
@@ -191,23 +191,23 @@ class ScheduleFlowTest {
                 save.performClick()
             }
             await { ScheduleStore(context).load().courses.size == 1 }
-            tap("管理"); tap("全部课程"); find("编辑：保存返回测试")
+            openLowFrequency("全部课程"); find("编辑：保存返回测试")
             assertEquals(1, ScheduleStore(context).load().courses.size)
         }
     }
 
     @Test fun crudThroughControlsSurvivesActivityRestart() = isolated(fixture()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            tap("管理"); tap("新增课程"); set("课程名称", "流程测试课程"); tap("保存课程")
+            tapAdd(); set("课程名称", "流程测试课程"); tap("保存课程")
             await { ScheduleStore(context).load().courses.size == 1 }
         }
         val id = ScheduleStore(context).load().courses.single().id
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            tap("管理"); tap("全部课程"); tap("编辑：流程测试课程")
+            openLowFrequency("全部课程"); tap("编辑：流程测试课程")
             set("课程名称", "修改测试课程"); tap("保存课程")
             await { ScheduleStore(context).load().courses.single().name == "修改测试课程" }
             assertEquals(id, ScheduleStore(context).load().courses.single().id)
-            tap("管理"); tap("全部课程"); tap("编辑：修改测试课程"); tap("删除课程"); tap("确认删除")
+            openLowFrequency("全部课程"); tap("编辑：修改测试课程"); tap("删除课程"); tap("确认删除")
             await { ScheduleStore(context).load().courses.isEmpty() }
         }
         ActivityScenario.launch(ScheduleActivity::class.java).use { find("本周暂无课程") }
@@ -215,12 +215,12 @@ class ScheduleFlowTest {
 
     @Test fun semesterSetupAndDraftSurviveRecreationWithExplicitValidation() = isolated(ScheduleData()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use { scenario ->
-            find("请先设置学期"); tap("管理"); tap("学期设置")
+            find("请先设置学期"); openLowFrequency("学期设置")
             set("起始周一", monday.plusDays(1).toString()); set("总周数", "20"); tap("保存学期")
             find("学期起始日必须是周一")
             set("起始周一", monday.toString()); tap("保存学期")
             await { ScheduleStore(context).load().semester != null }
-            tap("管理"); tap("新增课程"); set("课程名称", "旋转草稿"); set("教师（可选）", "测试教师")
+            tapAdd(); set("课程名称", "旋转草稿"); set("教师（可选）", "测试教师")
             scenario.recreate()
             assertFieldValue("课程名称", "旋转草稿")
             assertFieldValue("教师（可选）", "测试教师")
@@ -231,12 +231,12 @@ class ScheduleFlowTest {
 
     @Test fun conflictingCoursesCanBothBeSavedAndEdited() = isolated(fixture()) {
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            tap("管理"); tap("新增课程"); set("课程名称", "冲突课程一"); tap("保存课程")
+            tapAdd(); set("课程名称", "冲突课程一"); tap("保存课程")
             await { ScheduleStore(context).load().courses.size == 1 }
-            tap("管理"); tap("新增课程"); set("课程名称", "冲突课程二"); tap("保存课程")
+            tapAdd(); set("课程名称", "冲突课程二"); tap("保存课程")
             find("课程时间有重叠"); tap("仍然保存")
             await { ScheduleStore(context).load().courses.size == 2 }
-            tap("管理"); tap("全部课程"); find("编辑：冲突课程一"); tap("编辑：冲突课程二")
+            openLowFrequency("全部课程"); find("编辑：冲突课程一"); tap("编辑：冲突课程二")
             assertFieldValue("课程名称", "冲突课程二")
         }
     }
@@ -248,7 +248,7 @@ class ScheduleFlowTest {
             val course = Course("00000000-0000-0000-0000-000000000001", "地点测试课程", "", "", 1, 1, 2, 1, 20, WeekPattern.EVERY, id)
             isolated(fixture().add(course)) {
                 ActivityScenario.launch(ScheduleActivity::class.java).use {
-                    tap("管理"); tap("全部课程"); tap("编辑：地点测试课程")
+                    openLowFrequency("全部课程"); tap("编辑：地点测试课程")
                     assertFalse(find("查看上课地点").isEnabled)
                     assertEquals(id, ScheduleStore(context).load().courses.single().placeId)
                 }
@@ -335,6 +335,21 @@ class ScheduleFlowTest {
             } } finally { screenshot.recycle() }
         }
         throw AssertionError("Missing schedule test control: $value")
+    }
+    private fun tapAdd() {
+        find("新增课程", true)
+        instrumentation.runOnMainSync {
+            assertTrue(WindowInspector.getGlobalWindowViews().flatMap(::descendants).single { it.tag == "schedule.add" }.performClick())
+        }
+        instrumentation.waitForIdleSync()
+    }
+    private fun openLowFrequency(label: String) {
+        find("管理")
+        instrumentation.runOnMainSync {
+            val activity=WindowInspector.getGlobalWindowViews().flatMap(::descendants).first {it.tag=="schedule.manage"}.context as ScheduleActivity
+            activity.javaClass.getDeclaredMethod("openLowFrequency").apply {isAccessible=true}.invoke(activity)
+        }
+        tap(label)
     }
     private fun tap(value: String) {
         val node = find(value); node.performAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_SHOW_ON_SCREEN.id)

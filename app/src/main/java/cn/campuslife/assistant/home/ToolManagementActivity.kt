@@ -22,7 +22,7 @@ class ToolManagementActivity: Activity() {
         body=Ui.column(this).apply { setPadding(Ui.dp(context,18),0,Ui.dp(context,18),Ui.dp(context,24)) }
         root.addView(Ui.scroll(this,body),LinearLayout.LayoutParams(-1,0,1f))
         if(busy) { body.addView(Ui.text(this,"正在保存或读取…"));return }
-        if(manage) body.addView(Ui.text(this,if(failed) "设置无法读取，请保留应用并重试；没有覆盖原记录。" else "只调整普通工具。三个快递入口始终固定在首页。",13f,Ui.muted))
+        if(failed) body.addView(Ui.text(this,"设置无法读取，请重试；原记录保留。",13f,Ui.muted))
         val ordered=state.normalized().order
         ordered.forEachIndexed { index,id ->
             val tool=ToolCatalog.tools.single { it.id==id }

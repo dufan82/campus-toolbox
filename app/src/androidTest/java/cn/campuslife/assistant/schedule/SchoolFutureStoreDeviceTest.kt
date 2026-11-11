@@ -55,34 +55,20 @@ class SchoolFutureStoreDeviceTest {
         assertThrows(IllegalArgumentException::class.java) { store.applyFutureWithBackup(after, incoming(), emptySet(), today.minusDays(1)) }
         assertEquals(after, store.loadSnapshot()); assertEquals(undo, store.previousImport())
     }
-    @Test fun actualPreviewDefaultsToProtectAndSelectedLegacyCanBeConfirmed() {
-        val store = ScheduleStore(context); val old = local("Legacy")
-        store.replaceWithBackup(store.load(), old)
-        val snapshot = store.loadSnapshot()
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            scenario.onActivity { activity ->
-                val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
-                session.javaClass.getDeclaredField("baselineSnapshot").apply { isAccessible = true }.set(session, snapshot)
-                ScheduleTransferActivity::class.java.getDeclaredMethod("preview", ScheduleData::class.java, String::class.java,
-                    List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                    .invoke(activity, incoming(), "Fixture", emptyList<String>(), old, true)
+    @Test fun actualPreviewKeepsLegacyProtectedWithoutManualOverride() {
+        val store=ScheduleStore(context);val old=local("Legacy");store.replaceWithBackup(store.load(),old)
+        val snapshot=store.loadSnapshot();val previous=store.previousImport()
+        ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
+            await {enabled("登录学校平台")}
+            scenario.onActivity {activity->
+                val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
+                session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
+                activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,incoming(),"Fixture",emptyList<String>(),old,true)
             }
-            await { enabled("预览仅今日及未来更新") }
-            tap("选择旧课程（已选0/1）")
-            inst.runOnMainSync {
-                val box = nodes().filterIsInstance<CheckedTextView>().single { it.text.contains("Legacy") }
-                assertFalse(box.isChecked)
-                val list = nodes().filterIsInstance<ListView>().single { it.getPositionForView(box) >= 0 }
-                val position = list.getPositionForView(box)
-                assertTrue(list.performItemClick(box, position, list.getItemIdAtPosition(position)))
-                assertTrue(box.isChecked)
-            }
-            tap("确认选择"); await { enabled("选择旧课程（已选1/1）") }
-            tap("预览仅今日及未来更新"); await { enabled("确认未来更新") }; tap("确认未来更新")
-            await { store.load().courses.any { it.name == "New" } }
-            assertEquals(old, store.previousImport())
-            assertTrue(store.load().courses.any { it.name == "Legacy" })
+            await {textContains("没有可安全更新的课程")}
+            assertFalse(enabled("更新课表"));assertFalse(enabled("确认保存到本机"));assertFalse(textContains("选择旧课程"))
+            scenario.recreate();await {textContains("没有可安全更新的课程")}
+            assertEquals(snapshot,store.loadSnapshot());assertEquals(previous,store.previousImport())
         }
     }
     @Test fun overflowDoesNotChangeScheduleOrBackupBytes() {
@@ -100,12 +86,12 @@ class SchoolFutureStoreDeviceTest {
         assertThrows(IllegalArgumentException::class.java) { store.applyFutureWithBackup(baseline, incoming(), emptySet(), today) }
         assertArrayEquals(dataBytes, dataFile.readBytes()); assertArrayEquals(undoBytes, undoFile.readBytes())
     }
-    @Test fun legacyTimetableWithoutImportTimestampShowsUnknownReminder() {
+    @Test fun legacyTimetableKeepsDataWithoutRepeatedReminder() {
         val store = ScheduleStore(context)
         store.replaceWithBackup(store.load(), local("Legacy reminder"))
         context.getSharedPreferences("schedule-school-import-history", 0).edit().clear().commit()
         ActivityScenario.launch(ScheduleActivity::class.java).use {
-            await { textContains("尚未记录更新时间，建议检查学校课表") }
+            await { enabled("管理") }; assertFalse(textContains("尚未记录更新时间，建议检查学校课表"))
             assertFalse(textContains("距上次学校导入已满7天"))
         }
     }

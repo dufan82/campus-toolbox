@@ -50,8 +50,8 @@ class MainNavigationDeviceTest {
         Route("home","settings","cn.campuslife.assistant.ui.SettingsActivity",0x00020000,R.anim.main_nav_enter_right,R.anim.main_nav_exit_left),
         Route("schedule","settings","cn.campuslife.assistant.ui.SettingsActivity",0x00020000,R.anim.main_nav_enter_right,R.anim.main_nav_exit_left),
         Route("settings","schedule","cn.campuslife.assistant.schedule.ScheduleActivity",0x00020000,R.anim.main_nav_enter_left,R.anim.main_nav_exit_right),
-        Route("settings","home","cn.campuslife.assistant.ui.MainActivity",0x24000000,R.anim.main_nav_enter_left,R.anim.main_nav_exit_right),
-        Route("schedule","home","cn.campuslife.assistant.ui.MainActivity",0x24000000,R.anim.main_nav_enter_left,R.anim.main_nav_exit_right)
+        Route("settings","home","cn.campuslife.assistant.ui.MainActivity",0x00020000,R.anim.main_nav_enter_left,R.anim.main_nav_exit_right),
+        Route("schedule","home","cn.campuslife.assistant.ui.MainActivity",0x00020000,R.anim.main_nav_enter_left,R.anim.main_nav_exit_right)
     )
 
     @Test fun sixRoutesKeepExplicitComponentsAndOriginalStackFlagsWithPlatformCustomOptions() {
@@ -65,7 +65,7 @@ class MainNavigationDeviceTest {
                 val intent=activity.launched!!
                 assertEquals(route.target,intent.component!!.className)
                 assertEquals(instrumentation.targetContext.packageName,intent.component!!.packageName)
-                // Exact masks: home CLEAR_TOP | SINGLE_TOP; other tabs REORDER_TO_FRONT only.
+                // Exact masks: All tabs reuse REORDER_TO_FRONT; selecting home must not destroy sibling tabs.
                 assertEquals(route.flags,intent.flags)
                 assertNull(intent.action);assertNull(intent.data);assertNull(intent.categories);assertNull(intent.extras)
                 val expectedOptions=ActivityOptions.makeCustomAnimation(activity,route.enter,route.exit).toBundle()

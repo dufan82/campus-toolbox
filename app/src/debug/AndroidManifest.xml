@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application>
+    <application android:networkSecurityConfig="@xml/story_debug_network">
         <activity android:name=".gate.probe.WechatProbeActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>

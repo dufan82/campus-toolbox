@@ -42,10 +42,11 @@ class BrandVisualTest {
             File(dir,"icon-$name-48.png").outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)};bitmap.recycle()
         }
     }
-    @Test fun homeNameSloganAndFixedExpressEntriesRemainVisible() {
+    @Test fun compactHomeAndFixedExpressEntriesRemainVisible() {
         ActivityScenario.launch(MainActivity::class.java).use {s->
             s.onActivity {a->
-                assertEquals("校伴",a.window.decorView.findViewWithTag<TextView>("brand_name").text.toString())
+                assertNotNull(a.window.decorView.findViewWithTag<View>("home_poem"))
+                assertNull(a.window.decorView.findViewWithTag<View>("brand_name"))
                 val nodes=views(a.window.decorView)
                 listOf("拼多多包裹","拼多多身份码","抖音订单").forEach {label->assertTrue(nodes.filterIsInstance<TextView>().any {it.text.toString()==label})}
                 val shortcuts=nodes.filter {it.tag?.toString()?.startsWith("shortcut_")==true}
@@ -68,10 +69,12 @@ class BrandVisualTest {
     @androidx.test.filters.SdkSuppress(minSdkVersion=31)
     @Test fun android12LaunchThemeAndMonochromeNotificationAreConfiguredWithoutDelay() {
         ActivityScenario.launch(MainActivity::class.java).use {scenario->scenario.onActivity {a->
+            val launchTheme=a.resources.newTheme().apply { applyStyle(R.style.BrandLaunchTheme,true) }
+            assertEquals(R.style.BrandLaunchTheme,a.packageManager.getActivityInfo(a.componentName,0).theme)
             val value=android.util.TypedValue()
-            assertTrue(a.theme.resolveAttribute(android.R.attr.windowSplashScreenAnimatedIcon,value,true))
+            assertTrue(launchTheme.resolveAttribute(android.R.attr.windowSplashScreenAnimatedIcon,value,true))
             assertEquals(R.drawable.splash_logo,value.resourceId)
-            assertTrue(a.theme.resolveAttribute(android.R.attr.windowSplashScreenBackground,value,true))
+            assertTrue(launchTheme.resolveAttribute(android.R.attr.windowSplashScreenBackground,value,true))
             assertEquals(Brand.mist,value.data)
         }}
         val d=context.getDrawable(R.drawable.ic_notification)!!

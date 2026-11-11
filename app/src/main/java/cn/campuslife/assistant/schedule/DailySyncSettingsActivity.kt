@@ -28,7 +28,14 @@ class DailySyncSettingsActivity:Activity() {
         super.onCreate(savedInstanceState);session=lastNonConfigurationInstance as? Session ?: Session()
         session.work.bind(this){_,_->render()};render()
     }
-    override fun onResume(){super.onResume();refresh()}
+    private val prefs by lazy { getSharedPreferences("school-daily-sync-v1", MODE_PRIVATE) }
+    private val refreshHandler=Handler(Looper.getMainLooper())
+    private val refreshState=Runnable { if (!session.work.busy) refresh() }
+    private val listener=android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+        refreshHandler.removeCallbacks(refreshState);refreshHandler.post(refreshState)
+    }
+    override fun onResume(){super.onResume();prefs.registerOnSharedPreferenceChangeListener(listener);refresh()}
+    override fun onPause(){prefs.unregisterOnSharedPreferenceChangeListener(listener);refreshHandler.removeCallbacks(refreshState);super.onPause()}
     override fun onRetainNonConfigurationInstance():Any=session
     override fun onDestroy(){prompt?.dismiss();session.work.detach(this);if(!isChangingConfigurations)session.work.close();super.onDestroy()}
     private fun refresh(){
@@ -62,15 +69,14 @@ class DailySyncSettingsActivity:Activity() {
                 }else if(state?.enabled==true)change(false)
             }
         },LinearLayout.LayoutParams(-1,-2))
-        body.addView(Ui.text(this,"每天 07:00 · 以设备当前时区为准",14f,Ui.muted));body.addView(Ui.space(this,22))
+        body.addView(Ui.text(this,"每天 07:00",14f,Ui.muted));body.addView(Ui.space(this,22))
         fun time(value:Long)=if(value==0L)"暂无" else DateTimeFormatter.ofPattern("MM-dd HH:mm").format(Instant.ofEpochMilli(value).atZone(ZoneId.systemDefault()))
         body.addView(Ui.text(this,"最近检查  ${time(state?.lastAttempt?:0)}",15f).apply {tag="school_sync_attempt"})
-        body.addView(Ui.space(this,12));body.addView(Ui.text(this,"最近成功  ${time(state?.lastSuccess?:0)}",15f))
-        body.addView(Ui.space(this,12));body.addView(Ui.text(this,session.error.ifEmpty {state?.summary?.ifEmpty {"尚未执行自动检查"}?:"正在读取…"},15f,Ui.muted).apply {tag="school_sync_result"})
+
+        body.addView(Ui.space(this,12));body.addView(Ui.text(this,session.error.ifEmpty {state?.let(DailySyncPresentation::summary)?:"正在读取…"},15f,Ui.muted).apply {tag="school_sync_result"})
         if(state?.enabled==true && state.result==SyncResult.NEEDS_LOGIN){
             body.addView(Ui.space(this,18));body.addView(Ui.button(this,"登录并确认学校导入",true){startActivity(Intent(this,ScheduleTransferActivity::class.java))})
         }
-        body.addView(Ui.space(this,24));body.addView(Ui.text(this,"只更新今日及未来的学校课程，手动课程和修改记录会保留。有冲突的课程单独跳过。\n\n普通退出应用后仍可执行；系统强行停止应用后，需重新打开。没有通知权限也会更新，可在这里查看结果。",14f,Ui.muted))
         if(Build.VERSION.SDK_INT>=33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
             body.addView(Ui.textButton(this,"允许课表更新通知（可选）"){requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS),20701)})
     }

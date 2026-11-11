@@ -28,84 +28,35 @@ class SchoolPreviewPerformanceDeviceTest {
                 today.dayOfWeek.value, 1, 2, 1, 60, WeekPattern.EVERY, null)
         }).checked()
     }
-    @Test fun upperBoundPreviewsUseWorkerAndDoNotBuild500CheckboxViews() {
-        val local = fixture("Local", 1); val school = fixture("School", 1001)
-        val snapshot = ScheduleSnapshot(local, SchoolRegistry())
-        val store = ScheduleStore(context); store.replaceWithBackup(store.load(), local)
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            scenario.onActivity { activity ->
-                val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
-                session.javaClass.getDeclaredField("baselineSnapshot").apply { isAccessible = true }.set(session, snapshot)
-                val work = session.javaClass.getDeclaredField("work").apply { isAccessible = true }.get(session) as RetainedWork<*>
-                val start = SystemClock.uptimeMillis()
-                ScheduleTransferActivity::class.java.getDeclaredMethod("preview", ScheduleData::class.java, String::class.java,
-                    List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                    .invoke(activity, school, "Offline 500 x 60", emptyList<String>(), local, true)
-                val elapsed = SystemClock.uptimeMillis() - start
-                android.util.Log.i("SchedulePerfTest", "preview_return_ms=$elapsed")
-                assertTrue("Preview computation must be in flight after returning to UI; call took ${elapsed}ms", work.busy)
+    @Test fun upperBoundSafePreviewRunsOffMainAndLimitsRows() {
+        val local=fixture("Local",1);val school=local.copy(courses=local.courses.map {it.copy(classroom="Changed")})
+        val store=ScheduleStore(context);store.replaceWithBackup(store.load(),local,true);val snapshot=store.loadSnapshot()
+        ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
+            await {enabled("登录学校平台")}
+            scenario.onActivity {activity->
+                val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
+                session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
+                val work=session.javaClass.getDeclaredField("work").apply {isAccessible=true}.get(session) as RetainedWork<*>
+                activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,school,"Offline 500 x 60",emptyList<String>(),local,true)
+                assertTrue("Preview must dispatch computation",work.busy)
             }
-            await { enabled("预览仅今日及未来更新") }
-            inst.runOnMainSync {
-                assertTrue("Preview must not create hundreds of checkboxes", nodes().count { it is CheckBox } < 20)
-            }
-            scenario.onActivity { activity ->
-                val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
-                val work = session.javaClass.getDeclaredField("work").apply { isAccessible = true }.get(session) as RetainedWork<*>
-                val start = SystemClock.uptimeMillis()
-                activity.javaClass.getDeclaredMethod("previewFuture").apply { isAccessible = true }.invoke(activity)
-                android.util.Log.i("SchedulePerfTest", "future_return_ms=${SystemClock.uptimeMillis() - start}")
-                assertTrue("Future plan and diff must run on worker", work.busy)
-            }
-            await { enabled("确认未来更新") }
-            assertEquals(local, store.load())
+            await {enabled("更新课表")}
+            inst.runOnMainSync {assertTrue(nodes().count {it is CheckBox}<20);assertFalse(nodes().any {it.tag=="schedule.replace.options"})}
+            scenario.recreate();await {enabled("更新课表")};assertEquals(snapshot,store.loadSnapshot())
         }
     }
-    @Test fun legacyChoiceCancelAndRecreationKeepExplicitSelection() {
-        val local = fixture("Local", 1); val school = fixture("School", 1001)
-        val store = ScheduleStore(context); store.replaceWithBackup(store.load(), local)
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            scenario.onActivity { activity ->
-                val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
-                session.javaClass.getDeclaredField("baselineSnapshot").apply { isAccessible = true }.set(session, ScheduleSnapshot(local, SchoolRegistry()))
-                activity.javaClass.getDeclaredMethod("preview", ScheduleData::class.java, String::class.java,
-                    List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                    .invoke(activity, school, "Offline", emptyList<String>(), local, true)
+    @Test fun unknownOwnershipNeverOffersLegacyOverrideOrWholeReplacement() {
+        val local=fixture("Local",1);val school=fixture("School",1001)
+        val store=ScheduleStore(context);store.replaceWithBackup(store.load(),local);val snapshot=store.loadSnapshot()
+        ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
+            await {enabled("登录学校平台")}
+            scenario.onActivity {activity->
+                val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
+                session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
+                activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,school,"Offline",emptyList<String>(),local,true)
             }
-            await { enabled("选择旧课程（已选0/500）") }
-            fun chooseFirst() = inst.runOnMainSync {
-                val row = nodes().filterIsInstance<CheckedTextView>().first { it.text.contains("Local 1") }
-                assertFalse(row.isChecked)
-                val list = nodes().filterIsInstance<ListView>().single { it.getPositionForView(row) >= 0 }
-                val index = list.getPositionForView(row)
-                assertTrue(list.performItemClick(row, index, list.getItemIdAtPosition(index)))
-                assertTrue(row.isChecked)
-            }
-            tap("选择旧课程（已选0/500）"); chooseFirst(); tap("取消")
-            await { enabled("选择旧课程（已选0/500）") }
-            tap("选择旧课程（已选0/500）"); chooseFirst(); tap("确认选择")
-            await { enabled("选择旧课程（已选1/500）") }
-            scenario.recreate()
-            await { enabled("选择旧课程（已选1/500）") }
-            assertEquals(local, store.load())
-        }
-    }
-    @Test fun comparisonFailureDoesNotDisableExplicitWholeReplacement() {
-        val local = fixture("Local", 1); val school = fixture("School", 1001)
-        val invalid = local.copy(courses = local.courses.mapIndexed { index, course -> if (index == 0) course.copy(weekday = 8) else course })
-        val store = ScheduleStore(context); store.replaceWithBackup(store.load(), local)
-        ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            scenario.onActivity { activity ->
-                activity.javaClass.getDeclaredMethod("preview", ScheduleData::class.java, String::class.java,
-                    List::class.java, ScheduleData::class.java, Boolean::class.javaPrimitiveType).apply { isAccessible = true }
-                    .invoke(activity, school, "Offline", emptyList<String>(), invalid, true)
-            }
-            await { enabled("确认保存到本机") }
-            assertFalse(enabled("预览仅今日及未来更新"))
-            assertEquals(local, store.load())
+            await {var found=false;inst.runOnMainSync {found=nodes().filterIsInstance<android.widget.TextView>().any {it.text.toString()=="没有可安全更新的课程"}};found}
+            assertFalse(enabled("更新课表"));assertFalse(enabled("确认保存到本机"));assertEquals(snapshot,store.loadSnapshot())
         }
     }
     private fun tap(label: String) = inst.runOnMainSync {

@@ -23,7 +23,7 @@ class HomeAndFavoritesFlowTest {
     @Test fun allOrdinaryToolRoutesOpenTheirRegisteredActivities() {
         val instrumentation=InstrumentationRegistry.getInstrumentation()
         val routes=listOf("map" to "map.CampusMapActivity","schedule" to "schedule.ScheduleActivity",
-            "watermark" to "ui.WatermarkActivity","planner" to "planner.PlannerActivity")
+            "watermark" to "ui.WatermarkActivity","planner" to "planner.PlannerActivity","story" to "story.StoryActivity")
         ActivityScenario.launch(ToolManagementActivity::class.java).use { scenario ->
             for((id,suffix) in routes) {
                 var ready=false
@@ -75,7 +75,7 @@ class HomeAndFavoritesFlowTest {
         val history=PlaceHistoryStore(context);val previousHistory=history.load()
         try {
             home.save(HomeLayout.defaults().move("planner",-1).hide("map",true))
-            assertEquals(listOf("schedule","planner","watermark"),HomeLayoutStore(context).load().visible())
+            assertEquals(listOf("schedule","planner","watermark","story"),HomeLayoutStore(context).load().visible())
             ActivityScenario.launch(ToolManagementActivity::class.java).use { }
             assertEquals(previousHistory,PlaceHistoryStore(context).load())
         } finally { home.save(previousHome) }
