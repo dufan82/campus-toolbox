@@ -104,7 +104,10 @@ class StoryScreensDeviceTest {
             assertEquals(5,(activity.window.decorView.findViewWithTag<View>("story_draft_category") as Spinner).selectedItemPosition)
             assertTrue((activity.window.decorView.findViewWithTag<View>("story_draft_rights") as CheckBox).isChecked)
             assertNull(activity.window.decorView.findViewWithTag<View>("story_draft_permission"))
-            (activity.window.decorView.findViewWithTag<View>("story_draft_validate") as Button).performClick()
+            if(StoryCloudConfig.configured) {
+                assertNull(activity.window.decorView.findViewWithTag<View>("story_draft_validate"))
+                (activity.window.decorView.findViewWithTag<View>("story_submit") as Button).performClick()
+            } else (activity.window.decorView.findViewWithTag<View>("story_draft_validate") as Button).performClick()
             val status=(activity.window.decorView.findViewWithTag<View>("story_draft_status") as TextView).text.toString()
             assertTrue(status.contains("100–5000"))
             if(StoryCloudConfig.configured)assertNotNull(activity.window.decorView.findViewWithTag<View>("story_submit"))else assertNull(activity.window.decorView.findViewWithTag<View>("story_submit"))

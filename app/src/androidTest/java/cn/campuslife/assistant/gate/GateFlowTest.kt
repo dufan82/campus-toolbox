@@ -179,22 +179,22 @@ class GateFlowTest {
         } finally { instrumentation.removeMonitor(monitor) }
     }
 
-    @Test fun oldHomePreferencesKeepTheirChoicesAndNewToolOpensFromHome() {
+    @Test fun oldHomePreferencesKeepChoicesWithoutRevivingRetiredGate() {
         val context = instrumentation.targetContext
         val prefs = context.getSharedPreferences("home_layout_v1", 0)
         val original = prefs.getString("layout", null)
         val previous = HomeLayoutStore(context).load()
-        val monitor = instrumentation.addMonitor(GateActivity::class.java.name, null, false)
+        val monitor = instrumentation.addMonitor(cn.campuslife.assistant.story.StoryActivity::class.java.name, null, false)
         try {
             assertTrue(prefs.edit().putString("layout", """{"version":1,"order":["planner","watermark","map","schedule"],"hidden":["map","watermark"]}""").commit())
             val restored = HomeLayoutStore(context).load()
-            assertEquals(listOf("planner", "schedule", "gate"), restored.visible())
+            assertEquals(listOf("planner", "schedule", "story"), restored.visible())
             assertEquals(setOf("map", "watermark"), restored.hidden)
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 val until = android.os.SystemClock.uptimeMillis() + 5000
                 var ready = false
                 while (!ready && android.os.SystemClock.uptimeMillis() < until) {
-                    scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("home_tool_gate") != null }
+                    scenario.onActivity { ready = it.window.decorView.findViewWithTag<View>("home_tool_story") != null }
                     if (!ready) Thread.sleep(30)
                 }
                 assertTrue("New tool must be visible in the upgraded home layout", ready)
@@ -206,10 +206,11 @@ class GateFlowTest {
                         assertTrue(shortcut.isClickable)
                         assertTrue(shortcut.getGlobalVisibleRect(Rect()))
                     }
-                    root.findViewWithTag<View>("home_tool_gate").performClick()
+                    assertNull("Retired gate must not reappear",root.findViewWithTag<View>("home_tool_gate"))
+                    root.findViewWithTag<View>("home_tool_story").performClick()
                 }
                 val page = instrumentation.waitForMonitorWithTimeout(monitor, 5000)
-                assertNotNull("Home must open the registered gate page", page)
+                assertNotNull("Home must open the current registered story page", page)
                 instrumentation.runOnMainSync { page!!.finish() }
             }
         } finally {

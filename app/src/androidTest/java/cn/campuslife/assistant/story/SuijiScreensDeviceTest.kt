@@ -38,8 +38,22 @@ class SuijiScreensDeviceTest {
         val dir=File(app.getExternalFilesDir(null),"suiji-screens").apply {mkdirs()}
         File(dir,"$name.png").outputStream().use {assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it))}
     }finally{bitmap.recycle()}}
+    @Test fun modernMemoirsDisplayTheWholeArticleAndKeepTheActualAuthorAndLicense() {
+        val reader=launch(StoryReaderActivity.intent(app,"story-suiji-022"))
+        val text=view(reader,"story_reader_body") as TextView
+        val source=StoryAsset.load(app.assets).single {it.id=="story-suiji-022"}
+        inst.runOnMainSync {
+            assertEquals(source.body,text.text.toString())
+            assertEquals("平川",(view(reader,"story_reader_author") as TextView).text.toString())
+            assertEquals("CC BY-NC-SA 4.0",(view(reader,"story_license_link") as Button).text.toString())
+            assertNull(reader.window.decorView.findViewWithTag<View>("story_rights_notice"))
+        }
+        shot("06-modern-memoir-reader")
+        inst.runOnMainSync {(view(reader,"story_reader_scroll") as ScrollView).fullScroll(View.FOCUS_DOWN)}
+        shot("07-modern-memoir-ending")
+    }
     @Test fun listAndFirstManuscriptUseTheNewNameAndKeepTheFirstSourceAndFavorite() {
-        val list=launch(Intent(app,StoryActivity::class.java));view(list,"story_card_story-suiji-001");shot("01-suiji-list")
+        val list=launch(Intent(app,StoryActivity::class.java));view(list,"story_card_"+if(cn.campuslife.assistant.BuildConfig.SUIJI_PRIVATE_REVIEW)"story-suiji-001" else "story-suiji-007");shot("01-suiji-list")
         inst.runOnMainSync {assertNull(list.window.decorView.findViewWithTag<View>("story_card_story-001"))}
         val reader=launch(StoryReaderActivity.intent(app,"story-suiji-001"))
         val body=view(reader,"story_reader_body") as TextView
@@ -81,5 +95,16 @@ class SuijiScreensDeviceTest {
         inst.runOnMainSync { reader.finish() }
         inst.waitForIdleSync();drain()
         assertEquals(.42,StoryStore(app).read().progress.getValue(id),.00001)
+    }
+    @Test fun theLicensedArticleHasItsEntireNativeBodyAndALicenseLink() {
+        val reader=launch(StoryReaderActivity.intent(app,"story-suiji-005"))
+        val body=view(reader,"story_reader_body") as TextView
+        inst.runOnMainSync {
+            assertEquals(StoryAsset.load(app.assets).single {it.id=="story-suiji-005"}.body,body.text.toString())
+            assertTrue(body.text.length>4500)
+            assertEquals("CC BY-SA 4.0",(view(reader,"story_license_link") as Button).text.toString())
+            assertNull(reader.window.decorView.findViewWithTag<View>("story_rights_notice"))
+        }
+        shot("06-complete-licensed-article")
     }
 }

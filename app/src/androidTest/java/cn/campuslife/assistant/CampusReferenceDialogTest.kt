@@ -22,12 +22,21 @@ class CampusReferenceDialogTest {
     @Test fun referenceSelectionSurvivesMapActivityRecreationWithoutStartingSdk() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         val preferences=context.getSharedPreferences("campus_map",0)
+        val drafts=context.getSharedPreferences("campus_coordinate_draft",0)
+        val originalDraft=drafts.getString("public_coordinates_v1",null)
         val before=preferences.getBoolean("privacy_consent_v1",false)
         preferences.edit().putBoolean("privacy_consent_v1",false).commit()
         try {
+            val coordinates=cn.campuslife.assistant.map.CampusCoordinateStore(context).load()
+            // A restored local catalog may hide this building. This restoration
+            // test owns a visible selection fixture, not the user's hidden policy.
+            assertTrue(drafts.edit().putString("public_coordinates_v1",
+                cn.campuslife.assistant.map.CampusCoordinateStore.encode(coordinates.withHiddenIds(coordinates.hiddenIds-"dorm-2"))).commit())
             ActivityScenario.launch<Activity>(Intent().setClassName(context,"cn.campuslife.assistant.map.CampusMapActivity")).use { scenario ->
                 scenario.onActivity { activity ->
                     activity.javaClass.getDeclaredMethod("showReference",String::class.java).apply { isAccessible=true }.invoke(activity,"dorm-2")
+                    val dialog=activity.javaClass.getDeclaredField("referenceDialog").apply { isAccessible=true }.get(activity) as CampusReferenceDialog
+                    assertEquals("dorm-2",dialog.selectedId)
                 }
                 scenario.recreate()
                 scenario.onActivity { activity ->
@@ -38,7 +47,10 @@ class CampusReferenceDialogTest {
                     dialog.dismiss()
                 }
             }
-        } finally { preferences.edit().putBoolean("privacy_consent_v1",before).commit() }
+        } finally {
+            assertTrue(drafts.edit().apply {if(originalDraft==null)remove("public_coordinates_v1")else putString("public_coordinates_v1",originalDraft)}.commit())
+            preferences.edit().putBoolean("privacy_consent_v1",before).commit()
+        }
     }
 
     @Test fun referenceControlsKeepUsableBoundsInBothOrientations() {
@@ -128,7 +140,7 @@ class CampusReferenceDialogTest {
             try {
                 val root=dialog.window!!.decorView
                 assertTrue(root.findViewWithTag<TextView>("ref_selection").text.contains("原图暂未关联"))
-                assertTrue(root.findViewWithTag<TextView>("ref_notice").text.contains("不是实时定位"))
+                assertEquals("原图“当前位置”是标牌标记，不是实时定位。", root.findViewWithTag<TextView>("ref_notice").text.toString())
                 root.findViewWithTag<Button>("ref_close").performClick()
                 assertFalse(dialog.isShowing)
                 assertFalse(activity.isFinishing)

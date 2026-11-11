@@ -88,7 +88,7 @@ class WatermarkActivity : Activity() {
         root.addView(photoFrame,LinearLayout.LayoutParams(-1,0,1f).apply {
             setMargins(Ui.dp(this@WatermarkActivity,16),Ui.dp(this@WatermarkActivity,12),Ui.dp(this@WatermarkActivity,16),0)
         })
-        status=Ui.text(this,"更换照片后，点选下方水印内容。",12f,Ui.muted).apply {
+        status=Ui.text(this,"选择照片和水印内容",12f,Ui.muted).apply {
             setPadding(Ui.dp(context,18),Ui.dp(context,8),Ui.dp(context,18),Ui.dp(context,8)); maxLines=2
         }
         root.addView(status)
@@ -146,10 +146,10 @@ class WatermarkActivity : Activity() {
             val asset=photo
             status.setTextColor(if(preview.failure!=null) 0xffb91c1c.toInt() else Ui.muted)
             status.text=preview.failure ?: when {
-                asset==null -> "点右上角选择照片，再点选下方水印内容。"
-                texts().isEmpty() -> "${asset.width} × ${asset.height} px · 填写校园资料或拍摄时间，选择显示字段。"
-                preview.layout?.reduced==true -> "内容较多，已适当缩小字号以完整显示。"
-                else -> "${asset.width} × ${asset.height} px · 原尺寸输出 · 可拖动水印"
+                asset==null -> "选择照片后添加水印"
+                texts().isEmpty() -> "${asset.width} × ${asset.height} px · 请添加水印内容"
+                preview.layout?.reduced==true -> "内容较多，字号已缩小"
+                else -> "${asset.width} × ${asset.height} px · 拖动调整位置"
             }
         }
         saveButton.isEnabled=!busy && photo!=null && preview.failure==null
@@ -184,19 +184,19 @@ class WatermarkActivity : Activity() {
     override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
         when(requestCode) {
-            100 -> if(resultCode==RESULT_OK && data?.data!=null) import(data.data!!) else Ui.toast(this,"已取消选择，当前照片保留")
+            100 -> if(resultCode==RESULT_OK && data?.data!=null) import(data.data!!) else Ui.toast(this,"已取消选择")
             101 -> {
                 val captured=pendingCamera; pendingCamera=null
                 if(resultCode==RESULT_OK && captured?.isFile==true) {
                     val uri=FileProvider.getUriForFile(this,"$packageName.files",captured)
                     work("正在读取拍摄照片…",{ try { PhotoLoader(applicationContext).importPhoto(uri) } finally { captured.delete() } },enqueue=true) { applyPhoto(it,true) }
-                } else { captured?.delete(); Ui.toast(this,"已取消拍照，当前照片保留") }
+                } else { captured?.delete(); Ui.toast(this,"已取消拍照") }
             }
             102 -> {
                 val file=pendingSave; pendingSave=null
                 if(resultCode==RESULT_OK && data?.data!=null && file!=null) {
-                    work("正在保存照片…",{ try { PhotoExporter(applicationContext).copyToDocument(file,data.data!!) } finally { file.delete() } },enqueue=true) { Ui.toast(this,"照片已保存，原图未修改") }
-                } else { file?.delete(); Ui.toast(this,"已取消保存，照片和设置仍保留") }
+                    work("正在保存照片…",{ try { PhotoExporter(applicationContext).copyToDocument(file,data.data!!) } finally { file.delete() } },enqueue=true) { Ui.toast(this,"照片已保存") }
+                } else { file?.delete(); Ui.toast(this,"已取消保存") }
             }
         }
     }
@@ -219,7 +219,7 @@ class WatermarkActivity : Activity() {
         if(busy || preview.failure!=null || exportDialog?.isShowing==true) return
         val lines=texts()
         if(lines.isEmpty()) {
-            AlertDialog.Builder(this).setTitle("尚未填写水印内容").setMessage("请在“更多字段”里编辑校园资料或填写拍摄时间，再点选要显示的字段。")
+            AlertDialog.Builder(this).setTitle("尚未填写水印内容").setMessage("请在“更多字段”中选择内容，或填写资料和拍摄时间。")
                 .setPositiveButton("去填写") { _,_-> openProfile() }.setNegativeButton("取消",null).show()
             return
         }
@@ -287,7 +287,7 @@ class WatermarkActivity : Activity() {
                     startActivity(Intent.createChooser(intent,"分享水印照片"))
                 } catch(_: Exception) { Ui.toast(this,"未找到可用的分享应用，请先保存照片") }
             } else if(Build.VERSION.SDK_INT>=29) {
-                Ui.toast(this,"已保存到相册（沿用原“校园生活助手”文件夹），原图未修改")
+                Ui.toast(this,"已保存到相册“校园生活助手”")
             } else {
                 pendingSave=file
                 try { startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).apply {

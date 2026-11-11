@@ -50,7 +50,7 @@ class UpdateActivity : Activity() {
     override fun onRetainNonConfigurationInstance(): Any = session
     override fun onResume() {
         super.onResume(); foreground = true
-        if (permissionOpened) { permissionOpened = false; session.message = "如已允许安装，请再次点击“安装更新”；取消不影响当前版本。" }
+        if (permissionOpened) { permissionOpened = false; session.message = "允许后，请再次点击“安装更新”。" }
         render()
     }
     override fun onPause() { foreground = false; handler.removeCallbacks(polling); super.onPause() }
@@ -121,7 +121,6 @@ class UpdateActivity : Activity() {
         }
         body.addView(Ui.button(this, "重新检查") { check(true) }.apply { isEnabled = !session.work.busy && state.phase !in active }, LinearLayout.LayoutParams(-1, -2))
         body.addView(Ui.space(this, 16))
-        body.addView(Ui.text(this, "仅从本仓库的正式Release获取更新。安装需要你在系统界面确认，不会卸载当前应用。", 12f, Ui.muted))
         handler.removeCallbacks(polling)
         if (foreground && state.phase in setOf(UpdatePhase.DOWNLOADING, UpdatePhase.PAUSED)) handler.postDelayed(polling, 1000)
     }
@@ -168,7 +167,7 @@ class UpdateActivity : Activity() {
         if (!packageManager.canRequestPackageInstalls()) {
             prompt?.dismiss()
             prompt = AlertDialog.Builder(this).setTitle("允许安装更新")
-                .setMessage("系统需要你允许校伴安装应用。只在你主动更新时使用；取消不影响其他功能。")
+                .setMessage("请允许校伴安装应用，以继续更新。")
                 .setNegativeButton("取消", null).setPositiveButton("去设置") { _, _ ->
                     runCatching { startActivity(UpdateInstaller.permissionIntent(this)); permissionOpened = true }
                         .onFailure { session.message = "无法打开系统安装权限设置"; render() }
@@ -184,7 +183,7 @@ class UpdateActivity : Activity() {
                 session.download = state
                 verified.onSuccess { file ->
                     runCatching { startActivity(UpdateInstaller.installIntent(this, file)) }
-                        .onSuccess { session.message = "请在系统界面确认安装；取消后仍可继续使用当前版本。" }
+                        .onSuccess { session.message = "请在系统界面确认安装。" }
                         .onFailure { session.message = "系统未能打开安装界面，请稍后重试" }
                 }.onFailure { session.message = it.message?.take(240) ?: "安装包未通过校验，请重新下载" }
             }.onFailure { session.message = it.message?.take(240) ?: "安装包未通过校验，请重新下载" }

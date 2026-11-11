@@ -4,6 +4,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StoryProvenanceTest {
+    @Test fun readingListRequiresAFullArticleButKeepsRealCloudPublicationsAndOldFavorites() {
+        val pending=entry()
+        val authorized=entry("story-suiji-005",StoryRights.AUTHORIZED)
+        val cloudSummary=entry("story-cloud-reviewed",StoryRights.USER_AUTHORIZED).copy(body="")
+        assertEquals(listOf(authorized,cloudSummary),StoryRules.filter(listOf(pending,authorized,cloudSummary),null,false,emptySet()))
+        assertEquals(listOf(pending),StoryRules.filter(listOf(pending),null,true,setOf(pending.id)))
+        assertEquals(authorized,StoryRules.adjacent(listOf(pending,authorized),pending.id,1))
+    }
     private fun entry(id:String="story-suiji-001",rights:StoryRights=StoryRights.UNVERIFIED)=Story(
         id,"真实标题","独立介绍",StoryCategory.LIFE,"不得在未授权界面出现的完整正文", "原作者","原始来源",
         provenance=StoryProvenance(sourceType="douyin_image",sourceUrl="https://www.douyin.com/note/7422916853426621732",rights=rights,excerpt="必要短摘录"))

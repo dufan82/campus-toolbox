@@ -37,15 +37,15 @@ class FeedbackActivity : Activity() {
         val reason = intent.getStringExtra(FeedbackLauncher.EXTRA_UNAVAILABLE_REASON)
         val configured = FeedbackRules.formUrl(FeedbackConfig.FEEDBACK_FORM_URL) != null
         val availability = if (configured || reason == FeedbackLauncher.BROWSER_UNAVAILABLE || reason == FeedbackLauncher.INVALID_CONFIGURATION)
-            "暂时无法打开反馈表单" else "反馈入口暂未开放，敬请期待"
+            "暂时无法打开反馈表单" else "反馈入口暂未开放"
         body.addView(Ui.text(this, availability, 17f, bold = true).apply { tag = "feedback_availability" })
         val explanation = when (reason) {
             FeedbackLauncher.INVALID_CONFIGURATION -> "反馈链接配置无效，暂时无法打开在线表单。"
             FeedbackLauncher.BROWSER_UNAVAILABLE -> "未能打开在线表单，请检查是否有可用浏览器后重试。"
-            else -> if (configured) "可从“我的”重新打开在线反馈。" else "开发者尚未配置在线问卷。"
+            else -> if (configured) "可从“我的”重新打开在线反馈。" else "在线反馈暂未开放。"
         }
         body.addView(Ui.space(this, 10))
-        body.addView(Ui.text(this, "$explanation 以下仅供本地草拟，不会提交。返回离开后不保存草稿。", 14f, Ui.muted))
+        body.addView(Ui.text(this, "$explanation 此页仅供草拟，离开后不保留。", 14f, Ui.muted))
         body.addView(Ui.space(this, 22))
         body.addView(Ui.text(this, "反馈类型（必选）", 15f, bold = true))
         val categoryError = Ui.text(this, "请选择反馈类型", 13f).apply {
@@ -94,7 +94,7 @@ class FeedbackActivity : Activity() {
         }
         body.addView(contact, LinearLayout.LayoutParams(-1, -2))
         body.addView(Ui.space(this, 18))
-        body.addView(Ui.text(this, "本地草稿不会发送。联系方式可留空，不自动附带个人资料、课表、截图或日志。", 13f, Ui.muted))
+        body.addView(Ui.text(this, "此页不会提交；联系方式可留空。", 13f, Ui.muted))
         body.addView(Ui.space(this, 16))
         val status = Ui.text(this, "", 14f).apply {
             tag = "feedback_draft_status"; accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
@@ -103,7 +103,7 @@ class FeedbackActivity : Activity() {
             val error = FeedbackRules.validate(draft)
             categoryError.visibility = if (error == FeedbackError.CATEGORY_REQUIRED) View.VISIBLE else View.GONE
             content.error = if (error == FeedbackError.CONTENT_REQUIRED || error == FeedbackError.CONTENT_TOO_LONG) error.message else null
-            status.text = error?.message ?: "草稿格式已检查，未提交。离开本页后不保存。"
+            status.text = error?.message ?: "格式正确，尚未提交。"
             if (error == FeedbackError.CONTENT_REQUIRED || error == FeedbackError.CONTENT_TOO_LONG) content.requestFocus()
         }.apply { tag = "feedback_check_draft" }, LinearLayout.LayoutParams(-2, -2).apply { gravity = Gravity.END })
         body.addView(status)

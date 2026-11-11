@@ -84,7 +84,7 @@ class ContentPanel(context: Context, initialDetails: ActivityDetails, initialCon
         val activity=context as? Activity ?: return
         if(sheet?.isShowing==true) return
         sheet=Ui.bottomSheet(activity,"选择水印内容") { body,dialog ->
-            body.addView(Ui.text(context,"按勾选顺序排列，未填写的内容自动跳过。",14f,Ui.muted))
+            body.addView(Ui.text(context,"按勾选顺序排列，空项跳过。",14f,Ui.muted))
             body.addView(Ui.space(context,12))
             val timeRow=Ui.column(context)
             timeRow.addView(Ui.text(context,"拍摄时间",14f,Ui.muted))
@@ -100,7 +100,7 @@ class ContentPanel(context: Context, initialDetails: ActivityDetails, initialCon
             })
             body.addView(timeRow)
             body.addView(Ui.textButton(context,"编辑资料") { dialog.dismiss();onProfile() }.apply { tag="edit_profile" },LayoutParams(-1,-2))
-            body.addView(Ui.text(context,"学号默认不选；已保存的选择保持不变。",13f,Ui.muted))
+            body.addView(Ui.text(context,"学号仅在勾选后显示。",13f,Ui.muted))
             body.addView(Ui.space(context,12))
             body.addView(Ui.button(context,"完成",true) { dialog.dismiss() },LayoutParams(-1,-2))
         }.also { it.setOnDismissListener { sheet=null } }
@@ -196,7 +196,7 @@ class ContentPanel(context: Context, initialDetails: ActivityDetails, initialCon
                 }
             }.apply { tag="watermark_style_controls";addView(content) },LayoutParams(-1,-2))
             body.addView(Ui.space(context,8))
-            body.addView(Ui.text(context,"实时预览 · 直接拖动照片上的水印调整位置",13f,Ui.muted))
+            body.addView(Ui.text(context,"拖动水印可调整位置",13f,Ui.muted))
             body.addView(Ui.space(context,8))
             body.addView(Ui.button(context,"完成",true) { dialog.dismiss() },LayoutParams(-1,-2))
             render(0)

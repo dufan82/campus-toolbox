@@ -82,7 +82,8 @@ class FeedbackFlowTest {
                 assertEquals("请填写反馈内容", root.findViewWithTag<EditText>("feedback_content").error.toString())
                 root.findViewWithTag<EditText>("feedback_content").setText("希望工具更好用")
                 check.performClick()
-                assertTrue(status.text.toString().contains("未提交"))
+                assertEquals("格式正确，尚未提交。", status.text.toString())
+                assertTrue(views(root).filterIsInstance<TextView>().any { it.text.toString() == "此页不会提交；联系方式可留空。" })
                 assertEquals("", root.findViewWithTag<EditText>("feedback_contact").text.toString())
             }
         }

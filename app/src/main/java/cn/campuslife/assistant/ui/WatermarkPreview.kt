@@ -39,7 +39,7 @@ class WatermarkPreview(context: Context) : View(context) {
         canvas.drawColor(Ui.line)
         val photo = photo ?: run {
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ui.muted; textSize = Ui.dp(context,16).toFloat(); textAlign=Paint.Align.CENTER }
-            canvas.drawText("选一张活动照片，开始记录",width/2f,height/2f,paint)
+            canvas.drawText("选择照片",width/2f,height/2f,paint)
             return
         }
         val transform = viewport(photo)

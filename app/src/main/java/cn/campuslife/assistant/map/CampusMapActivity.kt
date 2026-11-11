@@ -117,10 +117,10 @@ class CampusMapActivity: Activity() {
 
     private fun openMap(saved: Bundle?) {
         if(!MapRules.canInitialize(preferences.hasConsent(),BuildConfig.AMAP_ANDROID_KEY)) {
-            unavailable("此安装包尚未配置 Android 地图 Key。开发者需在本机 local.properties 配置后重新构建。水印和快递功能仍可使用。");return
+            unavailable("此安装包未启用地图服务，可查看校园原图。");return
         }
         if(!MapSdk.supportsDevice()) {
-            unavailable("当前高德 SDK 仅支持 ARM 手机，此设备为不支持的处理器或模拟器。请在 Android 8.0+ 的 ARM 手机体验；这里不显示虚假的定位图。");return
+            unavailable("此设备不支持当前地图组件，请使用 Android 8.0 以上的 ARM 手机。");return
         }
         try {
             MapSdk.initialize(applicationContext,BuildConfig.AMAP_ANDROID_KEY,preferences.hasConsent())
@@ -192,7 +192,7 @@ class CampusMapActivity: Activity() {
         timeout(ticket)
         service.findCampus { result -> runOnUiThread {
             if(!canDeliver(ticket) || !gate.complete(ticket)) return@runOnUiThread
-            views.busy(false,result.error ?: if(result.places.isEmpty()) "未找到平潭校区，点击“查看全校”重试；也可先定位。" else "校园地点可搜索；楼栋与道路以现场为准")
+            views.busy(false,result.error ?: if(result.places.isEmpty()) "未找到平潭校区，点击“查看全校”重试；也可先定位。" else "")
             campus=result.places.firstOrNull()
             campus?.let { showCampus() }
         } }
@@ -244,7 +244,7 @@ class CampusMapActivity: Activity() {
 
 
     private fun timeout(ticket: Long) {
-        handler.postDelayed({ if(canDeliver(ticket)) { gate.invalidate();screen?.busy(false,"查询超时，请检查网络后重试；不会自动重复请求。") } },12_000)
+        handler.postDelayed({ if(canDeliver(ticket)) { gate.invalidate();screen?.busy(false,"查询超时，请检查网络后重试。") } },12_000)
     }
 
     private fun canDeliver(ticket: Long): Boolean = !isFinishing && !isDestroyed && gate.accepts(ticket)

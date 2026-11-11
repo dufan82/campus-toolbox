@@ -169,13 +169,16 @@ class StoryReaderActivity : StoryScreen() {
         content.addView(Ui.space(this,22))
         message=status("").apply { tag="story_reader_status" }; content.addView(message)
         if(story.privateReview || !story.hasFullText) {
-            content.addView(Ui.text(this,if(story.privateReview)"私人排版预览 · 未授权公开" else if(!story.provenance.sourceVerified)"原文待核实 · 以下为内容介绍" else if(story.provenance.allowsFullText)"原生正文待整理 · 可先查看原文" else "全文待授权 · 可先查看原文",12f,Ui.muted).apply {tag="story_rights_notice"})
+            content.addView(Ui.text(this,if(story.privateReview)"私人稿" else if(!story.provenance.sourceVerified)"原文待核实" else if(story.provenance.allowsFullText)"正文暂未收录" else "全文待授权",12f,Ui.muted).apply {tag="story_rights_notice"})
             content.addView(Ui.space(this,12))
         }
         bodyText=Ui.text(this,story.readableBody.ifBlank {story.summary},fontSp.toFloat()).apply {
             tag="story_reader_body"; setTextIsSelectable(true); setLineSpacing(Ui.dp(context,4).toFloat(),1.35f)
         }
         content.addView(bodyText); content.addView(Ui.space(this,24))
+        if(story.provenance.licenseName.isNotBlank() && story.provenance.licenseUrl.isNotBlank()) {
+            content.addView(Ui.textButton(this,story.provenance.licenseName) {StorySourceLauncher.open(this,story.provenance.licenseUrl)}.apply {tag="story_license_link"})
+        }
         content.addView(Ui.text(this,StoryProvenance.COPYRIGHT,11f,Ui.muted).apply {tag="story_copyright"})
         content.addView(Ui.space(this,12))
         val navigation=Ui.row(this)

@@ -27,7 +27,7 @@ class CampusPlaceEditor(private val activity: Activity,val placeId: String?,name
         addView(Ui.text(activity,"只记录公共地点，不填姓名、电话等个人资料。",13f,Ui.muted));addView(Ui.space(activity,12))
         addView(Ui.text(activity,"地点名称",14f,bold=true));addView(input,LinearLayout.LayoutParams(-1,-2))
         addView(Ui.space(activity,12));addView(Ui.text(activity,"地点分类",14f,bold=true));addView(picker,LinearLayout.LayoutParams(-1,-2))
-        addView(Ui.space(activity,8));addView(Ui.text(activity,"名称最多40字。保存后在高德长按真实位置；不会使用手机当前位置替代。",12f,Ui.muted))
+        addView(Ui.space(activity,8));addView(Ui.text(activity,"名称最多40字；保存后在地图上长按标注位置。",12f,Ui.muted))
     }
     private val dialog=AlertDialog.Builder(activity).setTitle(if(placeId==null) "新增自定义地点" else "修改地点")
         .setView(Ui.scroll(activity,body)).setNegativeButton("取消",null)

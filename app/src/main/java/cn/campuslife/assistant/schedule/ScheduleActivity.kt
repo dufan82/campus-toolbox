@@ -436,15 +436,15 @@ class ScheduleActivity : Activity() {
                 action(body, "选择上课地点", session.map != null) { choosePlace(state, placeLabel) }
                 action(body, "清除地点关联", true) { state.putString("placeId", ""); placeLabel.text = "未关联校园地点"; updateNavigation() }
                 action(body, "查看上课地点", false) { navigate(state.getString("placeId").orEmpty()) }.tag = "schedule.navigate"
-                body.addView(Ui.text(this, "失效或隐藏的地点不会删除课程；请重新关联有效地点。", 13f, Ui.muted))
+                body.addView(Ui.text(this, "地点不可用时，请重新关联。", 13f, Ui.muted))
             }
             "semester" -> {
                 field(body, state, "monday", "起始周一", 10, hint = "YYYY-MM-DD")
                 field(body, state, "weeks", "总周数", 2, true)
-                body.addView(Ui.text(this, "调整周数若使现有课程超出范围，会提示先修改课程。", 13f, Ui.muted))
+                body.addView(Ui.text(this, "总周数需覆盖已有课程。", 13f, Ui.muted))
             }
             "periods" -> {
-                body.addView(Ui.text(this, "每行一节：名称|开始时间|结束时间\n时间格式 HH:mm，可同时留空。最多24节。\n示例：第1节||\n这里没有预设学校铃声时间。", 14f, Ui.muted))
+                body.addView(Ui.text(this, "每行一节：名称|开始时间|结束时间\n时间用 HH:mm，可留空；最多24节。\n示例：第1节||", 14f, Ui.muted))
                 field(body, state, "lines", "节次列表", 2000, multiline = true)
             }
             else -> {

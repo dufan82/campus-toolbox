@@ -36,18 +36,16 @@ class StylePanel(context: Context, initial: WatermarkStyle, format: ExportFormat
             setOnCheckedChangeListener { _, value -> change(style.copy(multiline=value)) }
         }
         card.addView(multiline)
-        card.addView(Ui.text(context,"内容过长时会自动换行，保证完整显示。",12f,Ui.muted))
         addView(card); addView(Ui.space(context,12))
         val position = Ui.card(context)
         position.addView(Ui.text(context,"位置与边距",17f,bold=true))
         selector(position,"水印位置",Position.entries.map { it.label },style.position.ordinal) { change(style.copy(position=Position.entries[it])) }
-        position.addView(Ui.text(context,"也可以直接拖动照片上的水印。",12f,Ui.muted))
+        position.addView(Ui.text(context,"拖动水印可调整位置",12f,Ui.muted))
         slider(position,"外边距",0,150,(style.marginRatio*1000).roundToInt(), { "短边的 ${it/10.0}%" }) { change(style.copy(marginRatio=it/1000.0)) }
         slider(position,"背景内边距",0,60,(style.paddingRatio*1000).roundToInt(), { "短边的 ${it/10.0}%" }) { change(style.copy(paddingRatio=it/1000.0)) }
         addView(position); addView(Ui.space(context,12))
         val output = Ui.card(context)
         selector(output,"保存格式",listOf("JPEG · 高清照片","PNG · 无损编码，文件较大"),format.ordinal) { onFormat(ExportFormat.entries[it]) }
-        output.addView(Ui.text(context,"按原照片方向和尺寸生成新图片，不覆盖原文件。",12f,Ui.muted))
         addView(output)
     }
 

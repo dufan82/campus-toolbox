@@ -20,8 +20,8 @@ class CampusReferenceDialog(private val activity: Activity,initialId: String?,pr
     var selectedId: String?=initialId?.takeIf { id -> items.any { it.id==id } }
         private set
     private val selection=Ui.text(activity,"",14f,Ui.ink,bold=true).apply { tag="ref_selection" }
-    private val scale=Ui.text(activity,"1.0× · 双指缩放、拖动或点选绿点",12f,Ui.muted).apply { tag="ref_scale" }
-    private val image=CampusReferenceView(activity,{ select(it) },{ zoom -> scale.text=String.format(Locale.ROOT,"%.1f× · 双指缩放、拖动或点选绿点",zoom) },items)
+    private val scale=Ui.text(activity,"1.0×",12f,Ui.muted).apply { tag="ref_scale" }
+    private val image=CampusReferenceView(activity,{ select(it) },{ zoom -> scale.text=String.format(Locale.ROOT,"%.1f×",zoom) },items)
     private lateinit var mark: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +39,7 @@ class CampusReferenceDialog(private val activity: Activity,initialId: String?,pr
         header.addView(Ui.button(activity,"关闭") { dismiss() }.apply { tag="ref_close";minimumHeight=Ui.dp(context,48) })
         root.addView(header)
         val controls=Ui.column(activity)
-        controls.addView(Ui.text(activity,"仅作原图对照，不是实时定位；原图红色“当前位置”为标牌原标记。",12f,Ui.muted).apply { tag="ref_notice" })
+        controls.addView(Ui.text(activity,"原图“当前位置”是标牌标记，不是实时定位。",12f,Ui.muted).apply { tag="ref_notice" })
         controls.addView(Ui.space(activity,8));controls.addView(selection)
         controls.addView(Ui.space(activity,8))
         controls.addView(Ui.button(activity,"选择地点") { choose() }.apply { tag="ref_choose";minimumHeight=Ui.dp(context,48) },LinearLayout.LayoutParams(-1,-2))
@@ -82,7 +82,7 @@ class CampusReferenceDialog(private val activity: Activity,initialId: String?,pr
     private fun select(id: String) { selectedId=id;updateSelection() }
     private fun updateSelection() {
         val item=items.firstOrNull { it.id==selectedId }
-        selection.text=when { item==null->"选择地点或放大后点击图中绿点";item.id !in CampusReference.points->"${item.name}：原图暂未关联，以高德和现场为准";else->"已选：${item.name} · 原图对应位置已高亮" }
+        selection.text=when { item==null->"选择地点或放大后点击图中绿点";item.id !in CampusReference.points->"${item.name}：原图暂未关联，以高德和现场为准";else->"已选：${item.name}" }
         mark.isEnabled=!canMark || item!=null
         image.select(selectedId)
     }

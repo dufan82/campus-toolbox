@@ -26,7 +26,7 @@ class GateActivity : Activity() {
         root.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
         body.addView(Ui.text(this, "平潭校区", 18f, bold = true))
         body.addView(Ui.space(this, 8))
-        body.addView(Ui.text(this, "学校入口需要在微信内打开。", 14f, Ui.muted))
+        body.addView(Ui.text(this, "请在微信中打开入口。", 14f, Ui.muted))
         GateRoute.entries.groupBy { it.gate }.forEach { (gate, routes) ->
             body.addView(Ui.space(this, 18))
             body.addView(Ui.text(this, gate, 16f, bold = true))
@@ -40,13 +40,13 @@ class GateActivity : Activity() {
             }
         }
         body.addView(Ui.space(this, 16))
-        body.addView(Ui.text(this, "点击入口后，在微信选择文件传输助手或自己的聊天，确认发送，再点开链接。", 14f, Ui.muted))
+        body.addView(Ui.text(this, "将入口发给微信文件传输助手，再点开链接。", 14f, Ui.muted))
         body.addView(Ui.space(this, 16))
         body.addView(Ui.button(this, "打开微信，扫现场码") { openWechat() }.apply { tag = "gate_open_wechat" }, LinearLayout.LayoutParams(-1, -2))
         body.addView(Ui.space(this, 24))
         body.addView(Ui.text(this, "请在校门现场使用，通行结果以学校官方系统为准。", 14f, Ui.muted))
         body.addView(Ui.space(this, 10))
-        body.addView(Ui.text(this, "如学校要求现场扫码，请在微信右上角“＋”中打开扫一扫，扫描现场二维码。", 13f, Ui.muted))
+        body.addView(Ui.text(this, "现场扫码：微信右上角“＋”→扫一扫。", 13f, Ui.muted))
         if (BuildConfig.DEBUG) {
             body.addView(Ui.space(this, 18))
             body.addView(Ui.button(this, "微信网页验证（仅测试版）") {

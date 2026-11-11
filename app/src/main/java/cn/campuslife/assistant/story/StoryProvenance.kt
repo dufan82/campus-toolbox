@@ -15,7 +15,8 @@ data class StoryProvenance(
     val sourceWorkTitle:String="", val commentLocator:String="",
     val rights:StoryRights=StoryRights.UNVERIFIED, val excerpt:String="",
     val editorialRank:Int=10000, val hidden:Boolean=false, val archived:Boolean=false,
-    val sourceVerified:Boolean=true, val sourceAliases:List<String> = emptyList()
+    val sourceVerified:Boolean=true, val sourceAliases:List<String> = emptyList(),
+    val licenseName:String="", val licenseUrl:String="", val editionNote:String=""
 ) {
     val allowsFullText get()=rights.fullText && !hidden
     val link get()=publicSourceUrl(sourceUrl)

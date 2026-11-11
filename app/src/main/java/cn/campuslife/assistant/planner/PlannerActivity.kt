@@ -173,7 +173,6 @@ class PlannerActivity : Activity() {
             Ui.enabled(form,writable)
         } else {
             val state=screen.state!!
-            content.addView(Ui.text(this,"记住重要的日子，不用一直惦记。",14f,Ui.muted))
             content.addView(Ui.space(this,20))
             if(state.countdowns.isEmpty()) content.addView(Ui.card(this).apply {
                 tag="planner-empty"
@@ -181,9 +180,8 @@ class PlannerActivity : Activity() {
                     setImageDrawable(ToolGlyph(context,"calendar",Ui.blue));importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 },LinearLayout.LayoutParams(dp(40),dp(40)))
                 addView(Ui.space(this@PlannerActivity,16))
-                addView(Ui.text(this@PlannerActivity,"把重要的日子留在这里",18f,bold=true))
+                addView(Ui.text(this@PlannerActivity,"暂无倒数日",18f,bold=true))
                 addView(Ui.space(this@PlannerActivity,8))
-                addView(Ui.text(this@PlannerActivity,"生日、纪念日、体测，也可以写自己的安排。",14f,Ui.muted))
             })
             // Presentation only: an upcoming date takes the hero, not an old expired record.
             val now=today()
@@ -208,7 +206,6 @@ class PlannerActivity : Activity() {
                 setTextColor(Ui.ink);background=Ui.shape(context,Ui.pale,12)
             },LinearLayout.LayoutParams(-1,-2))
             content.addView(Ui.space(this,22))
-            content.addView(Ui.text(this,"日期支持点选 · 标题可选，也可自己写",13f,Ui.muted).apply { gravity=Gravity.CENTER })
         }
         val reminders=screen.state!!.countdowns.any { it.reminder } || draft?.reminder==true
         if(reminders) {

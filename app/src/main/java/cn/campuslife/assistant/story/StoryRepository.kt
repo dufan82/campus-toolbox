@@ -40,6 +40,9 @@ object StoryAsset {
                 require(StoryRules.validId(it.id) && it.title.isNotBlank() && it.summary.isNotBlank())
                 if(it.provenance.allowsFullText)require(it.body.isEmpty() || StoryRules.characterCount(it.body) in 100..20000)
                 else require(it.body.isEmpty()) {"Unlicensed full text must not be bundled"}
+                item.optJSONObject("bodyIntegrity")?.let {proof->
+                    require(StoryTextIntegrity.matches(it.body,proof.getString("sha256"),proof.getInt("characters"),proof.getInt("paragraphs"))) {"文章正文校验失败"}
+                }
                 require(it.source.isNotBlank() && it.authorLabel.isNotBlank())
             }
         }

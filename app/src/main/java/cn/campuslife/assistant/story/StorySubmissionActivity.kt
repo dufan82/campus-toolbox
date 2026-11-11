@@ -58,7 +58,7 @@ class StorySubmissionActivity : StoryScreen() {
     }
     private fun changed(next: StoryDraft) {
         draft=next; revision++;sending.failure=null
-        if (ready) { message.text="草稿已修改"; main.removeCallbacks(saveTask); main.postDelayed(saveTask,650) }
+        if (ready) { message.text=""; main.removeCallbacks(saveTask); main.postDelayed(saveTask,650) }
     }
     private fun field(value: String,hint: String,max: Int,multiline: Boolean=false,onChange: (String)->Unit): EditText =
         Ui.input(this,value,hint,multiline,onChange).apply {
@@ -80,9 +80,9 @@ class StorySubmissionActivity : StoryScreen() {
         if(!StoryCloudConfig.configured) form.addView(Ui.text(this,"投稿暂未开放",18f,bold=true).apply { tag="story_submission_availability" })
         val reason=intent.getStringExtra(StorySubmissionLauncher.EXTRA_UNAVAILABLE_REASON)
         val availability=when (reason) {
-            StorySubmissionLauncher.BROWSER_UNAVAILABLE -> "在线投稿页未能打开。这里只保存本机草稿，不会发送。"
-            StorySubmissionLauncher.INVALID_CONFIGURATION -> "投稿地址配置无效。这里只保存本机草稿，不会发送。"
-            else -> "草稿仅保存在本机，不会提交或公开。"
+            StorySubmissionLauncher.BROWSER_UNAVAILABLE -> "投稿页打不开，可先保存草稿。"
+            StorySubmissionLauncher.INVALID_CONFIGURATION -> "投稿地址不可用，可先保存草稿。"
+            else -> "可先保存草稿。"
         }
         if(!StoryCloudConfig.configured) {form.addView(Ui.space(this,8)); form.addView(Ui.text(this,availability,14f,Ui.muted))}
         else if(StoryCloudConfig.mock) form.addView(Ui.text(this,"本地Mock测试 · 不会发送正式投稿",13f,Ui.muted).apply {tag="story_mock_notice"})
@@ -126,18 +126,18 @@ class StorySubmissionActivity : StoryScreen() {
             form.addView(Ui.button(this,if(sending.running)"提交中…" else "提交随记",true) {submitStory()}.apply {tag="story_submit"})
             form.addView(Ui.space(this,8))
         }
-        form.addView(Ui.button(this,"校验草稿") {
+        if(!StoryCloudConfig.configured) form.addView(Ui.button(this,"检查草稿") {
             val errors=StoryRules.validate(draft)
             titleInput.error=if (StoryDraftError.TITLE in errors) StoryDraftError.TITLE.message else null
             bodyInput.error=if (StoryDraftError.BODY in errors) StoryDraftError.BODY.message else null
             nicknameInput.error=if (StoryDraftError.NICKNAME in errors) StoryDraftError.NICKNAME.message else null
-            message.text=if (errors.isEmpty()) "格式已检查，未提交。昵称：${draft.nicknameLabel}" else errors.joinToString("\n") { it.message }
+            message.text=if (errors.isEmpty()) "草稿格式正确" else errors.joinToString("\n") { it.message }
         }.apply { tag="story_draft_validate" })
         form.addView(Ui.space(this,8))
-        form.addView(Ui.button(this,"保存本机草稿") { saveDraft(true) }.apply { tag="story_draft_save" })
+        form.addView(Ui.button(this,"保存草稿") { saveDraft(true) }.apply { tag="story_draft_save" })
         form.addView(Ui.space(this,8))
-        form.addView(Ui.textButton(this,"清除本机草稿") {
-            AlertDialog.Builder(this).setTitle("清除本机草稿？").setMessage("仅清除这份随记草稿，不影响收藏、阅读进度或其他资料。")
+        form.addView(Ui.textButton(this,"清除草稿") {
+            AlertDialog.Builder(this).setTitle("清除草稿？").setMessage("草稿清除后无法撤销。")
                 .setNegativeButton("取消",null).setPositiveButton("清除") { _,_ ->
                     main.removeCallbacks(saveTask); draft=StoryDraft(); revision++; render(); saveDraft(true)
                 }.show()
@@ -158,7 +158,7 @@ class StorySubmissionActivity : StoryScreen() {
         val retained=sending;val snapshot=draft
         repository.submit(snapshot) {result->android.os.Handler(android.os.Looper.getMainLooper()).post {
             retained.running=false
-            result.fold({retained.receipt=it},{retained.failure=if(it is StoryCloudException)it.message else "未能确认提交结果，草稿已保留。重试将使用同一投稿编号。"})
+            result.fold({retained.receipt=it},{retained.failure=if(it is StoryCloudException)it.message else "未能确认提交结果，请重试。"})
             retained.owner?.get()?.takeIf {!it.isDestroyed && !it.isFinishing}?.let {activity->
                 if(retained.receipt!=null) {activity.main.removeCallbacks(activity.saveTask);activity.ready=false;activity.draft=StoryDraft();activity.showSuccess()}
                 else if(activity.ready) {Ui.enabled(activity.form,true);activity.message.text=retained.failure}
@@ -181,7 +181,7 @@ class StorySubmissionActivity : StoryScreen() {
         main.removeCallbacks(saveTask)
         val snapshot=draft; val request=revision
         repository.change({ old -> old.copy(draft=snapshot) }) { result -> onUi {
-            if (request==revision && !sending.running && sending.receipt==null) result.fold({ message.text=if (explicit) "已保存到本机，未提交。" else "草稿已保存到本机" },{ error(message,it) })
+            if (request==revision && !sending.running && sending.receipt==null) result.fold({ if(explicit)message.text="草稿已保存" },{ error(message,it) })
         } }
     }
     override fun onPause() { main.removeCallbacks(saveTask); saveDraft(false); super.onPause() }

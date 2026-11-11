@@ -39,7 +39,7 @@ class ExpressActivity : Activity() {
         configuration = ExpressConfiguration(ExpressPreferences(this))
         launcher = ExpressLauncher(this, configuration)
         buildScreen()
-        feedback.text = savedInstanceState?.getString("feedback") ?: "选好入口，点一下打开。可通过“入口设置”更新链接。"
+        feedback.text = savedInstanceState?.getString("feedback") ?: "点“入口设置”修改链接。"
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -53,7 +53,6 @@ class ExpressActivity : Activity() {
         val scroll = ScrollView(this).apply { isFillViewport = true; clipToPadding = false }
         content = column().apply { setPadding(dp(16), dp(8), dp(16), dp(24)) }
         val intro = card()
-        intro.addView(text("首页三个快递入口保持固定，链接设置只保存在本机。", 13, muted))
         feedback = text("", 14, ink).apply {
             accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
             setPadding(dp(12), dp(12), dp(12), dp(12))
@@ -120,7 +119,7 @@ class ExpressActivity : Activity() {
         fun selectedTarget() = if (entry.id == "douyin_orders" && selectedVersion() == DouyinVersion.LITE) entry.targets.last() else entry.targets.first()
         fun refreshTargetInfo() {
             val target = selectedTarget()
-            targetInfo.text = "固定目标：${target.label}\n${target.packageName}\n允许：http、https、${target.schemes.joinToString("、")}\n链接始终交给这个 App，不会更换目标包名。"
+            targetInfo.text = "目标应用：${target.label}\n${target.packageName}\n支持：http、https、${target.schemes.joinToString("、")}"
         }
         refreshTargetInfo()
         versionGroup?.setOnCheckedChangeListener { _, _ -> refreshTargetInfo() }
@@ -141,7 +140,7 @@ class ExpressActivity : Activity() {
         linkLabel.labelFor = input.id
         form.addView(input, spaced(8))
         effective.warning?.let { form.addView(text(it, 13, muted), spaced(8)) }
-        form.addView(text("自定义链接优先，其后尝试默认链接，最后才尝试 App 首页。检测仅说明可发起跳转，不能证明到达取件页。", 13, muted), spaced(12))
+        form.addView(text("先尝试自定义链接和默认链接，均不可用时打开应用首页。", 13, muted), spaced(12))
         val scroll = ScrollView(this).apply { addView(form) }
         val dialog = AlertDialog.Builder(this).setTitle("${entry.title} · 入口设置").setView(scroll)
             .setPositiveButton("保存", null).setNegativeButton("取消", null).setNeutralButton("恢复默认", null).create()
@@ -159,7 +158,7 @@ class ExpressActivity : Activity() {
                         if (entry.id == "douyin_orders") configuration.setDouyinVersion(selectedVersion())
                         configuration.saveLink(entry.id, link)
                         updateLabel(entry.id)
-                        feedback.text = "${entry.title}设置已保存，仅保存在本机。"
+                        feedback.text = "${entry.title}设置已保存。"
                         dialog.dismiss()
                     } catch (exception: IllegalStateException) { input.error = exception.message }
                 }
@@ -191,7 +190,7 @@ class ExpressActivity : Activity() {
                 probe.candidate.uri?.let { appendLine(it) }
             }
             appendLine()
-            append("第三方 App 也可能自行落到首页；系统无法确认实际页面。所有配置及诊断均在本机完成。")
+            append("可发起跳转不代表已到达取件页；第三方应用可能打开首页。")
         }
         val message = text(report, 14, ink).apply {
             setPadding(dp(20), dp(8), dp(20), dp(16))

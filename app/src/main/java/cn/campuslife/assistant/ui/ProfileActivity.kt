@@ -23,7 +23,7 @@ class ProfileActivity : Activity() {
         val root = Ui.page(this)
         root.addView(Ui.header(this,"水印资料"))
         val fields = Ui.column(this).apply { setPadding(Ui.dp(context,20),Ui.dp(context,12),Ui.dp(context,20),Ui.dp(context,20)) }
-        fields.addView(Ui.text(this,"按需填写，勾选“展示”后加入水印，空内容自动跳过。",14f,Ui.muted))
+        fields.addView(Ui.text(this,"勾选“展示”后加入水印，空项跳过。",14f,Ui.muted))
         fields.addView(Ui.space(this,12))
         val form=Ui.column(this).apply {
             setBackgroundColor(Color.WHITE)
@@ -48,7 +48,7 @@ class ProfileActivity : Activity() {
                 contentDescription="在水印中展示${field.label}"
                 buttonTintList=ColorStateList.valueOf(Ui.blue)
             }
-            val input = Ui.input(this, savedInstanceState?.getString("input_${field.name}") ?: profile.values[field].orEmpty(),"填写${field.label}，也可以留空") {}
+            val input = Ui.input(this, savedInstanceState?.getString("input_${field.name}") ?: profile.values[field].orEmpty(),"填写${field.label}（选填）") {}
             input.tag = "profile_${field.name}";input.contentDescription=field.label
             if (field == FieldKey.STUDENT_ID || field == FieldKey.SEAT_NUMBER) {
                 input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
@@ -58,9 +58,8 @@ class ProfileActivity : Activity() {
             inputs[field] = input; selected[field] = check
         }
         fields.addView(Ui.space(this,12))
-        fields.addView(Ui.text(this,"学号默认不展示，只有主动勾选才加入；已有选择不变。",13f,Ui.muted))
+        fields.addView(Ui.text(this,"学号仅在勾选后显示。",13f,Ui.muted))
         fields.addView(Ui.space(this,8))
-        fields.addView(Ui.text(this,"资料只保存在本机，可随时修改。",13f,Ui.muted))
         val footer = Ui.column(this).apply {
             setBackgroundColor(Color.WHITE)
             setPadding(Ui.dp(context,18),Ui.dp(context,10),Ui.dp(context,18),Ui.dp(context,12))
@@ -70,7 +69,7 @@ class ProfileActivity : Activity() {
                 store.saveProfile(CampusProfile(profile.values+inputs.mapValues { it.value.text.toString() }))
                 val enabled = store.config().enabled.filterNot { it.personal }.toSet() + selected.filterValues { it.isChecked }.keys
                 store.saveConfig(store.config().copy(enabled=enabled))
-                Ui.toast(this,"资料已保存在本机"); finish()
+                Ui.toast(this,"资料已保存"); finish()
             } catch (error: Exception) { Ui.toast(this,error.message ?: "资料保存失败，请重试") }
         }.apply { tag="save_profile";minimumHeight=Ui.dp(context,52) },LinearLayout.LayoutParams(-1,-2))
         root.addView(footer)

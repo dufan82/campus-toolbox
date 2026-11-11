@@ -60,15 +60,14 @@ class StoryActivity : StoryScreen() {
         cloudLoading=true;if(::refresh.isInitialized)refresh.isEnabled=false
         repository.refresh(cursor,force) {result->onUi {
             cloudLoading=false;if(::refresh.isInitialized)refresh.isEnabled=true
-            result.fold({(items,next)->entries=items;nextCursor=next;render()}, {error(message,it);message.text="暂时无法刷新，已保留本机内容"})
+            result.fold({(items,next)->entries=items;nextCursor=next;render()}, {error(message,it);message.text="刷新失败，请重试"})
         }}
     }
     private fun render() {
         if (!::cards.isInitialized) return
         cards.removeAllViews()
         val visible=StoryRules.filter(entries,category,favoritesOnly,state.favorites)
-        val cachedCount=visible.count {it.source==StoryCloudRules.CACHED_SOURCE}
-        message.text=when {visible.isEmpty()->"暂无符合条件的随记。";cachedCount>0->"离线缓存";else->""}
+        message.text=if(visible.isEmpty())"没有符合条件的随记" else ""
         message.visibility=if (message.text.isEmpty()) View.GONE else View.VISIBLE
         visible.forEachIndexed { index, story ->
             if(index>0)cards.addView(View(this).apply {setBackgroundColor(Ui.line)},LinearLayout.LayoutParams(-1,Ui.dp(this,1)))

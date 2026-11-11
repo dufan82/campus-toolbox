@@ -64,7 +64,7 @@ class DailySyncSettingsActivity:Activity() {
                 if(checked){
                     isChecked=false
                     prompt=AlertDialog.Builder(this@DailySyncSettingsActivity).setTitle("开启每日课表检查？")
-                        .setMessage("每天早上自动检查学校课表，有变化时自动更新，无变化不打扰你。\n\n计划时间为设备当地07:00，省电或断网可能延后。开启后需正常登录并确认学校课表导入，应用才会加密保存该课表凭据供后台只读使用；不保存密码。关闭或退出学校登录会删除后台凭据。")
+                        .setMessage("每天07:00检查并更新课表，省电或断网时可能延后。\n\n登录并确认学校导入后，会在本机加密保存课表凭据供后台使用；不保存密码。关闭检查或退出学校登录会清除凭据。")
                         .setNegativeButton("暂不开启",null).setPositiveButton("开启"){_,_->change(true)}.show()
                 }else if(state?.enabled==true)change(false)
             }

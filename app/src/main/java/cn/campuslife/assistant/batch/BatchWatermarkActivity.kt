@@ -79,10 +79,10 @@ class BatchWatermarkActivity : Activity() {
 
     private fun buildPage() {
         val root = Ui.page(this)
-        root.addView(Ui.header(this, "批量照片水印", "同一套水印，逐张处理并另存为新图片"))
+        root.addView(Ui.header(this, "批量照片水印"))
         val body = Ui.column(this).apply { setPadding(Ui.dp(context, 14), 0, Ui.dp(context, 14), Ui.dp(context, 20)) }
         root.addView(Ui.scroll(this, body), LinearLayout.LayoutParams(-1, 0, 1f))
-        body.addView(Ui.text(this, "每批 1–50 张 JPEG / PNG；单张最多 64 MiB、8000 万像素。只保留列表与当前预览，不一次加载整批原图。", 12f, Ui.muted))
+        body.addView(Ui.text(this, "每批1–50张 JPEG / PNG；单张不超过64 MiB、8000万像素。", 12f, Ui.muted))
         body.addView(Ui.space(this, 8))
         choose = Ui.button(this, "选择多张照片") { chooseNewBatch() }.apply { tag = "batch_choose" }
         body.addView(choose)
@@ -99,8 +99,8 @@ class BatchWatermarkActivity : Activity() {
             tag = "batch_directory"; visibility = if (Build.VERSION.SDK_INT <= 28) View.VISIBLE else View.GONE
         }
         body.addView(directory)
-        body.addView(Ui.text(this, if (Build.VERSION.SDK_INT >= 29) "保存至相册 Pictures/校园生活助手；每张新建，文件名附序号与防重标记。"
-            else "Android 8/9 请先选择一个目录；整批逐张新建文件。权限失效时可重新选择目录。", 12f, Ui.muted))
+        body.addView(Ui.text(this, if (Build.VERSION.SDK_INT >= 29) "保存至相册 Pictures/校园生活助手。"
+            else "Android 8/9 请先选择保存目录；权限失效后需重新选择。", 12f, Ui.muted))
         status = Ui.text(this, "正在读取本机任务…", 13f).apply { tag = "batch_status"; accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE }
         body.addView(Ui.space(this, 8)); body.addView(status)
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { tag = "batch_progress" }
@@ -148,7 +148,7 @@ class BatchWatermarkActivity : Activity() {
             minHeight = Ui.dp(context, 48); tag = "batch_unified_time"; isChecked = options.unifiedTime
             setOnCheckedChangeListener { _, checked -> configure(session.options.copy(unifiedTime = checked)) }
         })
-        editorHost.addView(Ui.text(this, "默认读取每张照片自己的 EXIF 拍摄时间；没有则留空。勾选统一时间后才使用手填值。", 12f, Ui.muted))
+        editorHost.addView(Ui.text(this, "默认使用各照片的拍摄时间；勾选后改用统一时间。", 12f, Ui.muted))
         editorHost.addView(Ui.space(this, 8))
         editorHost.addView(Ui.text(this, "文件名字段（按点选顺序）", 14f, bold = true))
         editorHost.addView(FieldChips(this, defaultOrder, options.namingFields, "batch_naming", "文件名包含") {
@@ -186,8 +186,8 @@ class BatchWatermarkActivity : Activity() {
             null -> if (session.loaded) "先选择需要加水印的照片" else "正在读取本机任务…"
         }
         status.text = listOfNotNull(phase, summary, session.message).joinToString("\n")
-        locked.text = if (session.editable) "选好字段、位置、文件名与尺寸后开始。更改仅用于批量模块。"
-            else if (job != null) "本任务已固定启动时的资料与设置；新设置请重新选择照片开始新批次。" else ""
+        locked.text = if (session.editable) ""
+            else if (job != null) "修改设置需新建批次。" else ""
         start.text = if (job?.state == BatchRunState.READY) "开始导出" else "继续未处理项"
         start.isEnabled = session.loaded && !session.busy && !session.blocked && counts != null && counts.unprocessed > 0
         pause.visibility = if (active) View.VISIBLE else View.GONE
@@ -205,8 +205,8 @@ class BatchWatermarkActivity : Activity() {
         previewStatus.text = when {
             session.previewBusy -> "正在读取当前照片预览…"
             session.previewError != null -> session.previewError
-            active -> "逐张处理，预览暂时释放以留出内存"
-            session.preview != null -> "按原图坐标预览，可拖动水印；导出使用原图或你明确选择的尺寸"
+            active -> "正在处理，预览暂不可用"
+            session.preview != null -> "拖动水印可调整位置"
             else -> "选择照片，或在明细中选择一张预览"
         }
         preview.isEnabled = session.editable
@@ -262,7 +262,7 @@ class BatchWatermarkActivity : Activity() {
     }
     private fun chooseSize() {
         val sizes = listOf(null, 4096, 2048, 1280)
-        AlertDialog.Builder(this).setTitle("输出尺寸（不会放大或自动降质）")
+        AlertDialog.Builder(this).setTitle("输出尺寸")
             .setSingleChoiceItems(arrayOf("原始尺寸", "最长边 4096 像素", "最长边 2048 像素", "最长边 1280 像素"), sizes.indexOf(session.options.maxEdge)) { dialog, index ->
                 configure(session.options.copy(maxEdge = sizes[index])); dialog.dismiss()
             }.setNegativeButton("取消", null).show()

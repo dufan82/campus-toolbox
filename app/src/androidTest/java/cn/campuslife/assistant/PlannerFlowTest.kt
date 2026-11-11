@@ -112,9 +112,9 @@ class PlannerFlowTest {
             PlannerStore(context).write(legacy)
             val bytes=file.readBytes()
             activity = instrumentation.startActivitySync(Intent(context,PlannerActivity::class.java).putExtra("tab",0).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            awaitUi(activity,"新增倒计时")
+            awaitUi(activity,"添加重要日期")
             activity=recreate(activity)
-            awaitUi(activity,"新增倒计时")
+            awaitUi(activity,"添加重要日期")
             instrumentation.runOnMainSync {
                 val root=requireNotNull(activity).window.decorView
                 assertNull(find(root) { it is TextView && it.text.toString() in setOf("待办","新增待办","Legacy todo fixture") })
@@ -141,20 +141,20 @@ class PlannerFlowTest {
             val legacy=TodoItem(PlannerRules.newId(),"Legacy todo fixture")
             PlannerStore(context).write(PlannerState(todos=listOf(legacy)))
             activity=instrumentation.startActivitySync(Intent(context,PlannerActivity::class.java).putExtra("tab",1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            awaitUi(activity,"新增倒计时"); click(activity,"新增倒计时")
+            awaitUi(activity,"添加重要日期"); click(activity,"添加重要日期")
             input(activity,"planner-title","Fixture countdown"); input(activity,"planner-date","2030-01-31")
-            click(activity,"保存"); awaitState { it.countdowns.size==1 }; awaitUi(activity,"新增倒计时")
+            click(activity,"保存"); awaitState { it.countdowns.size==1 }; awaitUi(activity,"添加重要日期")
             val id=PlannerStore(context).read().countdowns.single().id
             edit(activity,id); input(activity,"planner-title","Fixture countdown edited"); input(activity,"planner-date","2020-02-29")
             activity=recreate(activity); awaitUi(activity,"保存")
             instrumentation.runOnMainSync {
                 assertTrue((find(requireNotNull(activity).window.decorView) { it.tag=="planner-date" } as TextView).text.contains("2020年2月29日"))
             }
-            click(activity,"保存"); awaitState { it.countdowns.singleOrNull()?.title=="Fixture countdown edited" }; awaitUi(activity,"新增倒计时")
+            click(activity,"保存"); awaitState { it.countdowns.singleOrNull()?.title=="Fixture countdown edited" }; awaitUi(activity,"添加重要日期")
             assertEquals(id,PlannerStore(context).read().countdowns.single().id)
             instrumentation.runOnMainSync { requireNotNull(activity).finish() }
             activity=instrumentation.startActivitySync(Intent(context,PlannerActivity::class.java).putExtra("tab",1).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            awaitUi(activity,"新增倒计时")
+            awaitUi(activity,"添加重要日期")
             instrumentation.runOnMainSync { assertNotNull(find(requireNotNull(activity).window.decorView) { it is TextView && it.text.startsWith("已过 ") }) }
             edit(activity,id); click(activity,"删除这条记录"); confirmDelete(); awaitState { it.countdowns.isEmpty() }
             assertEquals(listOf(legacy),PlannerStore(context).read().todos)

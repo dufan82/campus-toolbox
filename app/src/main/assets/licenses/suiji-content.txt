@@ -1,0 +1,29 @@
+随记文字内容
+
+《一个人的生日》——Eltrac
+原文：https://www.geedea.pro/article/birthday-alone/
+作者许可：https://www.geedea.pro/about/
+采用 CC BY-SA 4.0：https://creativecommons.org/licenses/by-sa/4.0/
+本地收录全部正文与原图图注，不打包配图；仅整理段落与简体字形。本条文字及其整理版依同一许可提供，不代表本项目整体采用此许可证。
+
+《我的母亲：礼物》《我的母亲：最后的时光》——平川（文心）
+原文：https://map.im/2022/06/03/words/我的母亲(3)/
+原文：https://map.im/2023/12/03/words/我的母亲(8)/
+原文页明确采用 CC BY-NC-SA 4.0：https://creativecommons.org/licenses/by-nc-sa/4.0/
+本条文字及段落整理版同样按该许可提供，须署名、链接、非商业使用与相同方式共享；不要求作者转让著作权。若将来商业化须另获许可。
+
+《背影》——朱自清，公版原作
+转录来源：https://zh.wikisource.org/wiki/背影
+显示为简体，仅转换字形，不润色原文。
+
+《阿长与〈山海经〉》《五猖会》——鲁迅，1926年，公版原作
+https://zh.wikisource.org/zh-hans/阿長與山海經
+https://zh.wikisource.org/zh-hans/五猖會
+《儿女》——朱自清，1928年，公版原作
+https://zh.wikisource.org/zh-hans/儿女
+《给我的孩子们》——丰子恺，据1927年《子愷畫集》原书第7—12页全文，含落款。
+https://commons.wikimedia.org/wiki/File:NLC416-16jh002061-80351_%E5%AD%90%E6%84%B7%E7%95%AB%E9%9B%86.pdf
+以上只收录原作，保留署名与全部段落，按简体字形整理；不包含现代译注、赏析或书中配图。
+原作出版年份及中国大陆、美国公版依据见内容来源记录，公版不等于已向作者取得转载授权。
+
+构建时简体转换字典来自 BYVoid/OpenCC（Apache-2.0），固定版本 fae2a0a911c30764e669a7d8b0591cd8e852934a；字典/转换工具不打进APK。

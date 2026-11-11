@@ -7,9 +7,11 @@ object StoryRules {
     fun validId(value: String) = value.matches(Regex("story-[a-z0-9][a-z0-9-]{0,69}"))
     fun fontSize(value: Int) = value.coerceIn(16,18)
     fun progress(value: Double) = if (value.isFinite()) value.coerceIn(0.0,1.0) else 0.0
+    fun readableEntry(story:Story) = story.hasFullText ||
+        (story.provenance.allowsFullText && (story.remoteId ?: story.id).let {it.startsWith("story-cloud-") && validId(it)})
     fun filter(entries: List<Story>, category: StoryCategory?, favoritesOnly: Boolean, favorites: Set<String>) =
         ordered(entries.filter { !it.provenance.hidden && (!it.provenance.archived || (favoritesOnly && it.id in favorites)) &&
-            (category==null || it.category==category) && (!favoritesOnly || it.id in favorites) })
+            (category==null || it.category==category) && (!favoritesOnly || it.id in favorites) && (favoritesOnly || readableEntry(it)) })
     fun ordered(entries:List<Story>):List<Story> {
         val pinned=listOf("story-suiji-001","story-suiji-002","story-suiji-003")
         return entries.sortedWith(compareBy<Story> {pinned.indexOf(it.id).takeIf {index->index>=0} ?: 3}
@@ -18,7 +20,7 @@ object StoryRules {
     fun next(entries: List<Story>, currentId: String): Story? =
         if (entries.isEmpty()) null else entries[(entries.indexOfFirst { it.id==currentId }+1)%entries.size]
     fun adjacent(entries:List<Story>,id:String,delta:Int):Story? {
-        val list=ordered(entries.filterNot {it.provenance.hidden || it.provenance.archived})
+        val list=ordered(entries.filter { !it.provenance.hidden && !it.provenance.archived && readableEntry(it) })
         val index=list.indexOfFirst {it.id==id}
         return if(index<0) if(delta>0)list.firstOrNull() else null else list.getOrNull(index+delta)
     }

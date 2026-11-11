@@ -52,7 +52,7 @@ class ExportDialog(
         form.addView(FieldChips(owner,order,fields,"naming","命名包含") { selected ->
             fields=selected;manualName=null;replaceName(compose());notifyChanged()
         })
-        form.addView(Ui.text(owner,"按点选顺序组合，空值跳过；学号默认不选。",12f,Ui.muted))
+        form.addView(Ui.text(owner,"按点选顺序命名，空项跳过；学号需手动选择。",12f,Ui.muted))
         val filenameHeading=Ui.row(owner)
         val label=Ui.text(owner,"文件名",13f,Ui.muted)
         filenameHeading.addView(label,LinearLayout.LayoutParams(0,-2,1f))
@@ -92,7 +92,7 @@ class ExportDialog(
         form.addView(formatRow);form.addView(Ui.space(owner,18))
         val size=Ui.row(owner);size.addView(Ui.text(owner,"原图尺寸",14f),LinearLayout.LayoutParams(0,-2,1f))
         size.addView(Ui.text(owner,"${photo.width} × ${photo.height}",14f,Ui.muted));form.addView(size)
-        form.addView(Ui.space(owner,8));form.addView(Ui.text(owner,"创建新文件，不覆盖原图；同名照片也不会被覆盖。",12f,Ui.muted));form.addView(Ui.space(owner,14))
+        form.addView(Ui.space(owner,8));form.addView(Ui.text(owner,"另存新图，不覆盖原图。",12f,Ui.muted));form.addView(Ui.space(owner,14))
         val scroll=object: ScrollView(owner) {
             override fun onMeasure(widthMeasureSpec: Int,heightMeasureSpec: Int) {
                 val available=minOf(View.MeasureSpec.getSize(heightMeasureSpec),(resources.displayMetrics.heightPixels*.66).toInt())
@@ -100,7 +100,7 @@ class ExportDialog(
             }
         }.apply { addView(form);isFillViewport=false }
         root.addView(scroll,LinearLayout.LayoutParams(-1,-2))
-        root.addView(Ui.space(owner,10));root.addView(Ui.text(owner,"文件名会随照片共享，不会印在水印中。",12f,Ui.muted));root.addView(Ui.space(owner,12))
+        root.addView(Ui.space(owner,10));root.addView(Ui.text(owner,"文件名不会印在照片中；分享时可见。",12f,Ui.muted));root.addView(Ui.space(owner,12))
         confirm=Ui.button(owner,if(share) "确认分享" else "确认保存",true) {
             if(validate()) {
                 confirm.isEnabled=false
