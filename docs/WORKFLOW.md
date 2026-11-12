@@ -82,6 +82,8 @@ pwsh -NoProfile -File scripts/Publish-Stable.ps1 -Mode Publish -PublishAllowed -
 
 Git连接超时但gh API正常时，先核对Windows已有本地系统代理；可为本次Git命令传`-c http.proxy=<已核对代理>`，不改全局设置、不关闭TLS验证、不反复盲试直连。2026-11-12已据此恢复正常Git读写路径。
 
+调整未发布GitHub草稿的`target_commitish`时须同时保留`tag_name`并回读确认；只改目标可能使GitHub把草稿改名为untagged，后续按版本查找就无法续传。任何遗留草稿不自动删除。
+
 ## 补齐已发布版本而不重建APK
 
 AGP的Git元信息可能让同源码重建后整包SHA变化；不能把新SHA覆盖到已公开版本。已有官方三附件可用`-ExistingAssets`：

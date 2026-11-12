@@ -1,6 +1,17 @@
 # 国内更新源
 
-## 当前版本：1.8.3 / code30
+## 当前版本：1.8.6 / code33
+
+2026-11-12，GitHub和CNB已同步为最新稳定版本，使用同一签名APK和同一组三附件。GitHub Release ID442581866，CNB Release ID2120766664521773056；公开后重新读取latest与update.json，服务端大小和SHA256与本机一致。
+
+- [国内下载](https://cnb.cool/campus-toolbox/campus-toolbox/-/releases/tag/v1.8.6) · [GitHub备用](https://github.com/dufan82/campus-toolbox/releases/tag/v1.8.6)。
+- APK 79,097,977字节（比1.8.5增加16,408字节），SHA256 `d557adbe98c7151e54fad7e75caa3d07c782199f93fbf099b0587f96a5895dd9`。
+- 原兼容签名、非调试、双ARM与包名保留；不更改已有数据和学校登录存储。公开版不含本机私人预览全文，旧私人APK保留。
+- 手机在“我的 → 应用设置 → 检查更新”手动检查；自动检查有24小时缓存，短时手动检查至少间隔60秒。系统安装仍需本人确认，直接覆盖，不先卸载。ARM真机覆盖/数据验收尚待本人执行。
+- 证据：`verification/release186-20261112/remote-final.json`与`verification/stable-release/v1.8.6/publish-state.json`；APK仅构建签名一次，续传复用原件。真实发布不要求再次手动粘贴有效的已保存凭据。
+- CNB源码压缩包仍对应国内入口页仓库；完整Android和CloudBase源码在GitHub，APK两源一致。
+
+## 1.8.3历史发布记录
 
 2026-11-11已与GitHub同步为最新稳定版。CNB Release ID2120313940453847040；GitHub Release ID441089990。两源三附件分别匿名完整下载，大小/SHA256匹配本机原件；应用源码bec140d，Actions42931475426成功。
 

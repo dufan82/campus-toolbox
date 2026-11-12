@@ -37,4 +37,7 @@ try {
     Check ($LASTEXITCODE -ne 0 -and !(Test-Path -LiteralPath $noPublish)) 'no authorization means no prepare/network/publication'
     Check (($result -join ' ') -notmatch 'synthetic-a') 'failure output does not expose private configuration'
     Write-Output "PASS $count receipt/entrypoint tests"
+    # The deliberately rejected child publish exited 1. All assertions consumed
+    # that expected failure; do not leak it into the CI PowerShell wrapper.
+    $global:LASTEXITCODE=0
 }finally{if([IO.Path]::GetFileName($root) -match '^stable-receipt-[0-9a-f]{32}$'){Remove-Item -LiteralPath $root -Recurse -Force}}
