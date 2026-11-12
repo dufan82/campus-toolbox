@@ -11,3 +11,5 @@ gradlew text eol=lf
 *.jpg binary
 *.png binary
 cloudbase/scf_bootstrap text eol=lf
+# Historical handoff originals retain their recorded bytes across platforms.
+docs/archive/*.md -text -eol whitespace=cr-at-eol
