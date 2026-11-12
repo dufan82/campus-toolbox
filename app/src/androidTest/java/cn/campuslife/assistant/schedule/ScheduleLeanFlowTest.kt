@@ -96,8 +96,8 @@ class ScheduleLeanFlowTest {
             ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
                 await {text("正在检查…")};assertFalse(text("尚未执行自动检查"))
                 prefs.write(prefs.read().copy(result=SyncResult.NO_CHANGE,lastSuccess=System.currentTimeMillis()))
-                await {text("已检查，课表没有变化")};capture("check")
-                scenario.recreate();await {text("已检查，课表没有变化")}
+                await {text("已完成检查") && text("学校课表：未发现变化") && text("本机课表：无需更新")};capture("check")
+                scenario.recreate();await {text("已完成检查") && text("学校课表：未发现变化") && text("本机课表：无需更新")}
             }
         } finally {prefs.write(previous)}
     }

@@ -74,6 +74,7 @@ class DailySyncSettingsActivity:Activity() {
         body.addView(Ui.text(this,"最近检查  ${time(state?.lastAttempt?:0)}",15f).apply {tag="school_sync_attempt"})
 
         body.addView(Ui.space(this,12));body.addView(Ui.text(this,session.error.ifEmpty {state?.let(DailySyncPresentation::summary)?:"正在读取…"},15f,Ui.muted).apply {tag="school_sync_result"})
+        state?.takeIf {it.lastAttempt>0}?.let {SchoolCheckStatusUi.add(this,body,SchoolCheckOutcome.automatic(it))}
         if(state?.enabled==true && state.result==SyncResult.NEEDS_LOGIN){
             body.addView(Ui.space(this,18));body.addView(Ui.button(this,"登录并确认学校导入",true){startActivity(Intent(this,ScheduleTransferActivity::class.java))})
         }

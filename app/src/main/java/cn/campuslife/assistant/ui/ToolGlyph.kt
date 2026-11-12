@@ -21,6 +21,7 @@ class ToolGlyph(context: Context,private val kind: String,color: Int) : Drawable
             "close" -> {path(6f,6f,18f,18f);path(6f,18f,18f,6f)}
             "pin" -> {val p=Path();p.moveTo(12f,22f);p.cubicTo(-5f,6f,6f,1f,12f,2f);p.cubicTo(26f,1f,22f,13f,12f,22f);canvas.drawPath(p,paint);canvas.drawCircle(12f,8f,2.5f,paint)}
             "clock" -> {canvas.drawCircle(12f,12f,9f,paint);path(12f,7f,12f,12f,16f,14f)}
+            "news" -> {rect(3f,3f,21f,21f);rect(6f,6f,11f,11f);path(14f,6f,18f,6f);path(14f,10f,18f,10f);path(6f,15f,18f,15f);path(6f,18f,18f,18f)}
             "download" -> {path(12f,3f,12f,16f);path(6f,10f,12f,16f,18f,10f);path(4f,17f,4f,21f,20f,21f,20f,17f)}
             "plus" -> {path(12f,5f,12f,19f);path(5f,12f,19f,12f)}
             "sliders" -> {path(3f,7f,21f,7f);path(3f,17f,21f,17f);path(8f,4f,8f,10f);path(16f,14f,16f,20f)}

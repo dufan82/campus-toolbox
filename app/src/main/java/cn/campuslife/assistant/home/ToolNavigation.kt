@@ -15,6 +15,7 @@ object ToolNavigation {
             "schedule"->ScheduleActivity::class.java
             "planner"->PlannerActivity::class.java
             "story"->cn.campuslife.assistant.story.StoryActivity::class.java
+            "daily60"->cn.campuslife.assistant.daily.Daily60Activity::class.java
             else->return
         }
         if(id=="schedule" && activity is cn.campuslife.assistant.ui.MainActivity) {

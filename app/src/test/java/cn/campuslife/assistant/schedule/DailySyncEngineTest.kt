@@ -35,6 +35,7 @@ class DailySyncEngineTest {
     @Test fun noChangeHasNoWriteOrNotificationButRecordsCheckAndSuccess() {
         val f=Fake();DailySyncEngine(f).run(now);assertEquals(0,f.writes);assertEquals(0,f.notices)
         assertEquals(SyncResult.NO_CHANGE,f.status.result);assertTrue(f.status.lastSuccess>0)
+        assertEquals(SchoolCheckOutcome.completed(SchoolChanges(),0),f.status.outcome)
     }
     @Test fun changedCoursesCommitAndNotifyOnceEvenWithoutNotificationPermission() {
         for(deny in listOf(false,true)){val f=Fake();f.denyNotifications=deny
@@ -98,5 +99,26 @@ class DailySyncEngineTest {
     @Test fun cancelledRunNeverSavesAndCanBeRescheduledWithSameDay() {
         val f=Fake();val stop=AtomicBoolean();f.onFetch={stop.set(true)}
         DailySyncEngine(f).run(now,stop);assertEquals(0,f.writes);assertEquals("",f.status.lastAttemptDay)
+        assertEquals(false,f.status.outcome?.applied)
+    }
+    @Test fun mixedProtectedAndAppliedGroupsRecordBothOutcomesInsteadOfHidingSuccessfulChanges() {
+        val f=Fake()
+        val original=course.copy(id="00000000-0000-0000-0000-000000000002",name="Protected",startPeriod=3,endPeriod=4)
+        val mine=original.copy(classroom="My room")
+        f.local=ScheduleSnapshot(data.copy(courses=listOf(course,mine)),SchoolRegistry(mapOf(course.id to course,original.id to original)))
+        f.incoming=SchoolFetch(data.copy(courses=listOf(course.copy(classroom="School 202"),original.copy(classroom="School 303"))))
+        DailySyncEngine(f).run(now)
+        assertEquals(SyncResult.CONFLICT,f.status.result);assertEquals(1,f.writes)
+        assertEquals("My room",f.local.data.courses.single {it.name=="Protected"}.classroom)
+        assertTrue(f.local.data.courses.any {it.name=="Math" && it.classroom=="School 202"})
+        assertEquals(SchoolCheckOutcome.completed(SchoolChanges(adjusted=1),1),f.status.outcome)
+        assertTrue(SchoolCheckOutcomeText.from(f.status.outcome!!).local.startsWith("已更新"))
+        assertTrue(f.status.details.contains("School 202"))
+    }
+    @Test fun failureBeforeApplyRecordsNoWriteWithoutPretendingTheCheckCompleted() {
+        val f=Fake();f.fail=IOException();DailySyncEngine(f).run(now)
+        assertEquals(SchoolCheckOutcome.failed(untouched=true),f.status.outcome)
+        assertEquals("检查未完成",SchoolCheckOutcomeText.from(f.status.outcome!!).check)
+        assertEquals(0,f.writes)
     }
 }

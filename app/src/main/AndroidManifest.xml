@@ -26,6 +26,7 @@
         <activity android:name=".ui.WatermarkActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.SettingsActivity" android:exported="false" />
         <activity android:name=".story.StoryActivity" android:exported="false" />
+        <activity android:name=".daily.Daily60Activity" android:exported="false" />
         <activity android:name=".story.StoryReaderActivity" android:exported="false" />
         <activity android:name=".story.StorySubmissionActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".feedback.FeedbackActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />

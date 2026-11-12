@@ -16,7 +16,7 @@ class StoryToolLayoutTest {
         try {
             assertTrue(prefs.edit().putString("layout",old).commit())
             val store=HomeLayoutStore(context)
-            assertEquals(listOf("planner","map","schedule","watermark","story"),store.load().order)
+            assertEquals(listOf("planner","map","schedule","watermark","story","daily60"),store.load().order)
             assertEquals(setOf("map"),store.load().hidden);assertEquals(old,prefs.getString("layout",null))
             val intent=Intent(context,ToolManagementActivity::class.java).putExtra("manage",true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ActivityScenario.launch<ToolManagementActivity>(intent).use {s->
@@ -27,6 +27,11 @@ class StoryToolLayoutTest {
                 s.recreate();waitTag("tool_story_2");assertTrue("story" in store.load().hidden)
                 tap("tool_story_2");waitTag("tool_story_2");assertFalse("story" in store.load().hidden)
                 assertTrue("map" in store.load().hidden)
+                tap("tool_daily60_0");waitTag("tool_daily60_2");assertEquals("daily60",store.load().order[4])
+                tap("tool_daily60_2");waitTag("tool_daily60_2");assertTrue("daily60" in store.load().hidden)
+                s.recreate();waitTag("tool_daily60_2");assertTrue("daily60" in store.load().hidden)
+                tap("tool_daily60_2");waitTag("tool_daily60_2");assertFalse("daily60" in store.load().hidden)
+                assertTrue("map" in store.load().hidden)
             }
             ActivityScenario.launch(ToolManagementActivity::class.java).use {s->
                 val end=SystemClock.uptimeMillis()+8000;var ready=false
@@ -35,6 +40,9 @@ class StoryToolLayoutTest {
                 val monitor=inst.addMonitor("cn.campuslife.assistant.story.StoryActivity",null,false)
                 try {s.onActivity {assertTrue(it.window.decorView.findViewWithTag<View>("all_tool_story").performClick())};val opened=inst.waitForMonitorWithTimeout(monitor,5000);assertNotNull(opened);inst.runOnMainSync {opened!!.finish()}}
                 finally {inst.removeMonitor(monitor)}
+                val dailyMonitor=inst.addMonitor("cn.campuslife.assistant.daily.Daily60Activity",null,false)
+                try {s.onActivity {assertTrue(it.window.decorView.findViewWithTag<View>("all_tool_daily60").performClick())};val opened=inst.waitForMonitorWithTimeout(dailyMonitor,5000);assertNotNull(opened);inst.runOnMainSync {opened!!.finish()}}
+                finally {inst.removeMonitor(dailyMonitor)}
             }
         } finally {assertTrue(prefs.edit().apply {if(before==null)remove("layout")else putString("layout",before)}.commit())}
     }

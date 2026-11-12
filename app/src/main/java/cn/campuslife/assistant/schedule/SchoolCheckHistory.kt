@@ -2,7 +2,7 @@ package cn.campuslife.assistant.schedule
 
 import java.time.LocalDate
 
-data class SchoolCheckRecord(val at:Long,val result:String,val details:String)
+data class SchoolCheckRecord(val at:Long,val result:String,val details:String,val outcome:SchoolCheckOutcome?=null)
 object SchoolCheckHistory {
     fun latest(auto:DailySyncState?,manual:SchoolCheckRecord?):SchoolCheckRecord? {
         if(manual!=null && manual.at>=(auto?.lastAttempt?:0))return manual
@@ -14,7 +14,7 @@ object SchoolCheckHistory {
         }
         return SchoolCheckRecord(auto.lastAttempt,result,auto.details.ifBlank {
             auto.summary.takeIf {auto.result in setOf(SyncResult.UPDATED,SyncResult.CONFLICT)}.orEmpty()
-        })
+        },SchoolCheckOutcome.automatic(auto))
     }
     fun details(before:ScheduleData,after:ScheduleData,today:LocalDate):String {
         val diff=ScheduleUpdatePreview.compare(before,after,today)

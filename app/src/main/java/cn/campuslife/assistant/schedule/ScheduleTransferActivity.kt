@@ -382,7 +382,9 @@ class ScheduleTransferActivity : Activity() {
             val plan = SchoolUpdateCheck.preview(snapshot, data, date)
             val diff=ScheduleUpdatePreview.compare(baseline,plan.plan.data,date)
             val message=when {warnings.isNotEmpty()->"课表未完整读取，未更新";plan.plan.data==baseline && plan.plan.conflicts>0->"已检查，受保护课程已保留";plan.plan.data==baseline->"已检查，课表没有变化";else->"已检查，发现课表更新"}
-            val history=SchoolCheckRecord(System.currentTimeMillis(),message,if(warnings.isEmpty())SchoolCheckHistory.details(baseline,plan.plan.data,date) else "")
+            val outcome=if(warnings.isNotEmpty())SchoolCheckOutcome.failed(untouched=true) else
+                SchoolCheckOutcome.preview(plan.plan.changes,plan.plan.conflicts,plan.plan.data!=baseline || plan.plan.conflicts>0)
+            val history=SchoolCheckRecord(System.currentTimeMillis(),message,if(warnings.isEmpty())SchoolCheckHistory.details(baseline,plan.plan.data,date) else "",outcome)
             runCatching {SchoolCheckHistoryStore(applicationContext).write(history)}
             Triple(plan,diff,history)
             }
@@ -395,7 +397,7 @@ class ScheduleTransferActivity : Activity() {
     }
     private fun rememberCheckFailure(message:String) {
         // The worker has already attempted to persist this; do not reload/destroy the login WebView.
-        session.checkHistory=SchoolCheckRecord(System.currentTimeMillis(),message,"")
+        session.checkHistory=SchoolCheckRecord(System.currentTimeMillis(),message,"",SchoolCheckOutcome.failed(untouched=true))
     }
     private fun showCheckResult(body:LinearLayout) {
         val record=SchoolCheckHistory.latest(session.syncState,session.checkHistory)
@@ -403,7 +405,10 @@ class ScheduleTransferActivity : Activity() {
         val at=java.time.format.DateTimeFormatter.ofPattern("MM-dd HH:mm").format(java.time.Instant.ofEpochMilli(record.at).atZone(java.time.ZoneId.systemDefault()))
         body.addView(Ui.text(this,"最近检查 $at",13f,Ui.muted).apply {tag="school_check_time"})
         body.addView(Ui.space(this,6))
-        body.addView(Ui.text(this,record.result,15f).apply {tag="school_sync_result"})
+        val outcome=SchoolCheckOutcome.legacy(record)
+        body.addView(Ui.text(this,SchoolCheckOutcomeText.from(outcome).check,15f).apply {tag="school_sync_result"})
+        SchoolCheckStatusUi.add(this,body,outcome)
+        if(outcome.phase==SchoolCheckPhase.FAILED)body.addView(Ui.text(this,record.result,13f,Ui.muted))
         if(record.details.isNotBlank())body.addView(Ui.textButton(this,"查看更新内容") {
             dialog=Ui.bottomSheet(this,"更新内容") {content,_->content.addView(Ui.text(this,record.details,15f).apply {setLineSpacing(dp(5).toFloat(),1f)})}
         }.apply {tag="school_check_details"})
@@ -505,22 +510,38 @@ class ScheduleTransferActivity : Activity() {
             .setNegativeButton("取消", null).setPositiveButton("确认更新") { _, _ ->
                 val today = session.previewDate ?: return@setPositiveButton
                 val current = session; val app = applicationContext; val authorization = current.authorization
+                var applicationRecord:SchoolCheckRecord?=null
                 current.work.submit("正在更新课表…", {
+                    try {
                     require(today == LocalDate.now()) { "日期已变化，请重新检查。" }
                     val fresh = SchoolUpdateCheck.preview(snapshot, school, today)
-                    val saved = if (fresh.initialImport) {
+                    val applied = if (fresh.initialImport) {
                         check(current.store.loadSnapshot() == snapshot) { "课表已变化，请重新检查。" }
-                        current.store.replaceWithBackup(snapshot.data, fresh.plan.data, schoolImport = true)
-                    } else current.store.applyAutomatic(snapshot, school, today).data
+                        fresh.plan.copy(data=current.store.replaceWithBackup(snapshot.data, fresh.plan.data, schoolImport = true))
+                    } else current.store.applyAutomatic(snapshot, school, today)
+                    val saved=applied.data
+                    val record=SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表已更新",SchoolCheckHistory.details(snapshot.data,saved,today),SchoolCheckOutcome.completed(applied.changes,applied.conflicts))
+                    applicationRecord=record
+                    runCatching {SchoolCheckHistoryStore(app).write(record)}
                     DailySchoolSync.authorizeAfterImport(app, authorization, saved)
                     if (fresh.plan.conflicts == 0) runCatching { SchoolImportReminder.recordSuccess(app) }
-                    val record=SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表已更新",SchoolCheckHistory.details(snapshot.data,saved,today))
-                    runCatching {SchoolCheckHistoryStore(app).write(record)}
                     Triple(saved,runCatching {current.store.previousImport()}.getOrNull(),record)
+                    } catch(error:Exception) {
+                        if(applicationRecord==null){
+                            val failed=SchoolCheckRecord(System.currentTimeMillis(),"更新未完成，请重新检查", "",SchoolCheckOutcome.failed(untouched=false))
+                            applicationRecord=failed;runCatching {SchoolCheckHistoryStore(app).write(failed)}
+                        }
+                        throw error
+                    }
                 }, { result ->
                     result.onSuccess { (saved,previous,history) ->
                         current.data=saved;current.previous=previous;current.checkHistory=history;current.notice="";home()
-                    }.onFailure { current.notice = "更新未完成，课表或日期可能已变化，请重新检查。"; render() }
+                    }.onFailure {
+                        current.checkHistory=applicationRecord ?: current.checkHistory
+                        current.notice=if(applicationRecord?.outcome?.applied==true)"课表已更新，后续设置未完成，请重新检查登录状态。"
+                            else "更新未完成，请重新检查。"
+                        home()
+                    }
                 })
             }.show()
     }

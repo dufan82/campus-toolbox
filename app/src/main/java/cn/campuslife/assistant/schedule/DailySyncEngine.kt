@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock
 class SchoolAuthenticationException(val responseCode:Int?=null) : IOException("School authentication expired")
 enum class SyncResult { READY, CHECKING, NEEDS_LOGIN, NO_CHANGE, UPDATED, CONFLICT, NETWORK_ERROR, INVALID_DATA, INTERRUPTED, SKIPPED }
 data class DailySyncState(val enabled:Boolean=false,val generation:Long=0,val lastAttempt:Long=0,
-    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="")
+    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="",val outcome:SchoolCheckOutcome?=null)
 /** Contains only the explicitly authorised timetable token, never passwords or WebView cookies. */
 class SchoolSyncCredential(val authorization:String,val semester:Semester) {
     override fun toString() = "SchoolSyncCredential(redacted)"
@@ -43,8 +43,9 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
             if(!initial.enabled || cancelled.get() || initial.result==SyncResult.NEEDS_LOGIN || initial.lastAttemptDay==now.toLocalDate().toString())return SyncResult.SKIPPED
             fun active()=repo.state().let {it.enabled && it.generation==generation} && !cancelled.get()
             fun checkActive(){if(!active())throw InterruptedIOException("Sync stopped")}
-            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="",details="")}
+            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="",details="",outcome=null)}
             var result:SyncResult
+            var applyStarted=false
             try {
                 checkActive()
                 val credential=repo.credential() ?: throw SchoolAuthenticationException()
@@ -56,24 +57,25 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
                 require(fetched.complete){"学校课表未完整取得"}
                 fetched.data.checked()
                 require(fetched.data.semester==credential.semester){"学校当前学期与本地不一致"}
+                applyStarted=true
                 val plan=repo.apply(snapshot,fetched.data,now.toLocalDate(),generation)
                 result=when {plan.conflicts>0->SyncResult.CONFLICT;plan.changes.total>0->SyncResult.UPDATED;else->SyncResult.NO_CHANGE}
                 repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(snapshot.data,plan.data,now.toLocalDate()),
-                    summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化")}
+                    summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化",outcome=SchoolCheckOutcome.completed(plan.changes,plan.conflicts))}
                 if(plan.changes.total>0 && active())runCatching {repo.notify(plan.changes)}
             }catch(_:SchoolAuthenticationException){
                 repo.clearCredential(generation);result=SyncResult.NEEDS_LOGIN
-                repo.update(generation){it.copy(result=result,summary="需要重新登录学校平台并确认导入，原课表已保留")}
+                repo.update(generation){it.copy(result=result,summary="需要重新登录学校平台并确认导入，原课表已保留",outcome=SchoolCheckOutcome.failed(!applyStarted))}
             }catch(_:InterruptedIOException){
                 result=if(cancelled.get())SyncResult.INTERRUPTED else SyncResult.NETWORK_ERROR
                 repo.update(generation){it.copy(result=result,summary="检查中断或网络超时，原课表保留",
-                    lastAttemptDay=if(cancelled.get())"" else it.lastAttemptDay)}
+                    lastAttemptDay=if(cancelled.get())"" else it.lastAttemptDay,outcome=SchoolCheckOutcome.failed(!applyStarted).copy(phase=if(cancelled.get())SchoolCheckPhase.INTERRUPTED else SchoolCheckPhase.FAILED))}
             }catch(_:IOException){
                 result=SyncResult.NETWORK_ERROR
-                repo.update(generation){it.copy(result=result,summary="网络或平台暂时不可用，原课表保留")}
+                repo.update(generation){it.copy(result=result,summary="网络或平台暂时不可用，原课表保留",outcome=SchoolCheckOutcome.failed(!applyStarted))}
             }catch(_:Exception){
                 result=SyncResult.INVALID_DATA
-                repo.update(generation){it.copy(result=result,summary="数据不完整、学期/作息不一致或本地已变化，未应用更新")}
+                repo.update(generation){it.copy(result=result,summary="数据不完整、学期/作息不一致或本地已变化，未应用更新",outcome=SchoolCheckOutcome.failed(!applyStarted))}
             }
             return result
         }finally{gate.unlock()}

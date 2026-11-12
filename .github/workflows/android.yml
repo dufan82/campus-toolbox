@@ -50,6 +50,9 @@ jobs:
         run: |
           Write-Output 'Release validation uses Android Build Tools 35.0.0.'
           ./scripts/Test-Release.ps1 -BuildToolsPath (Join-Path $env:ANDROID_HOME 'build-tools/35.0.0')
+          ./scripts/Test-StablePublish.ps1
+          ./scripts/Test-StableReceipt.ps1
+          ./scripts/Test-StableReleaseTransport.ps1
 
       - name: Upload test and lint reports
         if: ${{ always() }}

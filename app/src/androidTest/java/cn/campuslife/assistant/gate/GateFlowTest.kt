@@ -188,7 +188,7 @@ class GateFlowTest {
         try {
             assertTrue(prefs.edit().putString("layout", """{"version":1,"order":["planner","watermark","map","schedule"],"hidden":["map","watermark"]}""").commit())
             val restored = HomeLayoutStore(context).load()
-            assertEquals(listOf("planner", "schedule", "story"), restored.visible())
+            assertEquals(listOf("planner", "schedule", "story", "daily60"), restored.visible())
             assertEquals(setOf("map", "watermark"), restored.hidden)
             ActivityScenario.launch(MainActivity::class.java).use { scenario ->
                 val until = android.os.SystemClock.uptimeMillis() + 5000

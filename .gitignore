@@ -97,3 +97,12 @@ private/suiji-review-assets/
 # Public curation provenance and maintenance handoff
 !/docs/SUIJI_CONTENT.md
 !/docs/SUIJI_ADMIN.md
+
+# Lightweight workflow and preserved handoff history (no private logs/config).
+!/docs/WORKFLOW.md
+!/docs/PUBLISH_WORKFLOW_PLAN.md
+!/docs/PUBLISH_BENCHMARK.md
+!/docs/archive/
+!/docs/archive/AGENTS-before-release-workflow-20261112.md
+!/docs/archive/STATUS-before-publish-workflow-20261112.md
+!/docs/archive/TASKS-before-publish-workflow-20261112.md

@@ -29,16 +29,16 @@ class GateRouteTest {
 
     @Test fun retiredGateDoesNotResetAnExistingHiddenTool() {
         val old = HomeLayout(listOf("gate", "schedule", "map", "planner", "watermark"), setOf("gate", "watermark"))
-        assertEquals(HomeLayout(listOf("schedule", "map", "planner", "watermark", "story"), setOf("watermark")), old.normalized())
-        assertEquals(listOf("schedule", "map", "planner", "story"), old.visible())
+        assertEquals(HomeLayout(listOf("schedule", "map", "planner", "watermark", "story", "daily60"), setOf("watermark")), old.normalized())
+        assertEquals(listOf("schedule", "map", "planner", "story", "daily60"), old.visible())
     }
 
     @Test fun upgradePreservesOldOrderAndHiddenToolsWithoutAddingGate() {
         val old = HomeLayout(listOf("planner", "watermark", "map", "schedule"), setOf("watermark", "map"))
         val updated = old.normalized()
-        assertEquals(listOf("planner", "watermark", "map", "schedule", "story"), updated.order)
+        assertEquals(listOf("planner", "watermark", "map", "schedule", "story", "daily60"), updated.order)
         assertEquals(setOf("watermark", "map"), updated.hidden)
-        assertEquals(listOf("planner", "schedule", "story"), updated.visible())
+        assertEquals(listOf("planner", "schedule", "story", "daily60"), updated.visible())
         assertEquals(updated, updated.normalized())
         assertFalse(updated.order.any { it in setOf("pdd_packages", "pdd_code", "douyin_orders") })
     }
