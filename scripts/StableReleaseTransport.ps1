@@ -270,6 +270,7 @@ function Invoke-StableGhProcess([string[]]$Arguments, [string]$InputJson = '', [
         $info = [Diagnostics.ProcessStartInfo]::new($command.Source)
         $info.UseShellExecute = $false; $info.CreateNoWindow = $true
         $info.RedirectStandardInput = $true; $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+        $info.StandardInputEncoding = [Text.UTF8Encoding]::new($false)
         foreach ($argument in $Arguments) { $info.ArgumentList.Add($argument) }
         $info.Environment['GH_HOST'] = 'github.com'; $info.Environment['GH_PROMPT_DISABLED'] = '1'
         $info.Environment['GIT_TERMINAL_PROMPT'] = '0'

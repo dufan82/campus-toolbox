@@ -53,6 +53,7 @@ jobs:
           ./scripts/Test-StablePublish.ps1
           ./scripts/Test-StableReceipt.ps1
           ./scripts/Test-StableReleaseTransport.ps1
+          ./scripts/Test-StableGhEncoding.ps1
 
       - name: Upload test and lint reports
         if: ${{ always() }}

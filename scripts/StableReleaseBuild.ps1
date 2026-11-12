@@ -102,7 +102,7 @@ function Invoke-StableLocalPreparation {
                 $wrapper=if($IsWindows){'gradlew.bat'}else{'gradlew'}
                 & (Join-Path $ProjectRoot $wrapper) @arguments *> $log
                 if($LASTEXITCODE){throw 'Gradle validation/build failed; inspect local validation log.'}
-                foreach($test in @('Test-Build.ps1','Test-Release.ps1','Test-StablePublish.ps1','Test-StableReceipt.ps1','Test-StableReleaseTransport.ps1')){
+                foreach($test in @('Test-Build.ps1','Test-Release.ps1','Test-StablePublish.ps1','Test-StableReceipt.ps1','Test-StableReleaseTransport.ps1','Test-StableGhEncoding.ps1')){
                     $script=Join-Path $ProjectRoot "scripts/$test";if(!(Test-Path -LiteralPath $script)){throw 'Required release test script missing.'}
                     $params=@('-NoProfile','-File',$script);$unsigned=$null
                     try {

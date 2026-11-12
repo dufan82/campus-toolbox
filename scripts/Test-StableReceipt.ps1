@@ -11,7 +11,7 @@ try {
     [IO.File]::WriteAllText((Join-Path $root 'app/build.gradle.kts'),"versionCode = 105`nversionName = `"10.5.0`"`n")
     [IO.File]::WriteAllText((Join-Path $root 'app/src/main/App.kt'),'initial')
     [IO.File]::WriteAllText((Join-Path $root 'app/src/test/AppTest.kt'),'test')
-    $fp={param($scope)Get-StableFingerprint $root $scope ('a'*64) (Join-Path $root 'tools')}.GetNewClosure()
+    $fp={param($scope)Get-StableFingerprint $root $scope ('a'*64) (Join-Path $root 'tools')}
     $build=& $fp Build;$validation=& $fp Validation
     Check ((Get-StableVersion $root).Code -eq 105) 'versionCode automatically detected'
     [IO.File]::WriteAllText((Join-Path $root 'STATUS.md'),'documentation change only')
