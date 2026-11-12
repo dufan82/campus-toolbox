@@ -157,6 +157,17 @@ try {
             }
         }
     }
+    Case 'CNB confirmation accepts its encoded object key without decoding the actual request URI' {
+        & $module {
+            $path='/campus-toolbox/campus-toolbox/-/releases/123/asset-upload-confirmation/testsig/assets%2Frelease%2F2026%2Ffixture.apk?ttl=0'
+            if((Get-StableCnbConfirmationPath $path 123 -ExpectedAssetName 'fixture.apk') -cne $path){throw 'Valid encoded object key rejected or altered'}
+            Assert-StableCnbApiUri ('https://api.cnb.cool'+$path) POST
+            foreach($bad in ($path.Replace('assets%2Frelease','assets%2F%2e%2e')),($path.Replace('%2F','%252F')),($path.Replace('fixture.apk','other.apk'))) {
+                $caught=$false;try{Get-StableCnbConfirmationPath $bad 123 -ExpectedAssetName 'fixture.apk'|Out-Null}catch{$caught=$true}
+                if(!$caught){throw 'Encoded traversal, double encoding or wrong asset accepted'}
+            }
+        }
+    }
     Case 'API allowlists reject foreign repositories, hosts, DELETE and traversal' {
         & $module {
             foreach($url in 'https://api.cnb.cool/other/repo/-/releases/latest','https://evil.test/campus-toolbox/campus-toolbox/-/releases/latest','https://api.cnb.cool/campus-toolbox/campus-toolbox/-/releases/../latest') {

@@ -132,16 +132,24 @@ function Test-StableCnbStorageUri([string]$Address) {
     return $uri.Host -ceq 'asset.cnb.cool' -or $uri.Host.EndsWith('.myqcloud.com', [StringComparison]::Ordinal)
 }
 
-function Get-StableCnbConfirmationPath([string]$Address, [string]$ReleaseId) {
+function Get-StableCnbConfirmationPath([string]$Address, [string]$ReleaseId, [string]$ExpectedAssetName='') {
     Assert-StableId $ReleaseId
     if ($Address.StartsWith('/') -and !$Address.StartsWith('//')) { $Address = 'https://api.cnb.cool'+$Address }
     if (!(Test-StableHttps $Address)) { Stop-Stable ConfirmationUriRejected }
     $uri = [uri]$Address
     $prefix = '/campus-toolbox/campus-toolbox/-/releases/'+$ReleaseId+'/asset-upload-confirmation/'
-    # Reject canonicalization tricks as well as foreign IDs/hosts. Query is allowed (legacy protocol).
+    # CNB returns a URL-encoded storage object key. Validate one decoded copy, but
+    # keep the original request/signature bytes. The repository/id prefix is never encoded.
+    $marker='/asset-upload-confirmation/';$at=$Address.IndexOf($marker,[StringComparison]::Ordinal)
+    if($at -lt 0 -or $Address.Substring(0,$at).Contains('%')){Stop-Stable ConfirmationUriRejected}
+    $tail=$Address.Substring($at+$marker.Length).Split('?')[0]
+    $decoded=[uri]::UnescapeDataString($tail)
+    $name=$decoded.Split('/')[-1]
     if ($uri.Host -cnotin @('api.cnb.cool','cnb.cool') -or !$uri.AbsolutePath.StartsWith($prefix, [StringComparison]::Ordinal) -or
-        $uri.AbsolutePath.Substring($prefix.Length) -cnotmatch '\A[A-Za-z0-9._~-]+/[A-Za-z0-9._~/-]+\z' -or
-        $Address -match '(?i)%|/\.\.?(/|\?|$)') { Stop-Stable ConfirmationUriRejected }
+        $decoded.Length -gt 2048 -or $decoded -cnotmatch '\A[A-Za-z0-9._~-]+/[A-Za-z0-9._~/-]+\z' -or
+        $decoded -match '(^|/)\.{1,2}(/|$)' -or $Address -match '/\.\.?(/|\?|$)' -or
+        $name -cnotmatch '\A[A-Za-z0-9][A-Za-z0-9._-]*\.(?:apk|json|txt)\z' -or
+        ($ExpectedAssetName -and $name -cne $ExpectedAssetName)) { Stop-Stable ConfirmationUriRejected }
     return $uri.PathAndQuery
 }
 
@@ -150,7 +158,8 @@ function Assert-StableCnbApiUri([string]$Address, [string]$Method) {
     $uri = [uri]$Address
     $base = '/campus-toolbox/campus-toolbox/-/releases'
     $path = $uri.AbsolutePath
-    if ($uri.Host -cne 'api.cnb.cool' -or $Address -match '(?i)%|/\.\.?(/|\?|$)') { Stop-Stable ApiUriRejected }
+    if ($uri.Host -cne 'api.cnb.cool' -or $Address -match '/\.\.?(/|\?|$)' -or
+        (!$path.Contains('/asset-upload-confirmation/') -and $Address.Contains('%'))) { Stop-Stable ApiUriRejected }
     $valid = switch -CaseSensitive ($Method) {
         'GET' { !$uri.Query -and ($path -ceq "$base/latest" -or $path -cmatch ('\A'+$base+'/(?:[1-9][0-9]{0,18}|tags/v[A-Za-z0-9][A-Za-z0-9._-]{0,63})\z')) }
         'POST' { ($path -ceq $base -and !$uri.Query) -or ($path -cmatch ('\A'+$base+'/[1-9][0-9]{0,18}/asset-upload-url\z') -and !$uri.Query) -or
@@ -528,7 +537,7 @@ function Invoke-StableRemote {
                         $null = Invoke-StableGhApi POST ('https://uploads.github.com/repos/dufan82/campus-toolbox/releases/'+$current.Id+'/assets?name='+$File.Name) -FilePath $local.FullName
                     } else {
                         $upload = Invoke-StableApi cnb POST ('/'+$current.Id+'/asset-upload-url') @{asset_name=$File.Name; size=$File.Size; overwrite=$false; ttl=0}
-                        $confirmation = Get-StableCnbConfirmationPath ([string]$upload.verify_url) $current.Id
+                        $confirmation = Get-StableCnbConfirmationPath ([string]$upload.verify_url) $current.Id -ExpectedAssetName $File.Name
                         if (!(Test-StableCnbStorageUri ([string]$upload.upload_url))) { Stop-Stable StorageUriRejected }
                         $null = Invoke-StableHttp Storage PUT ([string]$upload.upload_url) -FilePath $local.FullName
                         $null = Invoke-StableHttp Api POST ('https://api.cnb.cool'+$confirmation)
