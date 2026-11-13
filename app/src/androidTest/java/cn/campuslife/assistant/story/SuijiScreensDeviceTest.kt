@@ -53,7 +53,7 @@ class SuijiScreensDeviceTest {
         shot("07-modern-memoir-ending")
     }
     @Test fun listAndFirstManuscriptUseTheNewNameAndKeepTheFirstSourceAndFavorite() {
-        val list=launch(Intent(app,StoryActivity::class.java));view(list,"story_card_"+if(cn.campuslife.assistant.BuildConfig.SUIJI_PRIVATE_REVIEW)"story-suiji-001" else "story-suiji-007");shot("01-suiji-list")
+        val list=launch(Intent(app,StoryActivity::class.java));view(list,"story_card_"+if(cn.campuslife.assistant.BuildConfig.SUIJI_PRIVATE_REVIEW)"story-suiji-001" else "story-suiji-002");shot("01-suiji-list")
         inst.runOnMainSync {assertNull(list.window.decorView.findViewWithTag<View>("story_card_story-001"))}
         val reader=launch(StoryReaderActivity.intent(app,"story-suiji-001"))
         val body=view(reader,"story_reader_body") as TextView
@@ -86,7 +86,8 @@ class SuijiScreensDeviceTest {
         Thread.sleep(800);drain();assertEquals("原有草稿不会丢",StoryStore(app).read().draft.title)
     }
     @Test fun aLinkOnlyPreviewDoesNotOverwriteAnExistingFullTextReadingPosition() {
-        val id="story-suiji-002"
+        // 002 now has authorized full text; keep this regression on a link-only candidate.
+        val id="story-suiji-004"
         StoryStore(app).write(StoryLocalState(progress=mapOf(id to .42)))
         val reader=launch(StoryReaderActivity.intent(app,id))
         view(reader,"story_reader_body")
@@ -95,6 +96,28 @@ class SuijiScreensDeviceTest {
         inst.runOnMainSync { reader.finish() }
         inst.waitForIdleSync();drain()
         assertEquals(.42,StoryStore(app).read().progress.getValue(id),.00001)
+    }
+    @Test fun importedDouyinWorksShowTheirWholeOriginalBodyAndEndingsOffline() {
+        val entries=StoryAsset.load(app.assets)
+        for((id,ending) in listOf("story-suiji-002" to "我的糖醋酱早就被扔到垃圾桶里了。",
+            "story-suiji-003" to "喜欢吃什么。")) {
+            val story=entries.single {it.id==id}
+            val reader=launch(StoryReaderActivity.intent(app,id))
+            val body=view(reader,"story_reader_body") as TextView
+            inst.runOnMainSync {
+                assertEquals(story.body,body.text.toString())
+                assertTrue(body.text.toString().endsWith(ending))
+                assertEquals(story.authorLabel,(view(reader,"story_reader_author") as TextView).text.toString())
+                assertEquals("查看原文 ↗",(view(reader,"story_source_link") as Button).text.toString())
+                assertNull(reader.window.decorView.findViewWithTag<View>("story_rights_notice"))
+            }
+            shot("$id-start")
+            inst.runOnMainSync {(view(reader,"story_reader_scroll") as ScrollView).fullScroll(View.FOCUS_DOWN)}
+            shot("$id-ending")
+            // startActivitySync(NEW_TASK) must not reuse the previous reader's task root.
+            inst.runOnMainSync {reader.finish()}
+            inst.waitForIdleSync();drain()
+        }
     }
     @Test fun theLicensedArticleHasItsEntireNativeBodyAndALicenseLink() {
         val reader=launch(StoryReaderActivity.intent(app,"story-suiji-005"))

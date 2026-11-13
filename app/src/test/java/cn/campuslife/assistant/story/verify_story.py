@@ -56,7 +56,7 @@ for story in stories:
         assert hashlib.sha256(story['body'].encode('utf-8')).hexdigest()==integrity['sha256']
         assert len(story['body'].strip())==integrity['characters']
         assert len(re.split(r'\n\s*\n', story['body'].strip()))==integrity['paragraphs']
-assert sum(bool(s['body']) for s in stories)==8
+assert sum(bool(s['body']) for s in stories)==10
 legacy = json.loads((asset.parent / "legacy_stories.json").read_text(encoding="utf-8"))["stories"]
 assert len(legacy) == 12
 assert {s["id"] for s in legacy} == {f"story-{i:03}" for i in range(1, 13)}
@@ -87,4 +87,4 @@ if args.app_jar:
         command(compiler + ["-classpath", test_cp, "-d", out / "story-device-tests.jar"] + device_tests)
 report["finished_utc"] = datetime.now(timezone.utc).isoformat()
 (out / "results.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-print("Content: 8 complete public texts, 8 retained source candidates plus 12 archived passed; raw command evidence: " + str(out / "results.json"))
+print("Content: 10 complete public texts, 6 retained source candidates plus 12 archived passed; raw command evidence: " + str(out / "results.json"))

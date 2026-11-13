@@ -182,14 +182,15 @@ class StoryReaderActivity : StoryScreen() {
         content.addView(Ui.text(this,StoryProvenance.COPYRIGHT,11f,Ui.muted).apply {tag="story_copyright"})
         content.addView(Ui.space(this,12))
         val navigation=Ui.row(this)
+        val sameColumn=entries.filter {StoryColumn.of(it)==StoryColumn.of(story)}
         val previous=Ui.button(this,"上一篇") {
-            if(ready && !loadingStory)StoryRules.adjacent(entries,story.id,-1)?.let {openStory(it.id,state.progress[it.id] ?: 0.0)}
-        }.apply {tag="story_previous";isEnabled=StoryRules.adjacent(entries,story.id,-1)!=null}
+            if(ready && !loadingStory)StoryRules.adjacent(sameColumn,story.id,-1)?.let {openStory(it.id,state.progress[it.id] ?: 0.0)}
+        }.apply {tag="story_previous";isEnabled=StoryRules.adjacent(sameColumn,story.id,-1)!=null}
         navigation.addView(previous,LinearLayout.LayoutParams(0,-2,1f).apply {marginEnd=Ui.dp(this@StoryReaderActivity,8)})
         nextStory=Ui.button(this,"下一篇") {
             if(!ready || loadingStory)return@button
-            StoryRules.adjacent(entries,story.id,1)?.let { openStory(it.id,state.progress[it.id] ?: 0.0) }
-        }.apply { tag="story_next";isEnabled=StoryRules.adjacent(entries,story.id,1)!=null }
+            StoryRules.adjacent(sameColumn,story.id,1)?.let { openStory(it.id,state.progress[it.id] ?: 0.0) }
+        }.apply { tag="story_next";isEnabled=StoryRules.adjacent(sameColumn,story.id,1)!=null }
         navigation.addView(nextStory,LinearLayout.LayoutParams(0,-2,1f));content.addView(navigation)
         content.addView(Ui.space(this,8))
         content.addView(Ui.textButton(this,"返回列表") { returnToList() }.apply { tag="story_back_list" })
@@ -223,7 +224,10 @@ class StoryReaderActivity : StoryScreen() {
     }
     private fun returnToList() {
         savePosition()
-        startActivity(Intent(this,StoryActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        startActivity(Intent(this,StoryActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            current?.let {putExtra(StoryActivity.EXTRA_COLUMN,StoryColumn.of(it).key)}
+        })
         finish()
     }
     override fun onPause() { main.removeCallbacks(saveTask); savePosition(); super.onPause() }

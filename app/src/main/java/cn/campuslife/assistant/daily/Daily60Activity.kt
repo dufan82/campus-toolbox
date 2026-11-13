@@ -2,7 +2,6 @@ package cn.campuslife.assistant.daily
 
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
@@ -20,6 +19,7 @@ class Daily60Activity:Activity() {
         val media=RetainedWork<Daily60Activity>({Handler(Looper.getMainLooper()).post(it)})
         var latest=Daily60State();var bitmap:Bitmap?=null;var shown:Daily60Snapshot?=null
         var requested:Daily60Image?=null;var document:File?=null
+        var viewerOpen=false;var viewerFrame:Daily60ZoomView.Frame?=null
     }
     private var configured:Daily60Repository?=null
     private var created=false
@@ -29,15 +29,23 @@ class Daily60Activity:Activity() {
     private lateinit var dates:TextView
     private lateinit var picture:ImageView
     private var menu:AlertDialog?=null
+    private var viewer:android.app.Dialog?=null
+    private var zoomView:Daily60ZoomView?=null
+    private var useRuntime=false
 
     internal fun configureClient(client:Daily60Client,cache:Daily60Cache) {
         check(!created);configured=Daily60Repository(client,cache)
     }
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState);created=true
+        useRuntime=configured==null
+        val repository=configured ?: Daily60Runtime.repository(applicationContext)
         screen=lastNonConfigurationInstance as? Screen ?: Screen(Daily60Session(
-            configured ?: Daily60Repository(Daily60ApiClient(),Daily60Store(applicationContext)),
+            repository,
             {action->Handler(Looper.getMainLooper()).post {action()}}))
+        if(useRuntime && screen.shown==null)repository.peek()?.let {snapshot->
+            Daily60Runtime.preview(snapshot.image)?.let {bitmap->screen.bitmap=bitmap;screen.shown=snapshot}
+        }
         configured=null
         val root=Ui.page(this);root.addView(Ui.header(this,"每日60秒"))
         val body=Ui.column(this).apply {setPadding(Ui.dp(context,16),Ui.dp(context,8),Ui.dp(context,16),Ui.dp(context,24))}
@@ -61,6 +69,7 @@ class Daily60Activity:Activity() {
         super.onStart()
         screen.media.bind(this){busy,_->refresh.isEnabled=!busy && !screen.latest.loading}
         screen.feed.bind(::render);screen.feed.open()
+        if(screen.viewerOpen)showViewer()
     }
     private fun render(state:Daily60State) {
         if(isFinishing || isDestroyed)return
@@ -73,12 +82,13 @@ class Daily60Activity:Activity() {
         }
         if(screen.requested===snapshot.image)return
         screen.requested=snapshot.image
-        screen.media.submit("打开图片…",{Daily60Bitmap.decode(snapshot.image)},{result->
+        screen.media.submit("打开图片…",{(if(useRuntime)Daily60Runtime.preview(snapshot.image) else null) ?: Daily60Bitmap.decode(snapshot.image)},{result->
             result.onSuccess {bitmap->
                 if(screen.latest.result.snapshot?.image===snapshot.image) {
                     screen.bitmap=bitmap;screen.shown=snapshot;picture.setImageBitmap(bitmap)
+                    if(useRuntime)Daily60Runtime.remember(snapshot.image,bitmap)
                     render(screen.latest)
-                }else bitmap.recycle()
+                }
             }.onFailure {status.text="图片无法打开，请点刷新重试"}
         },enqueue=true)
     }
@@ -90,6 +100,7 @@ class Daily60Activity:Activity() {
         }.show()
     }
     private fun imageAction(snapshot:Daily60Snapshot,save:Boolean) {
+        if(!save){showViewer();return}
         val app=applicationContext
         screen.media.submit(if(save)"保存图片…" else "打开图片…",{
             val files=Daily60ImageFiles(app)
@@ -106,13 +117,27 @@ class Daily60Activity:Activity() {
                         startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                             .setType(snapshot.image.mime).putExtra(Intent.EXTRA_TITLE,file.name),406)
                     }catch(_:Exception){screen.document=null;Ui.toast(this,"没有可用的保存位置选择器")}
-                }else {
-                    try {startActivity(Daily60ImageFiles(this).openIntent(file,snapshot.image.mime))}
-                    catch(_:ActivityNotFoundException){Ui.toast(this,"没有可打开图片的应用")}
-                    catch(_:SecurityException){Ui.toast(this,"图片暂时无法打开")}
                 }
             }.onFailure {Ui.toast(this,if(save)"保存失败，请检查存储空间后重试" else "图片暂时无法打开")}
         })
+    }
+    private fun showViewer() {
+        val bitmap=screen.bitmap ?: return
+        if(viewer?.isShowing==true)return
+        screen.viewerOpen=true
+        val dialog=android.app.Dialog(this,android.R.style.Theme_Material_Light_NoActionBar)
+        val root=Ui.column(this).apply {setBackgroundColor(android.graphics.Color.WHITE)}
+        val toolbar=Ui.row(this).apply {setPadding(Ui.dp(context,8),0,Ui.dp(context,8),0)}
+        val zoom=Daily60ZoomView(this,bitmap,screen.viewerFrame);zoomView=zoom
+        toolbar.addView(Ui.textButton(this,"返回"){dialog.dismiss()})
+        toolbar.addView(Ui.text(this,"图片",16f,Ui.blue),LinearLayout.LayoutParams(0,-2,1f))
+        toolbar.addView(Ui.textButton(this,"−"){zoom.zoomBy(1/1.5f)}.apply {contentDescription="缩小图片"},LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
+        toolbar.addView(Ui.textButton(this,"+"){zoom.zoomBy(1.5f)}.apply {contentDescription="放大图片"},LinearLayout.LayoutParams(Ui.dp(this,48),Ui.dp(this,48)))
+        root.addView(toolbar,LinearLayout.LayoutParams(-1,Ui.dp(this,56)))
+        root.addView(zoom,LinearLayout.LayoutParams(-1,0,1f))
+        dialog.setContentView(root)
+        dialog.setOnDismissListener {screen.viewerFrame=zoom.frame();if(!isChangingConfigurations)screen.viewerOpen=false;viewer=null;zoomView=null}
+        viewer=dialog;dialog.show();dialog.window?.setLayout(-1,-1)
     }
     @Deprecated("Platform document picker")
     override fun onActivityResult(requestCode:Int,resultCode:Int,data:Intent?) {
@@ -128,7 +153,7 @@ class Daily60Activity:Activity() {
     override fun onStop(){screen.feed.detach();screen.media.detach(this);super.onStop()}
     override fun onRetainNonConfigurationInstance():Any=screen
     override fun onDestroy() {
-        menu?.dismiss();picture.setImageDrawable(null);screen.feed.detach();screen.media.detach(this)
+        menu?.dismiss();zoomView?.let {screen.viewerFrame=it.frame()};viewer?.dismiss();picture.setImageDrawable(null);screen.feed.detach();screen.media.detach(this)
         if(!isChangingConfigurations){screen.feed.close();screen.media.close()}
         super.onDestroy()
     }

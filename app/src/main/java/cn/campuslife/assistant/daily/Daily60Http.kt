@@ -21,19 +21,23 @@ internal class Daily60Http(private val open:(URL)->HttpURLConnection={it.openCon
             return (20_000_000_000L-(nanoTime()-started)).also {if(it<=0)throw java.net.SocketTimeoutException()}
         }
         var last:Exception?=null
-        val sources=listOf(ENDPOINT,"https://cdn.jsdmirror.com/gh/vikiboss/60s-static-host@main/static/images/${today()}.png")
+        val mirror="https://cdn.jsdmirror.com/gh/vikiboss/60s-static-host@main/static/images/${today()}.png"
         val workers=Executors.newFixedThreadPool(2){Thread(it,"daily60-image-fetch").apply {isDaemon=true}}
-        try {
-        for(url in sources) {
-            val budget=minOf(remaining(),TimeUnit.MILLISECONDS.toNanos(attemptLimitMillis))
-            val request=workers.submit<Daily60Image> {
-                val connection=open(URI(url).toURL())
+        val completed=java.util.concurrent.ExecutorCompletionService<Daily60Image>(workers)
+        val futures=mutableListOf<java.util.concurrent.Future<Daily60Image>>()
+        val active=java.util.concurrent.ConcurrentHashMap.newKeySet<HttpURLConnection>()
+        val limit=minOf(20_000_000_000L,TimeUnit.MILLISECONDS.toNanos(attemptLimitMillis+150))
+        fun budget():Long=minOf(remaining(),limit-(nanoTime()-started)).also {if(it<=0)throw java.net.SocketTimeoutException()}
+        fun submit(url:String) {
+            budget()
+            futures+=completed.submit(java.util.concurrent.Callable {
+                val connection=open(URI(url).toURL());active.add(connection)
                 val timer=Executors.newSingleThreadScheduledExecutor {Thread(it,"daily60-image-deadline").apply {isDaemon=true}}
-                val deadline=timer.schedule({connection.disconnect()},remaining(),TimeUnit.NANOSECONDS)
+                val deadline=timer.schedule({connection.disconnect()},minOf(budget(),TimeUnit.MILLISECONDS.toNanos(attemptLimitMillis)),TimeUnit.NANOSECONDS)
                 try {
                     connection.requestMethod="GET";connection.instanceFollowRedirects=false;connection.useCaches=false
-                    connection.connectTimeout=minOf(6000,TimeUnit.NANOSECONDS.toMillis(remaining()).coerceAtLeast(1).toInt())
-                    connection.readTimeout=minOf(8000,TimeUnit.NANOSECONDS.toMillis(remaining()).coerceAtLeast(1).toInt())
+                    connection.connectTimeout=minOf(6000,TimeUnit.NANOSECONDS.toMillis(budget()).coerceAtLeast(1).toInt())
+                    connection.readTimeout=minOf(8000,TimeUnit.NANOSECONDS.toMillis(budget()).coerceAtLeast(1).toInt())
                     connection.setRequestProperty("Accept","image/png,image/jpeg,image/webp")
                     connection.setRequestProperty("Accept-Encoding","identity")
                     connection.setRequestProperty("User-Agent","CampusToolbox-Android")
@@ -44,23 +48,32 @@ internal class Daily60Http(private val open:(URL)->HttpURLConnection={it.openCon
                     connection.inputStream.use {input->
                         val buffer=ByteArray(8192)
                         while(true) {
-                            remaining();val count=input.read(buffer);remaining()
+                            budget();val count=input.read(buffer);budget()
                             if(count<0)break
                             if(bytes.size()+count>Daily60Rules.MAX_BYTES)throw IOException("Image too large")
                             bytes.write(buffer,0,count)
                         }
                     }
                     Daily60Rules.image(bytes.toByteArray(),connection.contentType.orEmpty())
-                } finally {deadline.cancel(false);timer.shutdownNow();connection.disconnect()}
-            }
-            try {return request.get(budget,TimeUnit.NANOSECONDS)}
-            catch(_:java.util.concurrent.TimeoutException){last=java.net.SocketTimeoutException()}
-            catch(error:java.util.concurrent.ExecutionException){last=error.cause as? Exception ?: IOException("Image unavailable")}
-            catch(_:InterruptedException){Thread.currentThread().interrupt();throw InterruptedIOException()}
-            finally {if(!request.isDone)request.cancel(true)}
+                } finally {deadline.cancel(false);timer.shutdownNow();connection.disconnect();active.remove(connection)}
+            })
         }
-        throw last ?: IOException("Image unavailable")
-        }finally{workers.shutdownNow()}
+        fun result(future:java.util.concurrent.Future<Daily60Image>):Daily60Image?=try {future.get()}
+            catch(error:java.util.concurrent.ExecutionException){last=error.cause as? Exception ?: IOException("Image unavailable");null}
+        try {
+            submit(ENDPOINT)
+            // A fast primary costs one GET. A slow one gets a fixed mirror after 150ms.
+            val first=completed.poll(minOf(budget(),TimeUnit.MILLISECONDS.toNanos(150)),TimeUnit.NANOSECONDS)
+            if(first!=null)result(first)?.let{return it}
+            submit(mirror)
+            var waiting=if(first==null)2 else 1
+            while(waiting-->0) {
+                val done=completed.poll(budget(),TimeUnit.NANOSECONDS) ?: throw java.net.SocketTimeoutException()
+                result(done)?.let{return it}
+            }
+            throw last ?: IOException("Image unavailable")
+        }catch(_:InterruptedException){Thread.currentThread().interrupt();throw InterruptedIOException()}
+        finally {futures.forEach {it.cancel(true)};active.forEach {it.disconnect()};workers.shutdownNow()}
     }
     companion object {const val ENDPOINT="https://60s.viki.moe/v2/60s?encoding=image-proxy"}
 }

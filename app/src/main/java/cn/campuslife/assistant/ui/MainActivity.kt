@@ -91,6 +91,19 @@ class MainActivity : Activity() {
         // After the first layout; all network and preference reads stay off the UI thread.
         root.post { if (!isDestroyed) { loadPoem();updateStarted=true;checkUpdate() } }
     }
+    private var dailyWarmPosted=false
+    override fun onStart() {
+        super.onStart()
+        if(!dailyWarmPosted) {
+            dailyWarmPosted=true
+            val owner=WeakReference(this);val app=applicationContext
+            window.decorView.postDelayed({
+                owner.get()?.takeIf {!it.isFinishing && !it.isDestroyed && it.hasWindowFocus()}?.let {
+                    cn.campuslife.assistant.daily.Daily60Runtime.warm(app)
+                }
+            },1500)
+        }
+    }
     override fun onResume() { super.onResume();if(::toolsBody.isInitialized) { reloadLayout();loadNextLesson();if(updateStarted) checkUpdate() } }
     override fun onDestroy() { updateTicket++;lessonTicket++;poemDialog?.dismiss();super.onDestroy() }
     private fun checkUpdate() {

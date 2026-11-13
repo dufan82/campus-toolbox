@@ -10,6 +10,6 @@ class DailySyncPreferences(context:Context) {
     fun write(state:DailySyncState) {
         check(prefs.edit().putBoolean("enabled",state.enabled).putLong("generation",state.generation).putLong("attempt",state.lastAttempt)
             .putLong("success",state.lastSuccess).putString("day",state.lastAttemptDay).putString("result",state.result.name)
-            .putString("summary",state.summary).putString("details",state.details.take(4000)).putString("outcome",state.outcome?.encode().orEmpty()).commit()) {"同步设置未保存"}
+            .putString("summary",state.summary).putString("details",SchoolCheckHistory.boundedDetails(state.details)).putString("outcome",state.outcome?.encode().orEmpty()).commit()) {"同步设置未保存"}
     }
 }

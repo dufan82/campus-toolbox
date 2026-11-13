@@ -38,4 +38,27 @@ class Daily60RepositoryTest {
   val c=Cache();val repo=Daily60Repository(Daily60Client{Thread.currentThread().interrupt();Daily60TestImage.image()},c)
   try{repo.refresh(null);assertEquals(0,c.writes)}finally{Thread.interrupted()}
  }
+ @Test fun repeatedPageOpenReusesMemoryInsteadOfReadingAndDecodingDiskAgain() {
+  var reads=0;val at=System.currentTimeMillis();val snapshot=Daily60Snapshot(Daily60TestImage.image(),at)
+  val cache=object:Daily60Cache{override fun read():Daily60Snapshot{reads++;return snapshot};override fun write(snapshot:Daily60Snapshot){}}
+  val repo=Daily60Repository(Daily60Client{error("No request")},cache,{at})
+  assertSame(snapshot,repo.readCache());assertSame(snapshot,repo.readCache());assertSame(snapshot,repo.peek());assertEquals(1,reads)
+ }
+ @Test fun backgroundWarmupAndPageReadCoalesceInsteadOfDownloadingTwice() {
+  val at=System.currentTimeMillis();val calls=java.util.concurrent.atomic.AtomicInteger()
+  val repo=Daily60Repository(Daily60Client{calls.incrementAndGet();Thread.sleep(80);Daily60TestImage.image()},Cache(),{at})
+  val pool=java.util.concurrent.Executors.newFixedThreadPool(2)
+  try{val a=pool.submit<Daily60Result>{repo.refresh(null,force=false)};val b=pool.submit<Daily60Result>{repo.refresh(null,force=false)}
+   assertSame(a.get().snapshot,b.get().snapshot);assertEquals(1,calls.get())
+  }finally{pool.shutdownNow()}
+ }
+ @Test fun oldOrFutureDatedCacheCannotSuppressFetchingAndManualRefreshStillFetches() {
+  val at=java.time.Instant.parse("2026-11-12T10:00:00Z").toEpochMilli();var calls=0
+  val repo=Daily60Repository(Daily60Client{calls++;Daily60TestImage.image()},Cache(),{at})
+  assertFalse(repo.isFresh(Daily60Snapshot(Daily60TestImage.image(),at+1)))
+  val old=Daily60Snapshot(Daily60TestImage.image(),at-86_400_000)
+  assertFalse(repo.isFresh(old));repo.refresh(old,force=false);assertEquals(1,calls)
+  repo.refresh(repo.peek());assertEquals(2,calls)
+ }
+
 }

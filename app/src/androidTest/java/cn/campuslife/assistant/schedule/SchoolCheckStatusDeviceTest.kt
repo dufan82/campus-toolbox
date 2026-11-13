@@ -30,15 +30,16 @@ class SchoolCheckStatusDeviceTest {
             ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
                 await("尚未检查")
                 SchoolCheckHistoryStore(app).write(SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表没有变化",""))
-                scenario.recreate();await("已检查，课表没有变化")
+                scenario.recreate();await("已完成检查")
+                await("学校课表：未发现变化");await("本机课表：无需更新")
                 inst.runOnMainSync {assertFalse(nodes().any {it.tag=="school_check_details"})}
             }
             SchoolCheckHistoryStore(app).write(SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表已更新","更新后\n11月12日 · 设计课 · 301 · 陈老师 · 第1–2节\n\n更新前\n11月12日 · 设计课 · 201 · 王老师 · 第1–2节"))
             ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-                await("已检查，课表已更新")
+                await("已完成检查");await("本机课表：已更新")
                 inst.runOnMainSync {assertTrue(nodes().single {it.tag=="school_check_details"}.performClick())}
                 await("更新后\n11月12日 · 设计课 · 301 · 陈老师 · 第1–2节\n\n更新前\n11月12日 · 设计课 · 201 · 王老师 · 第1–2节")
-                scenario.recreate();await("已检查，课表已更新")
+                scenario.recreate();await("已完成检查");await("本机课表：已更新")
             }
             val failure=java.io.IOException("Offline fixture")
             try {SchoolCheckHistoryStore(app).recordingFailure("检查未完成，课表读取失败") {throw failure};fail("Expected original error")}

@@ -36,6 +36,19 @@ class Daily60SessionTest {
         worker.run();while(ui.isNotEmpty())ui.removeFirst().invoke()
         assertEquals(2,calls);session.close()
     }
+    @Test fun openingTodaysCacheDoesNotWaitForOrRepeatNetwork() {
+        val worker=Worker();val ui=ArrayDeque<()->Unit>();var calls=0
+        val at=java.time.ZonedDateTime.of(2026,11,12,10,0,0,0,Daily60Rules.zone).toInstant().toEpochMilli()
+        val cached=Daily60Snapshot(Daily60TestImage.image(),at)
+        val cache=object:Daily60Cache {override fun read()=cached;override fun write(snapshot:Daily60Snapshot) {fail("No unchanged-cache write")}}
+        val repo=Daily60Repository(Daily60Client {calls++;throw java.io.IOException()},cache,{at+60000})
+        val states=mutableListOf<Daily60State>()
+        val session=Daily60Session(repo,{ui.add(it)},worker)
+        session.bind(states::add);session.open();worker.run();while(ui.isNotEmpty())ui.removeFirst().invoke()
+        assertEquals("Today's cached image must not start a network request",0,calls)
+        assertSame(cached,states.last().result.snapshot);assertFalse(states.last().loading)
+        assertNull(states.last().result.message);session.close()
+    }
     @Test fun detachAndRebindForRotationDoesNotIssueAnotherRequest() {
         val worker=Worker();val ui=ArrayDeque<()->Unit>();var calls=0
         val cache=object:Daily60Cache {override fun read():Daily60Snapshot?=null;override fun write(snapshot:Daily60Snapshot) {}}

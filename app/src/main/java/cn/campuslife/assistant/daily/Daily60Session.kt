@@ -36,7 +36,7 @@ internal class Daily60Session(private val repository: Daily60Repository, private
                 post {state=Daily60State(preview,true);receiver?.invoke(state)}
             }
             if(closed) return@job
-            val result=repository.refresh(cached)
+            val result=repository.refresh(cached,force=!readCache)
             post {
                 val message=if(cacheError && result.snapshot==null) "缓存读取失败，原文件已保留。${result.message.orEmpty()}" else result.message
                 state=Daily60State(result.copy(message=message),false);receiver?.invoke(state)

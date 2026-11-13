@@ -45,6 +45,18 @@ class Daily60HttpTest {
   val stream=object:ByteArrayInputStream(Daily60TestImage.bytes){override fun read(b:ByteArray,o:Int,l:Int):Int{clock=21_000_000_000;return super.read(b,o,l)}}
   assertThrows(IOException::class.java){Daily60Http({count++;Connection(it,stream=stream)},{clock}).read()};assertEquals(1,count)
  }
+ @Test fun slowPrimaryDoesNotDelayStartingFastMirror() {
+  val mirror=java.util.concurrent.CountDownLatch(1);val primary=java.util.concurrent.CountDownLatch(1)
+  val executor=java.util.concurrent.Executors.newSingleThreadExecutor()
+  val request=executor.submit<Daily60Image>{Daily60Http({url->
+   if(url.host=="60s.viki.moe")primary.await(5,java.util.concurrent.TimeUnit.SECONDS) else mirror.countDown()
+   Connection(url)
+  },attemptLimitMillis=2000).read()}
+  try {
+   assertTrue("Mirror must begin before waiting seconds for the primary",mirror.await(650,java.util.concurrent.TimeUnit.MILLISECONDS))
+   assertEquals("image/png",request.get(1,java.util.concurrent.TimeUnit.SECONDS).mime)
+  } finally {primary.countDown();request.cancel(true);executor.shutdownNow()}
+ }
  @Test fun blockedPrimaryCannotConsumeTheFallbackBudget() {
   val urls=java.util.concurrent.CopyOnWriteArrayList<String>()
   val r=Daily60Http({url->urls.add(url.toString());if(url.host=="60s.viki.moe")Thread.sleep(2000);Connection(url)},attemptLimitMillis=250).read()

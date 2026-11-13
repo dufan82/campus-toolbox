@@ -22,6 +22,7 @@ data class SchoolCheckOutcome(
             changes.total>0 || protected>0,changes.total>0,changes,protected)
         fun preview(changes:SchoolChanges,protected:Int,different:Boolean)=
             if(!different && changes.total==0 && protected==0)completed(SchoolChanges(),0)
+            else if(changes.total==0 && protected>0)completed(changes,protected)
             else SchoolCheckOutcome(SchoolCheckPhase.REVIEW,true,false,changes,protected)
         fun failed(untouched:Boolean)=SchoolCheckOutcome(SchoolCheckPhase.FAILED,applied=if(untouched)false else null)
         fun automatic(state:DailySyncState):SchoolCheckOutcome=state.outcome ?: when(state.result){
@@ -68,7 +69,7 @@ data class SchoolCheckOutcomeText(val check:String,val school:String,val local:S
                 else->"更新结果待确认"
             }
             val note=when {
-                value.protectedGroups>0->"${value.protectedGroups}组差异未应用：涉及手动修改、删除保护或时间冲突。"
+                value.protectedGroups>0->"${value.protectedGroups}组差异未应用：受来源、手动修改/删除保护或时间冲突限制。"
                 value.phase==SchoolCheckPhase.REVIEW && (value.changes?.total?:0)>0->"计划${value.changes!!.summary()}"
                 else->""
             }

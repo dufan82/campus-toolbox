@@ -7,7 +7,6 @@ import androidx.core.graphics.drawable.toDrawable
 import cn.campuslife.assistant.ui.Ui
 
 class StoryActivity : StoryScreen() {
-    private var category: StoryCategory?=null
     private var favoritesOnly=false
     private var entries=emptyList<Story>()
     private var state=StoryLocalState()
@@ -15,59 +14,95 @@ class StoryActivity : StoryScreen() {
     private var nextCursor:String?=null
     private var cloudLoading=false
     private lateinit var refresh:Button
-    private lateinit var cards: LinearLayout
-    private lateinit var message: TextView
+    private lateinit var pager:StoryPager
+    private val cards=mutableListOf<LinearLayout>()
+    private val messages=mutableListOf<TextView>()
+    private val scrolls=mutableListOf<ScrollView>()
+    private val tabLabels=mutableListOf<TextView>()
+    private val tabLines=mutableListOf<View>()
+    private var initialScrolls:IntArray?=null
+    private var cloudError:String?=null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        category=StoryCategory.entries.firstOrNull { it.name==savedInstanceState?.getString("story_filter") }
         favoritesOnly=savedInstanceState?.getBoolean("story_favorites_only") ?: false
+        initialScrolls=savedInstanceState?.getIntArray("story_column_scrolls")
         val root=Ui.page(this); heading(root,"随记",true)
         if(StoryCloudConfig.configured) {
             refresh=Ui.textButton(this,"刷新") {refreshCloud(force=true)}.apply {tag="story_cloud_refresh"}
 
         }
-        val body=body()
-        val controls=Ui.row(this).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
-        controls.addView(Spinner(this).apply {
-            tag="story_filter"; contentDescription="随记分类"
-            minimumHeight=Ui.dp(context,48)
-            adapter=ArrayAdapter(context,android.R.layout.simple_spinner_dropdown_item,listOf("全部")+StoryCategory.entries.map { it.label })
-            setSelection(category?.ordinal?.plus(1) ?: 0)
-            onItemSelectedListener=object: AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?,view: View?,position: Int,id: Long) { category=StoryCategory.entries.getOrNull(position-1); render() }
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
+        pager=StoryPager(this)
+        val tabs=Ui.row(this).apply {tag="story_tabs"}
+        StoryColumn.entries.forEachIndexed {index,column->
+            val tab=Ui.column(this).apply {
+                tag="story_tab_${column.key}";contentDescription=column.label;isClickable=true;isFocusable=true
+                setOnClickListener {pager.select(index)}
             }
-        },LinearLayout.LayoutParams(0,-2,1f))
+            val label=Ui.text(this,column.label,16f,bold=true).apply {
+                gravity=android.view.Gravity.CENTER;minimumHeight=Ui.dp(context,48)
+            }
+            val line=View(this)
+            tab.addView(label,LinearLayout.LayoutParams(-1,-2));tab.addView(line,LinearLayout.LayoutParams(-1,Ui.dp(this,3)))
+            tabLabels.add(label);tabLines.add(line);tabs.addView(tab,LinearLayout.LayoutParams(0,-2,1f))
+            val body=body()
+            messages.add(status("正在读取…").apply {tag="story_list_status_${column.key}";body.addView(this)})
+            cards.add(Ui.column(this).apply {body.addView(this)})
+            val scroll=Ui.scroll(this,body).apply {tag="story_scroll_${column.key}";isSaveEnabled=false}
+            scrolls.add(scroll);pager.addPage(scroll)
+        }
+        pager.onSelected={index->StoryColumn.entries.indices.forEach {i->
+            tabs.getChildAt(i).isSelected=i==index
+            tabLabels[i].setTextColor(if(i==index)Ui.ink else Ui.muted)
+            tabLines[i].setBackgroundColor(if(i==index)Ui.teal else android.graphics.Color.TRANSPARENT)
+        }}
+        root.addView(tabs,LinearLayout.LayoutParams(-1,-2))
+        pager.select(StoryColumn.fromKey(savedInstanceState?.getString("story_column") ?: intent.getStringExtra(EXTRA_COLUMN)).ordinal,false)
+        val controls=Ui.row(this).apply {gravity=android.view.Gravity.CENTER_VERTICAL}
+        controls.gravity=android.view.Gravity.END
+        controls.setPadding(Ui.dp(this,16),0,Ui.dp(this,16),0)
         controls.addView(CheckBox(this).apply {
             text="收藏"; tag="story_favorites_only"; textSize=15f; setTextColor(Ui.ink)
             minimumHeight=Ui.dp(context,48); isChecked=favoritesOnly
             setOnCheckedChangeListener { _,checked -> favoritesOnly=checked; render() }
         })
         if(::refresh.isInitialized)controls.addView(refresh)
-        body.addView(controls)
-        message=status("正在读取…").apply { tag="story_list_status" }; body.addView(message)
-        cards=Ui.column(this); body.addView(cards)
-        root.addView(Ui.scroll(this,body),LinearLayout.LayoutParams(-1,0,1f))
+        root.addView(controls,LinearLayout.LayoutParams(-1,-2))
+        root.addView(pager,LinearLayout.LayoutParams(-1,0,1f))
     }
     override fun onResume() {
         super.onResume(); val request=++generation
         repository.load { result -> onUi {
-            if (request==generation) result.fold({ (stories,saved) -> entries=stories; state=saved; render();if(StoryCloudConfig.configured)refreshCloud() },{ error(message,it) })
+            if (request==generation) result.fold({ (stories,saved) -> entries=stories; state=saved; render();if(StoryCloudConfig.configured)refreshCloud() },{cause->messages.forEach {error(it,cause)} })
         } }
+    }
+    override fun onNewIntent(intent:android.content.Intent) {
+        super.onNewIntent(intent);setIntent(intent)
+        intent.getStringExtra(EXTRA_COLUMN)?.let {pager.select(StoryColumn.fromKey(it).ordinal,false)}
     }
     private fun refreshCloud(cursor:String?=null,force:Boolean=false) {
         if(cloudLoading)return
         cloudLoading=true;if(::refresh.isInitialized)refresh.isEnabled=false
         repository.refresh(cursor,force) {result->onUi {
             cloudLoading=false;if(::refresh.isInitialized)refresh.isEnabled=true
-            result.fold({(items,next)->entries=items;nextCursor=next;render()}, {error(message,it);message.text="刷新失败，请重试"})
+            result.fold({(items,next)->entries=items;nextCursor=next;cloudError=null;render()}, {cloudError="刷新失败，请重试";render()})
         }}
     }
     private fun render() {
-        if (!::cards.isInitialized) return
+        if(cards.isEmpty())return
+        StoryColumn.entries.forEachIndexed {index,column->renderColumn(index,column)}
+        initialScrolls=null
+    }
+    private fun renderColumn(index:Int,column:StoryColumn) {
+        val cards=cards[index];val message=messages[index];val scroll=scrolls[index]
+        val savedY=initialScrolls?.getOrNull(index) ?: scroll.scrollY
         cards.removeAllViews()
-        val visible=StoryRules.filter(entries,category,favoritesOnly,state.favorites)
-        message.text=if(visible.isEmpty())"没有符合条件的随记" else ""
+        val visible=StoryRules.filter(entries.filter {StoryColumn.of(it)==column},null,favoritesOnly,state.favorites)
+        message.text=when {
+            visible.isNotEmpty()->""
+            favoritesOnly->"还没有收藏"
+            column==StoryColumn.SUBMISSIONS->cloudError ?: "还没有已发布的投稿"
+            else->"暂时没有文章"
+        }
         message.visibility=if (message.text.isEmpty()) View.GONE else View.VISIBLE
         visible.forEachIndexed { index, story ->
             if(index>0)cards.addView(View(this).apply {setBackgroundColor(Ui.line)},LinearLayout.LayoutParams(-1,Ui.dp(this,1)))
@@ -95,9 +130,13 @@ class StoryActivity : StoryScreen() {
             cards.addView(card,LinearLayout.LayoutParams(-1,-2).apply { topMargin=Ui.dp(this@StoryActivity,0) })
         }
         nextCursor?.let {cursor->cards.addView(Ui.textButton(this,if(cloudLoading)"正在加载…" else "加载更多") {refreshCloud(cursor)}.apply {tag="story_load_more";isEnabled=!cloudLoading})}
+        scroll.post {scroll.scrollTo(0,savedY)}
     }
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("story_filter",category?.name); outState.putBoolean("story_favorites_only",favoritesOnly)
+        outState.putString("story_column",StoryColumn.entries[pager.selected].key)
+        outState.putIntArray("story_column_scrolls",scrolls.map {it.scrollY}.toIntArray())
+        outState.putBoolean("story_favorites_only",favoritesOnly)
         super.onSaveInstanceState(outState)
     }
+    companion object { const val EXTRA_COLUMN="cn.campuslife.assistant.story.COLUMN" }
 }

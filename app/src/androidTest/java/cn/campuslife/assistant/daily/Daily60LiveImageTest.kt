@@ -38,4 +38,25 @@ class Daily60LiveImageTest {
    }
   } finally {assertTrue(dir.deleteRecursively())}
  }
+ @Test fun actualImageColdAndCachedPageTimings() {
+  assumeTrue(InstrumentationRegistry.getArguments().getString("daily60Live")=="true")
+  val inst=InstrumentationRegistry.getInstrumentation();val app=inst.targetContext
+  val dir=File(app.cacheDir,"daily60-speed-${java.util.UUID.randomUUID()}").apply{check(mkdirs())}
+  val context=object:ContextWrapper(app){override fun getApplicationContext():Context=this;override fun getFilesDir()=dir}
+  val store=Daily60Store(context);val calls=AtomicInteger();val tests=Daily60ScreenTest();val times=mutableListOf<Long>()
+  try {tests.withClient(Daily60Client{calls.incrementAndGet();Daily60ApiClient().fetch()},store){
+   repeat(2){val start=android.os.SystemClock.uptimeMillis()
+    ActivityScenario.launch(Daily60Activity::class.java).use{s->
+     tests.await(s){it.findViewWithTag<ImageView>("daily60_image")?.drawable!=null}
+     times+=android.os.SystemClock.uptimeMillis()-start
+     if(it==1){assertEquals(1,calls.get());assertTrue("Cached real image should open within one second",times.last()<1000)}
+     tests.capture(if(it==0)"speed-cold-live.png" else "speed-cached-live.png")
+    }
+   }
+  }
+   val output=File(app.getExternalFilesDir(null),"daily60-image-screens").apply{mkdirs()}
+   File(output,"speed-live.txt").writeText("coldFirstImageMs=${times[0]}\ncachedFirstImageMs=${times[1]}\nfetches=${calls.get()}\n")
+  } finally {check(dir.deleteRecursively())}
+ }
+
 }

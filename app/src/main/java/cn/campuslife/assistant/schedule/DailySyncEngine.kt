@@ -60,7 +60,7 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
                 applyStarted=true
                 val plan=repo.apply(snapshot,fetched.data,now.toLocalDate(),generation)
                 result=when {plan.conflicts>0->SyncResult.CONFLICT;plan.changes.total>0->SyncResult.UPDATED;else->SyncResult.NO_CHANGE}
-                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(snapshot.data,plan.data,now.toLocalDate()),
+                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(plan,now.toLocalDate(),applied=true),
                     summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化",outcome=SchoolCheckOutcome.completed(plan.changes,plan.conflicts))}
                 if(plan.changes.total>0 && active())runCatching {repo.notify(plan.changes)}
             }catch(_:SchoolAuthenticationException){

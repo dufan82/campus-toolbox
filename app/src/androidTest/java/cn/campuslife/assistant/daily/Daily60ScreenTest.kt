@@ -42,11 +42,12 @@ class Daily60ScreenTest {
       assertEquals(listOf("保存图片","打开图片"),(0 until list.adapter.count).map{list.adapter.getItem(it).toString()})
       list.performItemClick(null,1,list.adapter.getItemId(1))
      }
-     await(s){intents.size==1}
-     assertEquals("content",intents.single().data!!.scheme);assertEquals("image/png",intents.single().type)
-     assertTrue(intents.single().flags and Intent.FLAG_GRANT_READ_URI_PERMISSION!=0)
-     assertNotNull(intents.single().clipData)
-     s.recreate();await(s){it.findViewWithTag<ImageView>("daily60_image")?.drawable!=null};assertEquals(1,count.get());assertEquals(1,intents.size)
+     val until=android.os.SystemClock.uptimeMillis()+5000
+     var zoom=false
+     while(!zoom && android.os.SystemClock.uptimeMillis()<until){inst.runOnMainSync{zoom=windows().any{it.tag=="daily60_zoom" && it.isShown}};android.os.SystemClock.sleep(20)}
+     assertTrue("Native zoom viewer must open",zoom);assertTrue(intents.isEmpty())
+     s.recreate();await(s){it.findViewWithTag<ImageView>("daily60_image")?.drawable!=null};assertEquals(1,count.get());assertTrue(intents.isEmpty())
+     inst.runOnMainSync{assertTrue(windows().any{it.tag=="daily60_zoom" && it.isShown})}
      capture("image-synthetic.png")
     }finally{inst.removeMonitor(monitor)}
    }
