@@ -426,7 +426,12 @@ class ScheduleTransferActivity : Activity() {
         }
         val hasDifference=outcome.differences==true
         if(record.details.isNotBlank())body.addView(Ui.textButton(this,if(hasDifference)"查看更新内容" else "查看检查记录") {
-            dialog=Ui.bottomSheet(this,if(hasDifference)"更新内容" else "检查记录") {content,_->content.addView(Ui.text(this,record.details,15f).apply {setLineSpacing(dp(5).toFloat(),1f)})}
+            val title=when {
+                !hasDifference -> "检查记录"
+                outcome.applied==true && outcome.protectedGroups==0 -> "更新前 → 更新后"
+                else -> "更新内容"
+            }
+            dialog=Ui.bottomSheet(this,title) {content,_->content.addView(Ui.text(this,record.details,15f).apply {setLineSpacing(dp(5).toFloat(),1f)})}
         }.apply {tag="school_check_details"})
     }
     private fun showDailyOptions(body: LinearLayout) {
