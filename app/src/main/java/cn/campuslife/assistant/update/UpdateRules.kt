@@ -18,7 +18,8 @@ data class ApkIdentity(val packageName: String, val versionCode: Long, val minSd
 
 object UpdateRules {
     const val PACKAGE = "cn.campuslife.assistant"
-    const val INTERVAL = 24 * 60 * 60 * 1000L
+    const val AUTO_CHECK_INTERVAL = 15 * 60 * 1000L
+    const val RETRY_DAY = 24 * 60 * 60 * 1000L
     fun valid(info: UpdatePackage): Boolean = info.versionCode in 1..2_100_000_000L &&
         info.versionName.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,39}")) &&
         info.tag == "v${info.versionName}" && info.minSdk in 1..1000 &&
@@ -56,9 +57,9 @@ object UpdateRules {
         cnbAssetUrl(info.url, BuildConfig.CNB_REPOSITORY, info.tag, info.assetName) else assetUrl(info.url, info.tag, info.assetName)
 
     fun shouldCheck(now: Long, attempted: Long, retryAt: Long, manual: Boolean): Boolean {
-        if (retryAt > now && retryAt - now <= 7 * INTERVAL) return false
+        if (retryAt > now && retryAt - now <= 7 * RETRY_DAY) return false
         if (attempted <= 0 || attempted > now) return true
-        return now - attempted >= if (manual) 60_000 else INTERVAL
+        return now - attempted >= if (manual) 60_000 else AUTO_CHECK_INTERVAL
     }
 
     // The installed certificate is the trust anchor, never a signer supplied by update.json.

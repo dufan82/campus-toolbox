@@ -52,6 +52,17 @@ class UpdateScreenTest {
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "合成更新说明", 123)) {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             await { views().any { it.tag == "app_update_banner" && it.isShown } }
+            scenario.onActivity { activity ->
+                val home=descendants(activity.window.decorView)
+                val banner=home.single { it.tag == "app_update_banner" }
+                val poem=home.single { it.tag == "home_poem" }
+                assertFalse(generateSequence(banner.parent) { it.parent }.any { it is ScrollView })
+                val bannerBounds=android.graphics.Rect()
+                val poemBounds=android.graphics.Rect()
+                assertTrue(banner.getGlobalVisibleRect(bannerBounds))
+                assertTrue(poem.getGlobalVisibleRect(poemBounds))
+                assertTrue("Update must be above the poem on the first screen", bannerBounds.bottom <= poemBounds.top)
+            }
             instrumentation.runOnMainSync { views().first { it.tag == "app_update_banner" }.performClick() }
             await { views().filterIsInstance<Button>().any { it.text.toString() == "稍后再说" } }
             instrumentation.runOnMainSync { views().filterIsInstance<Button>().first { it.text.toString() == "稍后再说" }.performClick() }

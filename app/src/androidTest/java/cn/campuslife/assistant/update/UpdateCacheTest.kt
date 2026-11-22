@@ -26,7 +26,9 @@ class UpdateCacheTest {
         assertEquals(1, requests)
         now += 60_001; repo.check(true)
         assertEquals(2, requests)
-        now += UpdateRules.INTERVAL + 1; repo.check(false)
+        now += UpdateRules.AUTO_CHECK_INTERVAL - 1; repo.check(false)
+        assertEquals(2, requests)
+        now += 1; repo.check(false)
         assertEquals(3, requests)
         prefs.edit().clear().commit()
     }

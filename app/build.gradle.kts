@@ -42,8 +42,8 @@ android {
         applicationId = "cn.campuslife.assistant"
         minSdk = 26
         targetSdk = 35
-        versionCode = 35
-        versionName = "1.8.8"
+        versionCode = 36
+        versionName = "1.8.9"
         buildConfigField("String", "AMAP_ANDROID_KEY", "\"$privateMapKey\"")
         buildConfigField("boolean", "LOCAL_MAP_EDITING", "true")
         buildConfigField("String", "CNB_REPOSITORY", "\"$domesticUpdateRepository\"")

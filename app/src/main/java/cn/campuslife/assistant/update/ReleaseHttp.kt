@@ -55,7 +55,7 @@ internal class ReleaseHttp(private val source: UpdateSource, private val latest:
                         val now = System.currentTimeMillis()
                         val seconds = connection.getHeaderField("Retry-After")?.toLongOrNull()?.coerceIn(60, 86400) ?: 3600
                         val reset = if (source == UpdateSource.GITHUB) connection.getHeaderField("X-RateLimit-Reset")?.toLongOrNull()
-                            ?.takeIf { it in 1..Long.MAX_VALUE / 1000 }?.times(1000)?.coerceAtMost(now + UpdateRules.INTERVAL) ?: 0 else 0
+                            ?.takeIf { it in 1..Long.MAX_VALUE / 1000 }?.times(1000)?.coerceAtMost(now + UpdateRules.RETRY_DAY) ?: 0 else 0
                         throw UpdateNetworkException("更新源暂时限流，请稍后再试", maxOf(now + seconds * 1000, reset))
                     }
                     if (apkSize != null) {

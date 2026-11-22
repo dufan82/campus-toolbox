@@ -33,7 +33,9 @@ class UpdateRulesTest {
     @Test fun automaticCacheManualDebounceAndServerBackoffHaveSeparateRules() {
         val now = 200_000_000L
         assertFalse(UpdateRules.shouldCheck(now, now - 60_000, 0, false))
-        assertTrue(UpdateRules.shouldCheck(now, now - 86_400_001, 0, false))
+        assertFalse(UpdateRules.shouldCheck(now, now - 15 * 60_000 + 1, 0, false))
+        assertTrue(UpdateRules.shouldCheck(now, now - 15 * 60_000, 0, false))
+        assertFalse(UpdateRules.shouldCheck(now, 0, now + 86_400_000, false))
         assertTrue(UpdateRules.shouldCheck(now, now - 60_001, 0, true))
         assertFalse(UpdateRules.shouldCheck(now, now - 1000, 0, true))
         assertFalse(UpdateRules.shouldCheck(now, 0, now + 1000, true))

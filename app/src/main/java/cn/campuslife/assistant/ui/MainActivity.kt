@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference
 
 class MainActivity : Activity() {
     private lateinit var toolsBody: LinearLayout
+    private lateinit var updateSlot: LinearLayout
     private var homeLayout: HomeLayout?=null
     private var layoutError=false
     private var savingLayout=false
@@ -53,6 +54,11 @@ class MainActivity : Activity() {
         val root=Ui.page(this)
         val content=Ui.column(this).apply { setPadding(Ui.dp(context,20),Ui.dp(context,12),Ui.dp(context,20),Ui.dp(context,16)) }
         root.addView(content,LinearLayout.LayoutParams(-1,-2))
+        updateSlot=Ui.column(this).apply {
+            visibility=View.GONE
+            setPadding(0,0,0,Ui.dp(context,8))
+        }
+        content.addView(updateSlot,LinearLayout.LayoutParams(-1,-2))
         val header=Ui.column(this).apply { tag="home_poem";minimumHeight=Ui.dp(context,52) }
         val poem=Ui.column(this).apply {
             tag="home_poem_content";isClickable=true;isFocusable=true;minimumHeight=Ui.dp(context,48)
@@ -140,7 +146,7 @@ class MainActivity : Activity() {
                     val update=result.getOrNull()?.takeIf { it.offer }?.update
                     if (activity.availableUpdate!=update) {
                         activity.availableUpdate=update
-                        activity.renderTools()
+                        activity.renderUpdateBanner()
                     }
                 }
             }
@@ -172,6 +178,29 @@ class MainActivity : Activity() {
             } }
         }
     }
+    private fun renderUpdateBanner() {
+        updateSlot.removeAllViews()
+        val update=availableUpdate
+        updateSlot.visibility=if(update==null) View.GONE else View.VISIBLE
+        if(update!=null) {
+            updateSlot.addView(Ui.button(this,"发现新版本 ${update.versionName} · 查看更新",primary=true) {
+                UpdatePrompts.show(this,update,{
+                    val reference=WeakReference(this)
+                    val app=applicationContext
+                    UpdateRuntime.worker.execute {
+                        val saved=runCatching { UpdateRepository(app).ignore(update) }.isSuccess
+                        Handler(Looper.getMainLooper()).post { reference.get()?.takeIf { !it.isDestroyed }?.let { activity ->
+                            if(saved && activity.availableUpdate?.versionCode==update.versionCode) {
+                                activity.availableUpdate=null
+                                activity.renderUpdateBanner()
+                            } else if(!saved) Ui.toast(activity,"选择未能保存，请稍后再试")
+                        } }
+                    }
+                },{ startActivity(Intent(this,UpdateActivity::class.java).putExtra("manual",false)) })
+            }.apply { tag="app_update_banner" },LinearLayout.LayoutParams(-1,-2))
+        }
+    }
+
     private fun renderTools() {
         toolsBody.removeAllViews()
         val state=homeLayout ?: HomeLayout.defaults()
@@ -180,22 +209,6 @@ class MainActivity : Activity() {
                 startActivity(Intent(this,cn.campuslife.assistant.schedule.DailySyncSettingsActivity::class.java))
             }.apply {tag="school_sync_login_needed"},LinearLayout.LayoutParams(-1,-2))
             toolsBody.addView(Ui.space(this,8))
-        }
-        availableUpdate?.let { update ->
-            toolsBody.addView(Ui.button(this,"新版本 ${update.versionName} · 查看更新") {
-                UpdatePrompts.show(this,update,{
-                    val reference=WeakReference(this)
-                    val app=applicationContext
-                    UpdateRuntime.worker.execute {
-                        val saved=runCatching { UpdateRepository(app).ignore(update) }.isSuccess
-                        Handler(Looper.getMainLooper()).post { reference.get()?.takeIf { !it.isDestroyed }?.let { activity ->
-                            if(saved) { activity.availableUpdate=null;activity.renderTools() }
-                            else Ui.toast(activity,"选择未能保存，请稍后再试")
-                        } }
-                    }
-                },{ startActivity(Intent(this,UpdateActivity::class.java).putExtra("manual",false)) })
-            }.apply { tag="app_update_banner" },LinearLayout.LayoutParams(-1,-2))
-            toolsBody.addView(Ui.space(this,10))
         }
         val heading=Ui.row(this)
         heading.addView(Ui.text(this,"常用工具",17f,bold=true),LinearLayout.LayoutParams(0,-2,1f))

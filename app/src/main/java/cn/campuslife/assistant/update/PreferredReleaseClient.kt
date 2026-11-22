@@ -16,7 +16,7 @@ internal class PreferredReleaseClient(
         failed: (UpdateSource, Exception) -> Unit = { _, _ -> }): SourcedRelease {
         fun request(source: UpdateSource, client: ReleaseClient): SourcedRelease {
             val previous = cache(source)
-            if (previous.retryAt > now && previous.retryAt - now <= 7 * UpdateRules.INTERVAL)
+            if (previous.retryAt > now && previous.retryAt - now <= 7 * UpdateRules.RETRY_DAY)
                 throw UpdateNetworkException("更新源暂时限流，请稍后再试", previous.retryAt)
             var response = client.fetch(previous.etag)
             if (response.notModified && previous.update == null && !previous.missing) response = client.fetch(null)
