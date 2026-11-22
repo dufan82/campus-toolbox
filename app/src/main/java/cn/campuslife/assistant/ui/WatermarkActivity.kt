@@ -1,9 +1,12 @@
 package cn.campuslife.assistant.ui
 
+import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
+import cn.campuslife.assistant.camera.WatermarkCameraActivity
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -74,6 +77,9 @@ class WatermarkActivity : Activity() {
         val root=Ui.page(this)
         val header=Ui.header(this,"照片水印")
         photoControls=Ui.row(this)
+        photoControls.addView(Ui.textButton(this,"水印相机") {
+            if(!busy) startActivityForResult(Intent(this,WatermarkCameraActivity::class.java),103)
+        }.apply { tag="open_watermark_camera" })
         photoControls.addView(Ui.textButton(this,"更换照片") {
             if(!busy) AlertDialog.Builder(this).setTitle("导入照片").setItems(arrayOf("从相册选择","拍照")) { _,index ->if(index==0)selectPhoto() else capturePhoto() }.setNegativeButton("取消",null).show()
         }.apply { tag="change_photo" })
@@ -166,6 +172,11 @@ class WatermarkActivity : Activity() {
     }
     private fun capturePhoto() {
         if(busy) return
+        // Declaring CAMERA for the in-app camera also affects ACTION_IMAGE_CAPTURE.
+        if(checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.CAMERA),104)
+            return
+        }
         try {
             pendingCamera=File.createTempFile("capture_",".jpg",File(cacheDir,"capture").apply { mkdirs() })
             val uri=FileProvider.getUriForFile(this,"$packageName.files",pendingCamera!!)
@@ -180,10 +191,19 @@ class WatermarkActivity : Activity() {
     }
     private fun openProfile() { if(!busy) { persist(); startActivity(Intent(this,ProfileActivity::class.java)) } }
 
+    override fun onRequestPermissionsResult(requestCode: Int,permissions: Array<out String>,grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults)
+        if(requestCode==104) {
+            if(grantResults.firstOrNull()==PackageManager.PERMISSION_GRANTED) capturePhoto()
+            else Ui.toast(this,"未授权相机，仍可从相册选择照片")
+        }
+    }
+
     @Deprecated("Uses system activity result API on Android 8+")
     override fun onActivityResult(requestCode: Int,resultCode: Int,data: Intent?) {
         super.onActivityResult(requestCode,resultCode,data)
         when(requestCode) {
+            103 -> if(resultCode==WatermarkCameraActivity.PICK_FROM_ALBUM) selectPhoto()
             100 -> if(resultCode==RESULT_OK && data?.data!=null) import(data.data!!) else Ui.toast(this,"已取消选择")
             101 -> {
                 val captured=pendingCamera; pendingCamera=null

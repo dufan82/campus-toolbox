@@ -99,6 +99,9 @@ data class Viewport(val scale: Double, val offsetX: Double, val offsetY: Double,
 
 data class Orientation(val exif: Int) {
     val swapsAxes get() = exif in 5..8
+    fun mirroredHorizontally() = Orientation(when (exif) {
+        2 -> 1; 3 -> 4; 4 -> 3; 5 -> 6; 6 -> 5; 7 -> 8; 8 -> 7; else -> 2
+    })
     fun map(x: Double, y: Double) = when (exif) {
         2 -> Point(1 - x, y)
         3 -> Point(1 - x, 1 - y)

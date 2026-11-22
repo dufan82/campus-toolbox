@@ -50,7 +50,7 @@ class PhotoLoader(private val context: Context) {
         return loadFile(file)
     }
 
-    fun loadFile(file: File): PhotoAsset {
+    fun loadFile(file: File, mirrorHorizontally: Boolean = false): PhotoAsset {
         require(file.length() in 1..(64L * 1024 * 1024)) { "照片为空或超过 64 MB，请重新选择" }
         val bytes = ByteArray(8)
         val count = file.inputStream().use { it.read(bytes) }
@@ -62,7 +62,8 @@ class PhotoLoader(private val context: Context) {
         require(bounds.outWidth > 0 && bounds.outHeight > 0) { "照片已损坏或无法解码，请换一张" }
         require(bounds.outWidth.toLong() * bounds.outHeight <= 80_000_000L) { "照片超过 8000 万像素，请选择较小尺寸的副本" }
         val exif = try { ExifInterface(file.absolutePath) } catch (_: IOException) { null }
-        val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1)?.takeIf { it in 1..8 } ?: 1
+        val sourceOrientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, 1)?.takeIf { it in 1..8 } ?: 1
+        val orientation = if (mirrorHorizontally) Orientation(sourceOrientation).mirroredHorizontally().exif else sourceOrientation
         var sample = 1
         while (max(bounds.outWidth, bounds.outHeight) / sample > 1600) sample *= 2
         val raw = BitmapFactory.decodeFile(file.absolutePath, BitmapFactory.Options().apply {

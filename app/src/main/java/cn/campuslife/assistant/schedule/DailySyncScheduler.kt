@@ -15,15 +15,15 @@ object DailySyncScheduler {
     fun reconcile(context:Context,reset:Boolean=false,now:ZonedDateTime=ZonedDateTime.now())=synchronized(DailySchoolSync.lock) {
         val app=context.applicationContext;val jobs=app.getSystemService(JobScheduler::class.java)
         val prefs=DailySyncPreferences(app)
-        var state=prefs.read()
-        if(state.enabled && state.result==SyncResult.CHECKING && DailySchoolSync.active==null) {
-            state=state.copy(result=SyncResult.INTERRUPTED,lastAttemptDay="",summary="上次检查被系统中断，等待网络恢复后补查")
-            prefs.write(state)
-        }
+        val state=DailySchoolSync.recoverInterrupted(prefs)
         if(!state.enabled || state.result==SyncResult.NEEDS_LOGIN){jobs.cancel(JOB_ID);return@synchronized}
+        if(!reset && DailySchoolSync.active!=null)return@synchronized
         val previous=jobs.getPendingJob(JOB_ID)
-        if(!reset && previous?.extras?.getLong("generation")==state.generation)return@synchronized
         val due=DailySyncTiming.due(state,now)
+        val scheduled=previous?.extras?.getLong("plannedAt") ?: 0L
+        val nowMillis=now.toInstant().toEpochMilli()
+        if(!reset && previous?.extras?.getLong("generation")==state.generation &&
+            (scheduled==due.toInstant().toEpochMilli() || (scheduled in 1..nowMillis && due<=now)))return@synchronized
         val extras=PersistableBundle().apply {putString("name",TASK_NAME);putLong("generation",state.generation);putLong("plannedAt",due.toInstant().toEpochMilli())}
         val job=JobInfo.Builder(JOB_ID,ComponentName(app,DailySchoolSyncJob::class.java)).setExtras(extras)
             .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY).setPersisted(true)
@@ -42,13 +42,8 @@ class DailySchoolSyncJob:JobService() {
         val run=Run(params);running=run
         DailySchoolSync.worker.execute {
             try {
-                val state=DailySyncPreferences(applicationContext).read()
-                if(state.generation==params.extras.getLong("generation") && !run.cancelled.get()) {
-                    DailySchoolSync.active=run.cancelled
-                    DailySyncEngine(DailySchoolSync.repository(applicationContext)).run(ZonedDateTime.now(),run.cancelled)
-                }
+                runCatching { DailySchoolSync.runDue(applicationContext,run.cancelled,params.extras.getLong("generation")) }
             }finally {
-                if(DailySchoolSync.active===run.cancelled)DailySchoolSync.active=null
                 Handler(Looper.getMainLooper()).post {
                     if(running===run)running=null
                     if(!run.stopped) {

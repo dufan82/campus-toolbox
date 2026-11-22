@@ -29,30 +29,32 @@ class SchoolConflictDeviceTest {
         val before=store.loadSnapshot();val bytes=scheduleBytes()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
             preview(scenario,before,local)
-            awaitText(scenario,"schedule.preview.summary") {it=="课表没有变化"}
+            awaitText(scenario,"schedule.preview.summary") {it=="本次读取未发现变化"}
             assertEquals(false,SchoolCheckHistoryStore(context).read()!!.outcome!!.differences)
             assertEquals(before,store.loadSnapshot());assertTrue(store.loadSnapshot().registry.managed.isEmpty())
             assertBytes(bytes)
-            scenario.recreate();awaitText(scenario,"schedule.preview.summary") {it=="课表没有变化"}
+            scenario.recreate();awaitText(scenario,"schedule.preview.summary") {it=="本次读取未发现变化"}
             assertBytes(bytes)
         }
     }
 
     @Test fun realEightConflictsShowBothSidesReasonsAndSurviveHistoryAndRecreation()=preserved {
-        val store=ScheduleStore(context);val local=data()
-        store.replaceWithBackup(store.load(),local)
+        val store=ScheduleStore(context);val original=data()
+        store.replaceWithBackup(store.load(),original,schoolImport=true)
+        val local=original.copy(courses=original.courses.map {it.copy(teacher="手动修改教师")})
+        store.commit(original,local)
         val before=store.loadSnapshot();val bytes=scheduleBytes()
         val school=local.copy(courses=local.courses.map {it.copy(classroom="学校新教室"+it.name)})
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
             preview(scenario,before,school)
-            awaitText(scenario,"schedule.diff.details") {it.contains("来源未确认")}
+            awaitText(scenario,"schedule.diff.details") {it.contains("手动修改")}
             fun checkDetails()=scenario.onActivity {a->
                 val value=a.window.decorView.findViewWithTag<TextView>("schedule.diff.details").text.toString()
                 local.courses.forEach {c->assertTrue(value.contains(c.name));assertTrue(value.contains(c.classroom));assertTrue(value.contains("学校新教室"+c.name))}
-                assertTrue(value.contains("未应用"));assertTrue(value.contains("本地："));assertTrue(value.contains("学校："))
+                assertTrue(value.contains("未更新"));assertTrue(value.contains("→"));assertTrue(value.contains("手动修改"));assertNull(a.window.decorView.findViewWithTag<View>("schedule.apply.changes"))
             }
             checkDetails();scenario.recreate()
-            awaitText(scenario,"schedule.diff.details") {it.contains("来源未确认")};checkDetails()
+            awaitText(scenario,"schedule.diff.details") {it.contains("手动修改")};checkDetails()
             val record=SchoolCheckHistoryStore(context).read()!!
             assertEquals(8,record.outcome!!.protectedGroups)
             assertTrue(record.details.contains("合成课程8"));assertTrue(record.details.contains("学校新教室合成课程8"))

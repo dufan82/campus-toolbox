@@ -54,12 +54,12 @@ class ScheduleLeanFlowTest {
     @Test fun checkPageHasSecondaryDailySwitchButNoBackupOrReplacement() {
         val before = ScheduleStore(context).loadSnapshot()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
+            await { enabled("检查课表更新") }
             assertTrue(text("检查更新"))
             assertTrue(nodesOnMain().any { it is Switch && it.tag == "school_sync_switch" })
             assertFalse(text("导出课表备份")); assertFalse(text("整表替换"))
             assertFalse(nodesOnMain().any { it is android.webkit.WebView })
-            scenario.recreate(); await { enabled("登录学校平台") }
+            scenario.recreate(); await { enabled("检查课表更新") }
             assertEquals(before, ScheduleStore(context).loadSnapshot())
         }
     }
@@ -69,7 +69,7 @@ class ScheduleLeanFlowTest {
         ActivityScenario.launch<ScheduleTransferActivity>(intent).use { scenario ->
             await { enabled("从备份恢复") }
             assertTrue(text("备份与恢复")); assertTrue(text("导出课表备份")); assertTrue(text("恢复上次更新前课表"))
-            assertFalse(text("登录学校平台")); assertFalse(nodesOnMain().any { it is android.webkit.WebView })
+            assertFalse(text("检查课表更新")); assertFalse(nodesOnMain().any { it is android.webkit.WebView })
             capture("backup")
             scenario.recreate(); await { enabled("从备份恢复") }
             assertTrue(text("备份与恢复")); assertEquals(before,ScheduleStore(context).loadSnapshot())
@@ -104,10 +104,17 @@ class ScheduleLeanFlowTest {
     private fun capture(name:String) {
         inst.waitForIdleSync()
         val done=java.util.concurrent.CountDownLatch(1)
-        inst.runOnMainSync {
-            val root=WindowInspector.getGlobalWindowViews().first {it.hasWindowFocus() && it.isShown}
-            root.viewTreeObserver.registerFrameCommitCallback {done.countDown()};root.invalidate()
+        val until=SystemClock.uptimeMillis()+4000
+        var attached=false
+        while(!attached && SystemClock.uptimeMillis()<until) {
+            inst.runOnMainSync {
+                WindowInspector.getGlobalWindowViews().firstOrNull {it.hasWindowFocus() && it.isShown}?.let {root->
+                    root.viewTreeObserver.registerFrameCommitCallback {done.countDown()};root.invalidate();attached=true
+                }
+            }
+            if(!attached)SystemClock.sleep(30)
         }
+        assertTrue("No focused window available for screenshot",attached)
         assertTrue(done.await(4,java.util.concurrent.TimeUnit.SECONDS))
         SystemClock.sleep(350) // Include the system dialog enter transition in the screenshot.
         val bitmap=inst.uiAutomation.takeScreenshot() ?: error("No screenshot")

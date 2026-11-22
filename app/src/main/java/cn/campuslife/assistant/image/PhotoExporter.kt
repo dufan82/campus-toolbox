@@ -18,13 +18,25 @@ import java.util.UUID
 
 class PhotoExporter(private val context: Context) {
     fun toCache(photo: PhotoAsset, texts: List<String>, style: WatermarkStyle, format: ExportFormat, maxEdge: Int?=null,baseName: String?=null): File {
-        val plan = ExportPolicy.plan(photo.rawWidth, photo.rawHeight, photo.orientation, format, (Runtime.getRuntime().maxMemory() * .65).toLong(),maxEdge)
         val layout = WatermarkRenderer.layout(photo.width,photo.height,texts,style)
+        return renderToCache(photo, format, maxEdge, baseName, "活动水印") { canvas ->
+            WatermarkRenderer.drawWatermark(canvas, layout, style)
+        }
+    }
+
+    internal fun cameraToCache(photo: PhotoAsset, draw: (Canvas) -> Unit): File =
+        renderToCache(photo, ExportFormat.JPEG, null, null, "水印相机", draw)
+
+    private fun renderToCache(
+        photo: PhotoAsset, format: ExportFormat, maxEdge: Int?, baseName: String?, prefix: String,
+        draw: (Canvas) -> Unit
+    ): File {
+        val plan = ExportPolicy.plan(photo.rawWidth, photo.rawHeight, photo.orientation, format, (Runtime.getRuntime().maxMemory() * .65).toLong(),maxEdge)
         val folder = File(context.cacheDir, "share").apply { mkdirs() }
         val expiry=System.currentTimeMillis()-24L*60*60*1000
         folder.listFiles()?.filter { it.isFile && it.name.startsWith("活动水印_") && it.lastModified()<expiry }?.forEach { it.delete() }
         folder.listFiles()?.filter { it.isDirectory && it.name.matches(Regex("job_[a-f0-9-]{36}")) && it.lastModified()<expiry }?.forEach { it.deleteRecursively() }
-        val name=ExportNaming.fileName(baseName ?: "活动水印_${SimpleDateFormat("yyyyMMdd_HHmmss",Locale.CHINA).format(Date())}_${UUID.randomUUID().toString().take(6)}",format)
+        val name=ExportNaming.fileName(baseName ?: "${prefix}_${SimpleDateFormat("yyyyMMdd_HHmmss",Locale.CHINA).format(Date())}_${UUID.randomUUID().toString().take(6)}",format)
         val job=File(folder,"job_${UUID.randomUUID()}")
         check(job.mkdir()) { "无法创建导出缓存，请检查存储空间" }
         val file=File(job,name)
@@ -41,7 +53,7 @@ class PhotoExporter(private val context: Context) {
             WatermarkRenderer.drawOriented(canvas, raw, photo.orientation, plan.width, plan.height)
             canvas.save()
             canvas.scale(plan.width.toFloat()/photo.width,plan.height.toFloat()/photo.height)
-            WatermarkRenderer.drawWatermark(canvas, layout, style)
+            draw(canvas)
             canvas.restore()
             file.outputStream().use { output ->
                 val type = if (format == ExportFormat.PNG) Bitmap.CompressFormat.PNG else Bitmap.CompressFormat.JPEG

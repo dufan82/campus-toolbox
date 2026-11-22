@@ -78,6 +78,26 @@ class DailySyncEngineTest {
         assertEquals(now.toInstant(),DailySyncTiming.due(DailySyncState(enabled=true),now).toInstant())
         assertEquals(22,DailySyncTiming.due(DailySyncState(enabled=true,lastAttemptDay="2026-09-21"),now).dayOfMonth)
     }
+    @Test fun failedMorningCheckRetriesWithBackoffButStopsAfterThreeAttempts() {
+        val f=Fake();val engine=DailySyncEngine(f);f.fail=IOException()
+        assertEquals(SyncResult.NETWORK_ERROR,engine.run(now))
+        assertEquals(now.plusMinutes(30),DailySyncTiming.due(f.status,now.plusMinutes(1)))
+        assertEquals(SyncResult.SKIPPED,engine.run(now.plusMinutes(29)))
+        assertEquals(SyncResult.NETWORK_ERROR,engine.run(now.plusMinutes(30)))
+        assertEquals(SyncResult.NETWORK_ERROR,engine.run(now.plusMinutes(60)))
+        assertEquals(SyncResult.SKIPPED,engine.run(now.plusHours(4)))
+        assertEquals(3,f.fetches)
+        assertEquals(DailySyncTiming.next(now),DailySyncTiming.due(f.status,now.plusHours(4)))
+    }
+    @Test fun laterRetryAppliesChangeWithoutManualCheckAndDoesNotRepeatSuccess() {
+        val f=Fake();val engine=DailySyncEngine(f);f.fail=IOException()
+        engine.run(now)
+        f.fail=null;f.incoming=SchoolFetch(data.copy(courses=listOf(course.copy(classroom="205"))))
+        assertEquals(SyncResult.UPDATED,engine.run(now.plusMinutes(30)))
+        assertEquals(SyncResult.SKIPPED,engine.run(now.plusHours(1)))
+        assertEquals(2,f.fetches);assertEquals(1,f.writes)
+        assertEquals("205",f.local.data.courses.first { it.startWeek>2 }.classroom)
+    }
     @Test fun socketTimeoutIsNotAnImmediateRetryLoop() {
         val f=Fake();f.fail=java.net.SocketTimeoutException();DailySyncEngine(f).run(now)
         assertEquals(SyncResult.NETWORK_ERROR,f.status.result)
@@ -98,7 +118,7 @@ class DailySyncEngineTest {
     }
     @Test fun cancelledRunNeverSavesAndCanBeRescheduledWithSameDay() {
         val f=Fake();val stop=AtomicBoolean();f.onFetch={stop.set(true)}
-        DailySyncEngine(f).run(now,stop);assertEquals(0,f.writes);assertEquals("",f.status.lastAttemptDay)
+        DailySyncEngine(f).run(now,stop);assertEquals(0,f.writes);assertEquals(now.toLocalDate().toString(),f.status.lastAttemptDay)
         assertEquals(false,f.status.outcome?.applied)
     }
     @Test fun mixedProtectedAndAppliedGroupsRecordBothOutcomesInsteadOfHidingSuccessfulChanges() {

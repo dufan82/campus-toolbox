@@ -32,6 +32,15 @@ class ToolGlyph(context: Context,private val kind: String,color: Int) : Drawable
             "qr" -> {rect(3f,3f,9f,9f);rect(15f,3f,21f,9f);rect(3f,15f,9f,21f);path(15f,15f,18f,15f,18f,18f,21f,18f,21f,21f,15f,21f);path(3f,12f,5f,12f);path(12f,3f,12f,6f);path(12f,11f,12f,16f)}
             "bag" -> {rect(4f,6f,20f,21f);path(8f,7f,8f,4f,16f,4f,16f,7f);val p=Path();p.moveTo(8f,10f);p.cubicTo(8f,15f,16f,15f,16f,10f);canvas.drawPath(p,paint)}
             "image" -> {rect(3f,3f,21f,21f);canvas.drawCircle(8f,8f,1.4f,paint);path(3f,17f,8f,12f,12f,16f,16f,12f,21f,17f)}
+            "camera", "flip_camera" -> {
+                path(3f,7f,8f,7f,10f,4f,14f,4f,16f,7f,21f,7f,21f,20f,3f,20f,3f,7f)
+                if(kind=="camera") canvas.drawCircle(12f,13f,3.6f,paint)
+                else {
+                    path(8f,11f,15f,11f,13f,9f)
+                    path(16f,16f,9f,16f,11f,18f)
+                }
+            }
+            "flash" -> path(13f,2f,5f,13f,11f,13f,10f,22f,19f,10f,13f,10f,13f,2f)
             "back" -> path(15f,5f,8f,12f,15f,19f)
             "gate" -> {path(4f,21f,4f,4f,15f,4f,15f,8f);path(4f,21f,15f,21f,15f,16f);path(9f,12f,21f,12f);path(17f,8f,21f,12f,17f,16f)}
             "map" -> {path(3f,5f,9f,3f,15f,5f,21f,3f,21f,19f,15f,21f,9f,19f,3f,21f,3f,5f);path(9f,3f,9f,19f);path(15f,5f,15f,21f)}

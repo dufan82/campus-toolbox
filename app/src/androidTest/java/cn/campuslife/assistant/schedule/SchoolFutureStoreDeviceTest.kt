@@ -59,15 +59,15 @@ class SchoolFutureStoreDeviceTest {
         val store=ScheduleStore(context);val old=local("Legacy");store.replaceWithBackup(store.load(),old)
         val snapshot=store.loadSnapshot();val previous=store.previousImport()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-            await {enabled("登录学校平台")}
+            await {enabled("检查课表更新")}
             scenario.onActivity {activity->
                 val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
                 session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
                 activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,incoming(),"Fixture",emptyList<String>(),old,true)
             }
-            await {textContains("没有可安全更新的课程")}
-            assertFalse(enabled("更新课表"));assertFalse(enabled("确认保存到本机"));assertFalse(textContains("选择旧课程"))
-            scenario.recreate();await {textContains("没有可安全更新的课程")}
+            await {textContains("门课需要核对")}
+            assertFalse(textContains("尚未更新，确认后保存到本机"));assertFalse(enabled("确认保存到本机"));assertFalse(textContains("选择旧课程"))
+            scenario.recreate();await {textContains("门课需要核对")}
             assertEquals(snapshot,store.loadSnapshot());assertEquals(previous,store.previousImport())
         }
     }

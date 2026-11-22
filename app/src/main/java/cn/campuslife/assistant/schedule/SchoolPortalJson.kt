@@ -49,12 +49,30 @@ object SchoolPortalJson {
         require(week in 1..60)
         val list = payload(raw).optJSONArray("list") ?: error("学校没有返回本周课程列表，未保存不完整课表")
         require(list.length() <= 1000) { "单周课程数量异常" }
-        return (0 until list.length()).map { index ->
+        val parsed=(0 until list.length()).map { index ->
             val row = list.getJSONObject(index)
             SchoolLesson(text(row, "course", 80, false), text(row, "teacherName", 80), text(row, "spaceName", 120),
                 number(row, "DayIndex"), number(row, "startNode"), number(row, "endNode"), week).also {
                 require(it.weekday in 1..7 && it.startPeriod in 1..24 && it.endPeriod in it.startPeriod..24) { "学校课程星期或节次异常，未保存不完整课表" }
             }
+        }
+        // Match the official student H5: same day/task/nodes use the first row's room.
+        // Validate every row before grouping; malformed later rows must not disappear silently.
+        fun identifier(value:Any?):String? = when(value) {
+            is String->value.takeIf {it.isNotBlank() && it.length<=160 && it.none(Char::isISOControl)}
+            is Number->value.toString().takeIf {value.toDouble().isFinite() && value.toDouble()!=0.0}
+            else->null
+        }
+        val seen=mutableSetOf<List<String>>()
+        return parsed.filterIndexed {index,lesson->
+            val row=list.getJSONObject(index)
+            val task=identifier(row.opt("mergeTaskId"));val id=identifier(row.opt("id"))
+            val key=when {
+                task!=null->listOf("task",task)
+                id!=null->listOf("id",id,row.getString("course"))
+                else->null // No school identity: retain independent rows, never guess which is newer.
+            }
+            key==null || seen.add(listOf(lesson.weekday.toString(),lesson.startPeriod.toString(),lesson.endPeriod.toString())+key)
         }
     }
     fun periods(raw: JSONObject): List<SchedulePeriod> {

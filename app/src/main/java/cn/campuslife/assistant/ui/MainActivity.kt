@@ -14,6 +14,8 @@ import android.widget.LinearLayout
 import cn.campuslife.assistant.express.*
 import cn.campuslife.assistant.map.CampusMapActivity
 import cn.campuslife.assistant.home.*
+import cn.campuslife.assistant.schedule.DailySchoolSync
+import cn.campuslife.assistant.schedule.DailySyncPreferences
 import cn.campuslife.assistant.update.*
 import android.os.Handler
 import android.os.Looper
@@ -23,6 +25,15 @@ class MainActivity : Activity() {
     private lateinit var toolsBody: LinearLayout
     private var homeLayout: HomeLayout?=null
     private var layoutError=false
+    private var savingLayout=false
+    private val syncPrefs by lazy { getSharedPreferences(DailySyncPreferences.NAME,MODE_PRIVATE) }
+    private val syncRefresh=Runnable { loadNextLesson() }
+    private val syncListener=android.content.SharedPreferences.OnSharedPreferenceChangeListener { _,key ->
+        if(key=="success" || key=="result") {
+            toolsBody.removeCallbacks(syncRefresh)
+            toolsBody.post(syncRefresh)
+        }
+    }
     private var layoutTicket=0
     private var updateTicket=0
     private var updateStarted=false
@@ -104,7 +115,19 @@ class MainActivity : Activity() {
             },1500)
         }
     }
-    override fun onResume() { super.onResume();if(::toolsBody.isInitialized) { reloadLayout();loadNextLesson();if(updateStarted) checkUpdate() } }
+    override fun onResume() {
+        super.onResume()
+        if(::toolsBody.isInitialized) {
+            syncPrefs.registerOnSharedPreferenceChangeListener(syncListener)
+            reloadLayout();loadNextLesson();DailySchoolSync.onForeground(this)
+            if(updateStarted) checkUpdate()
+        }
+    }
+    override fun onPause() {
+        syncPrefs.unregisterOnSharedPreferenceChangeListener(syncListener)
+        toolsBody.removeCallbacks(syncRefresh)
+        super.onPause()
+    }
     override fun onDestroy() { updateTicket++;lessonTicket++;poemDialog?.dismiss();super.onDestroy() }
     private fun checkUpdate() {
         val ticket=++updateTicket
@@ -135,7 +158,6 @@ class MainActivity : Activity() {
         val ticket=++lessonTicket;val app=applicationContext;val reference=WeakReference(this)
         homePreviewIo.execute {
             val sync=runCatching { cn.campuslife.assistant.schedule.DailySyncPreferences(app).read() }.getOrNull()
-            runCatching { cn.campuslife.assistant.schedule.DailySyncScheduler.reconcile(app) }
             val result=runCatching { cn.campuslife.assistant.schedule.ScheduleStore(app).load() }
             val data=result.getOrNull()
             val today=java.time.LocalDate.now()
@@ -177,6 +199,7 @@ class MainActivity : Activity() {
         }
         val heading=Ui.row(this)
         heading.addView(Ui.text(this,"常用工具",17f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+        if(state.visible().size>1 && homeLayout!=null) heading.addView(Ui.text(this,"长按拖动",11f,Ui.muted))
         heading.addView(Ui.textButton(this,"编辑") { startActivity(Intent(this,ToolManagementActivity::class.java).putExtra("manage",true)) }.apply { tag="home_manage" })
         toolsBody.addView(heading);toolsBody.addView(Ui.space(this,8))
         if(layoutError) {
@@ -184,6 +207,20 @@ class MainActivity : Activity() {
             toolsBody.addView(Ui.button(this,"重试读取") { reloadLayout() })
         } else if(homeLayout==null) { toolsBody.addView(Ui.text(this,"正在读取工具…",13f,Ui.muted));return }
         if(state.visible().isEmpty()) toolsBody.addView(Ui.text(this,"还没有常用工具，点管理添加。",14f,Ui.muted))
+        val drag=ToolDrag { source,target ->
+            if(savingLayout || layoutError) false else {
+                savingLayout=true
+                val ticket=++layoutTicket
+                HomeLayoutRepository(this).update({ it.moveTo(source,target,visibleOnly=true) }) { result ->
+                    if(!isDestroyed) {
+                        savingLayout=false
+                        result.fold({ if(ticket==layoutTicket) {homeLayout=it;renderTools()} },
+                            { Ui.toast(this,"排序未保存，原顺序未更改") })
+                    }
+                }
+                true
+            }
+        }
         state.visible().chunked(2).forEach { ids ->
             val row=Ui.row(this).apply { gravity=Gravity.TOP }
             ids.forEachIndexed { index,id ->
@@ -199,6 +236,7 @@ class MainActivity : Activity() {
                 tile.addView(badge,LinearLayout.LayoutParams(Ui.dp(this,35),Ui.dp(this,35)).apply { marginEnd=Ui.dp(this@MainActivity,9) })
                 val title=when(id) { "schedule"->"课程表";"planner"->"倒数日";else->tool.title }
                 val subtitle=when(id) { "map"->"搜楼栋、找位置";"schedule"->"查看本周安排";"watermark"->"选照片，加水印";"planner"->"记住重要日期";else->tool.subtitle }
+                drag.bind(tile,id)
                 val labels=Ui.column(this);labels.addView(Ui.text(this,title,15f,bold=true));labels.addView(Ui.space(this,5));labels.addView(Ui.text(this,subtitle,11f,Ui.muted))
                 tile.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
                 row.addView(tile,LinearLayout.LayoutParams(0,-2,1f).apply { if(index==0) marginEnd=Ui.dp(this@MainActivity,10) })

@@ -2,9 +2,22 @@ package cn.campuslife.assistant.schedule
 
 import java.time.LocalDate
 
-data class SchoolCheckRecord(val at:Long,val result:String,val details:String,val outcome:SchoolCheckOutcome?=null)
+data class SchoolCheckRecord(val at:Long,val result:String,val details:String,val outcome:SchoolCheckOutcome?=null,val summary:String="")
 object SchoolCheckHistory {
     const val MAX_DETAILS = 64000
+
+    /** Read-only evidence of what this API returned, not a claim about another school page. */
+    fun readEvidence(local:ScheduleData,school:ScheduleData,today:LocalDate):String {
+        fun rows(data:ScheduleData):String {
+            val semester=data.semester ?: return "未设置学期"
+            val week=Math.floorDiv(java.time.temporal.ChronoUnit.DAYS.between(semester.startMonday,today),7L).toInt()+1
+            if(week !in 1..semester.totalWeeks)return "当前日期不在该学期内"
+            return data.courses.filter {it.occurs(week)}.sortedWith(compareBy<Course> {it.weekday}.thenBy {it.startPeriod}.thenBy {it.name})
+                .joinToString("\n") {c->"${semester.startMonday.plusWeeks((week-1).toLong()).plusDays((c.weekday-1).toLong())} · ${c.name} · ${c.classroom.ifBlank {"教室未填"}} · 第${c.startPeriod}–${c.endPeriod}节 · ${c.teacher}"}
+                .ifBlank {"本周没有返回课程"}
+        }
+        return boundedDetails("读取来源：教务周课表接口（jw-api.fjpit.com）\n核对日期：$today\n\n学校接口返回（本周）：\n${rows(school)}\n\n本机课表（检查时）：\n${rows(local)}")
+    }
 
     fun needsConflictRecheck(outcome: SchoolCheckOutcome, details: String): Boolean = outcome.protectedGroups > 0 &&
         !(details.contains(" · 未应用：") && details.contains("\n本地：") && details.contains("\n学校："))
@@ -46,7 +59,7 @@ object SchoolCheckHistory {
         }
         return SchoolCheckRecord(auto.lastAttempt,result,auto.details.ifBlank {
             auto.summary.takeIf {auto.result in setOf(SyncResult.UPDATED,SyncResult.CONFLICT)}.orEmpty()
-        },SchoolCheckOutcome.automatic(auto))
+        },SchoolCheckOutcome.automatic(auto),auto.changeSummary)
     }
     fun details(before:ScheduleData,after:ScheduleData,today:LocalDate):String {
         val diff=ScheduleUpdatePreview.compare(before,after,today)

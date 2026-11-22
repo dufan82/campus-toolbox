@@ -10,7 +10,7 @@ import java.util.concurrent.locks.ReentrantLock
 class SchoolAuthenticationException(val responseCode:Int?=null) : IOException("School authentication expired")
 enum class SyncResult { READY, CHECKING, NEEDS_LOGIN, NO_CHANGE, UPDATED, CONFLICT, NETWORK_ERROR, INVALID_DATA, INTERRUPTED, SKIPPED }
 data class DailySyncState(val enabled:Boolean=false,val generation:Long=0,val lastAttempt:Long=0,
-    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="",val outcome:SchoolCheckOutcome?=null)
+    val lastSuccess:Long=0,val lastAttemptDay:String="",val result:SyncResult=SyncResult.READY,val summary:String="",val details:String="",val outcome:SchoolCheckOutcome?=null,val changeSummary:String="",val attemptsToday:Int=0)
 /** Contains only the explicitly authorised timetable token, never passwords or WebView cookies. */
 class SchoolSyncCredential(val authorization:String,val semester:Semester) {
     override fun toString() = "SchoolSyncCredential(redacted)"
@@ -31,8 +31,30 @@ object DailySyncTiming {
         val seven=now.toLocalDate().atTime(7,0).atZone(now.zone)
         return if(seven.isAfter(now))seven else now.toLocalDate().plusDays(1).atTime(7,0).atZone(now.zone)
     }
-    fun due(state:DailySyncState,now:ZonedDateTime):ZonedDateTime =
-        if(now.hour>=7 && state.lastAttemptDay!=now.toLocalDate().toString())now else next(now)
+    private const val MAX_DAILY_ATTEMPTS=3
+    private const val RETRY_MINUTES=30L
+
+    internal fun attemptCount(state:DailySyncState,now:ZonedDateTime):Int =
+        if(state.lastAttemptDay==now.toLocalDate().toString())state.attemptsToday.coerceAtLeast(1) else 0
+
+    private fun retryAt(state:DailySyncState,now:ZonedDateTime):ZonedDateTime? {
+        if(state.result !in setOf(SyncResult.NETWORK_ERROR,SyncResult.INTERRUPTED) ||
+            attemptCount(state,now) !in 1 until MAX_DAILY_ATTEMPTS)return null
+        // Old interrupted records may not have stored a timestamp.
+        val at=if(state.lastAttempt<=0)now else java.time.Instant.ofEpochMilli(state.lastAttempt)
+            .atZone(now.zone).plusMinutes(RETRY_MINUTES)
+        return at.takeIf { it.toLocalDate()==now.toLocalDate() }
+    }
+
+    internal fun canAttempt(state:DailySyncState,now:ZonedDateTime):Boolean =
+        state.enabled && state.result!=SyncResult.NEEDS_LOGIN &&
+            (attemptCount(state,now)==0 || retryAt(state,now)?.isAfter(now)==false)
+
+    fun due(state:DailySyncState,now:ZonedDateTime):ZonedDateTime {
+        if(now.hour<7)return next(now)
+        if(canAttempt(state,now))return now
+        return retryAt(state,now) ?: next(now)
+    }
 }
 /** Process-wide single flight plus a durable local-day attempt key. The store performs the final CAS. */
 class DailySyncEngine(private val repo:DailySyncRepository) {
@@ -40,10 +62,10 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
         if(!gate.tryLock())return SyncResult.SKIPPED
         try {
             val initial=repo.state();val generation=initial.generation
-            if(!initial.enabled || cancelled.get() || initial.result==SyncResult.NEEDS_LOGIN || initial.lastAttemptDay==now.toLocalDate().toString())return SyncResult.SKIPPED
+            if(cancelled.get() || !DailySyncTiming.canAttempt(initial,now))return SyncResult.SKIPPED
             fun active()=repo.state().let {it.enabled && it.generation==generation} && !cancelled.get()
             fun checkActive(){if(!active())throw InterruptedIOException("Sync stopped")}
-            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="",details="",outcome=null)}
+            repo.update(generation){it.copy(lastAttempt=now.toInstant().toEpochMilli(),lastAttemptDay=now.toLocalDate().toString(),result=SyncResult.CHECKING,summary="",details="",outcome=null,changeSummary="",attemptsToday=DailySyncTiming.attemptCount(it,now)+1)}
             var result:SyncResult
             var applyStarted=false
             try {
@@ -60,8 +82,9 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
                 applyStarted=true
                 val plan=repo.apply(snapshot,fetched.data,now.toLocalDate(),generation)
                 result=when {plan.conflicts>0->SyncResult.CONFLICT;plan.changes.total>0->SyncResult.UPDATED;else->SyncResult.NO_CHANGE}
-                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(plan,now.toLocalDate(),applied=true),
-                    summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化",outcome=SchoolCheckOutcome.completed(plan.changes,plan.conflicts))}
+                repo.update(generation){it.copy(lastSuccess=now.toInstant().toEpochMilli(),result=result,details=SchoolCheckHistory.details(plan,now.toLocalDate(),applied=true)
+                    .ifBlank {SchoolCheckHistory.readEvidence(snapshot.data,fetched.data,now.toLocalDate())},
+                    summary=if(plan.conflicts>0)"${plan.changes.summary()}；${plan.conflicts}组冲突已保留" else if(plan.changes.total>0)plan.changes.summary() else "课表没有变化",outcome=SchoolCheckOutcome.completed(plan.changes,plan.conflicts),changeSummary=SchoolUpdateReview.summary(plan,now.toLocalDate(),true))}
                 if(plan.changes.total>0 && active())runCatching {repo.notify(plan.changes)}
             }catch(_:SchoolAuthenticationException){
                 repo.clearCredential(generation);result=SyncResult.NEEDS_LOGIN
@@ -69,7 +92,7 @@ class DailySyncEngine(private val repo:DailySyncRepository) {
             }catch(_:InterruptedIOException){
                 result=if(cancelled.get())SyncResult.INTERRUPTED else SyncResult.NETWORK_ERROR
                 repo.update(generation){it.copy(result=result,summary="检查中断或网络超时，原课表保留",
-                    lastAttemptDay=if(cancelled.get())"" else it.lastAttemptDay,outcome=SchoolCheckOutcome.failed(!applyStarted).copy(phase=if(cancelled.get())SchoolCheckPhase.INTERRUPTED else SchoolCheckPhase.FAILED))}
+                    outcome=SchoolCheckOutcome.failed(!applyStarted).copy(phase=if(cancelled.get())SchoolCheckPhase.INTERRUPTED else SchoolCheckPhase.FAILED))}
             }catch(_:IOException){
                 result=SyncResult.NETWORK_ERROR
                 repo.update(generation){it.copy(result=result,summary="网络或平台暂时不可用，原课表保留",outcome=SchoolCheckOutcome.failed(!applyStarted))}

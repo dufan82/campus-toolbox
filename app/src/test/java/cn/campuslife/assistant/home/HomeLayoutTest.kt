@@ -25,6 +25,16 @@ class HomeLayoutTest {
         assertEquals(setOf("map"),result.hidden)
         assertFalse(result.visible().contains("pdd_code"))
     }
+    @Test fun draggingVisibleToolsKeepsHiddenSlotsAndRejectsUnavailableTargets() {
+        val home=HomeLayout.defaults().hide("schedule",true)
+        val moved=home.moveTo("map","planner",visibleOnly=true)
+        assertEquals(listOf("watermark","schedule","planner","map","story","daily60"),moved.order)
+        assertEquals(home.hidden,moved.hidden)
+        assertEquals(home,home.moveTo("map","schedule",visibleOnly=true))
+        assertEquals(home,home.moveTo("map","pdd_packages",visibleOnly=true))
+        assertEquals(home,home.moveTo("map","map"))
+        assertEquals("schedule",home.moveTo("schedule","map").order.first())
+    }
     @Test fun moveAndHideNeverLoseOtherTools() {
         val state=HomeLayout.defaults().move("watermark",-1).hide("map",true)
         assertEquals(listOf("watermark","schedule","planner","story","daily60"),state.visible())

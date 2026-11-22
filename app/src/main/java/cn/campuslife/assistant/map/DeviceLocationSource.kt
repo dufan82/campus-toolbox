@@ -15,7 +15,19 @@ import com.amap.api.maps.LocationSource
 import com.amap.api.maps.model.LatLng
 
 /** Foreground only. Android fixes are WGS84; render/search use SDK GCJ02 coordinates. */
-class DeviceLocationSource(context: Context,private val changed: (LocatedFix)->Unit,private val status: (String)->Unit): LocationSource,LocationListener {
+class DeviceLocationSource(
+    context: Context, private val changed: (LocatedFix)->Unit, private val status: (String)->Unit,
+    private val minDistanceMeters: Float = 3f,
+    private val transform: (GeoPoint)->GeoPoint? = { toMapPoint(context.applicationContext, it) }
+): LocationSource,LocationListener {
+    companion object {
+        /** The existing on-device WGS84 to GCJ02 conversion; call only with map consent. */
+        internal fun toMapPoint(context: Context, point: GeoPoint): GeoPoint? = try {
+            val converted = CoordinateConverter(context).from(CoordinateConverter.CoordType.GPS)
+                .coord(LatLng(point.latitude, point.longitude)).convert()
+            GeoPoint(converted.latitude, converted.longitude)
+        } catch (_: Exception) { null } catch (_: LinkageError) { null }
+    }
     private val appContext=context.applicationContext
     private val manager=appContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private var consumer: LocationSource.OnLocationChangedListener?=null
@@ -33,7 +45,7 @@ class DeviceLocationSource(context: Context,private val changed: (LocatedFix)->U
         providers.forEach { provider ->
             try {
                 if(manager.isProviderEnabled(provider)) {
-                    manager.requestLocationUpdates(provider,5000L,3f,this,Looper.getMainLooper())
+                    manager.requestLocationUpdates(provider,5000L,minDistanceMeters,this,Looper.getMainLooper())
                     registered=true
                     manager.getLastKnownLocation(provider)?.let { publish(it) }
                 }
@@ -59,9 +71,7 @@ class DeviceLocationSource(context: Context,private val changed: (LocatedFix)->U
         val elapsed=location.elapsedRealtimeNanos/1_000_000
         val original=runCatching { GeoPoint(location.latitude,location.longitude) }.getOrNull() ?: return
         if(!LocatedFix(original,location.accuracy,elapsed).isFresh(SystemClock.elapsedRealtime())) return
-        val converted=CoordinateConverter(appContext).from(CoordinateConverter.CoordType.GPS)
-            .coord(LatLng(original.latitude,original.longitude)).convert()
-        val point=runCatching { GeoPoint(converted.latitude,converted.longitude) }.getOrNull() ?: return
+        val point=transform(original) ?: return
         val rendered=Location(location).apply { latitude=point.latitude;longitude=point.longitude }
         consumer?.onLocationChanged(rendered)
         changed(LocatedFix(point,location.accuracy,elapsed))

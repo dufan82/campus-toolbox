@@ -26,6 +26,14 @@ data class HomeLayout(val order: List<String>,val hidden: Set<String>) {
         val items=state.order.toMutableList();items.removeAt(from);items.add((from+delta).coerceIn(0,items.size),id)
         return state.copy(order=items)
     }
+    fun moveTo(source: String,target: String,visibleOnly: Boolean=false): HomeLayout {
+        val state=normalized()
+        val slots=state.order.filterNot { visibleOnly && it in state.hidden }
+        val from=slots.indexOf(source);val to=slots.indexOf(target)
+        if(from<0 || to<0 || from==to)return state
+        val reordered=slots.toMutableList().apply { removeAt(from);add(to,source) }.iterator()
+        return state.copy(order=state.order.map { if(visibleOnly && it in state.hidden)it else reordered.next() })
+    }
     fun hide(id: String,value: Boolean): HomeLayout {
         val state=normalized();if(id !in state.order) return state
         return state.copy(hidden=if(value) state.hidden+id else state.hidden-id)

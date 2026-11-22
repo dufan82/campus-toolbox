@@ -75,6 +75,21 @@ class ScheduleStore(context: Context) {
     }
     fun previousImport(): ScheduleData? = synchronized(lock) { importUndo.read()?.let(::decode) }
 
+    /** User confirmed these unowned course groups after seeing both sides. Known protections stay intact. */
+    fun applyConfirmedSchool(expected:ScheduleSnapshot,school:ScheduleData,names:Set<String>,today:LocalDate):SchoolAutoPlan=synchronized(lock) {
+        val latest=readSnapshot()
+        if(latest!=expected)throw ScheduleConflictException("课表或来源已变化，请重新检查。",latest.data)
+        require(today==LocalDate.now()) {"日期已变化，请重新检查。"}
+        require(names.isNotEmpty()) {"未明确确认任何课程来源。"}
+        val plan=SchoolUpdateCheck.preview(latest,school,today,names).plan
+        if(plan.data!=latest.data) {
+            val encoded=encodeSnapshot(ScheduleSnapshot(plan.data,latest.registry.copy(managed=plan.managed)))
+            importUndo.write(encodeSnapshot(latest));require(today==LocalDate.now())
+            file.write(encoded)
+        }
+        plan
+    }
+
     companion object {
         private val locks = ConcurrentHashMap<String, Any>()
         const val FILE_NAME = "schedule-v1.json"

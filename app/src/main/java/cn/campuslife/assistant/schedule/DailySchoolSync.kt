@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import java.time.ZonedDateTime
 import cn.campuslife.assistant.R
 import java.time.LocalDate
 import java.util.concurrent.Executors
@@ -16,13 +19,52 @@ object DailySchoolSync {
     internal val lock=Any()
     val worker=Executors.newSingleThreadExecutor()
     @Volatile internal var active:AtomicBoolean?=null
+    private val foregroundQueued=AtomicBoolean()
+
+    /** Same consent, network and merge path as the scheduled job, including daily dedupe. */
+    fun onForeground(context:Context) {
+        if(!foregroundQueued.compareAndSet(false,true))return
+        val app=context.applicationContext
+        worker.execute {
+            try {
+                DailySyncScheduler.reconcile(app)
+                val network=app.getSystemService(ConnectivityManager::class.java)
+                if(network.getNetworkCapabilities(network.activeNetwork)
+                        ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)==true) {
+                    val result=runDue(app,AtomicBoolean())
+                    if(result!=SyncResult.SKIPPED)DailySyncScheduler.reconcile(app,reset=true)
+                }
+            } catch (_:Exception) { /* A later launch or OS delivery can reconcile again. */ }
+            finally { foregroundQueued.set(false) }
+        }
+    }
+
+    // Called under lock by reconciliation and before an OS delivery claims the worker.
+    internal fun recoverInterrupted(prefs:DailySyncPreferences):DailySyncState {
+        val state=prefs.read()
+        if(!state.enabled || state.result!=SyncResult.CHECKING || active!=null)return state
+        return state.copy(result=SyncResult.INTERRUPTED,summary="上次检查中断，稍后自动补查").also(prefs::write)
+    }
+
+    internal fun runDue(context:Context,cancelled:AtomicBoolean,expectedGeneration:Long?=null,
+                        now:ZonedDateTime=ZonedDateTime.now()):SyncResult {
+        synchronized(lock) {
+            if(active!=null || cancelled.get())return SyncResult.SKIPPED
+            val state=recoverInterrupted(DailySyncPreferences(context))
+            if(expectedGeneration!=null && state.generation!=expectedGeneration)return SyncResult.SKIPPED
+            if(now.hour<7 || !DailySyncTiming.canAttempt(state,now))return SyncResult.SKIPPED
+            active=cancelled
+        }
+        return try { DailySyncEngine(repository(context)).run(now,cancelled) }
+        finally { synchronized(lock) { if(active===cancelled)active=null } }
+    }
     fun setEnabled(context:Context,enabled:Boolean) {
         synchronized(lock) {
             active?.set(true)
             val store=DailySyncPreferences(context);val old=store.read()
             if(!enabled)SchoolSyncVault(context).clear()
             val hasCredential=enabled && SchoolSyncVault(context).read()!=null
-            store.write(old.copy(enabled=enabled,generation=old.generation+1,lastAttemptDay="",
+            store.write(old.copy(enabled=enabled,generation=old.generation+1,lastAttemptDay="",attemptsToday=0,
                 result=if(enabled && !hasCredential)SyncResult.NEEDS_LOGIN else if(old.result==SyncResult.CHECKING)SyncResult.INTERRUPTED else old.result,
                 summary=if(enabled && !hasCredential)"请登录学校平台并确认导入当前学期，启用后台凭据" else old.summary))
         }
@@ -37,7 +79,7 @@ object DailySchoolSync {
         try {
             active?.set(true)
             SchoolSyncVault(context).write(SchoolSyncCredential(authorization,semester))
-            prefs.write(old.copy(generation=old.generation+1,result=SyncResult.READY,lastAttemptDay=LocalDate.now().toString(),summary="学校登录已确认，将在下次07:00检查"))
+            prefs.write(old.copy(generation=old.generation+1,result=SyncResult.READY,lastAttemptDay=LocalDate.now().toString(),attemptsToday=0,summary="学校登录已确认，将在下次07:00检查"))
             DailySyncScheduler.reconcile(context,reset=true)
             true
         }catch(_:Exception){

@@ -24,12 +24,18 @@ class ToolManagementActivity: Activity() {
         if(busy) { body.addView(Ui.text(this,"正在保存或读取…"));return }
         if(failed) body.addView(Ui.text(this,"设置无法读取，请重试；原记录保留。",13f,Ui.muted))
         val ordered=state.normalized().order
+        val drag=ToolDrag { source,target ->
+            if(busy || failed) false else { change { it.moveTo(source,target) };true }
+        }
+        if(manage && !failed) body.addView(Ui.text(this,"长按工具拖动排序",12f,Ui.muted))
         ordered.forEachIndexed { index,id ->
             val tool=ToolCatalog.tools.single { it.id==id }
             val card=Ui.row(this).apply { background=Ui.shape(context,android.graphics.Color.WHITE,14,Ui.line);setPadding(Ui.dp(context,14),Ui.dp(context,10),Ui.dp(context,8),Ui.dp(context,10));minimumHeight=Ui.dp(context,78) }
             val labels=Ui.column(this);labels.addView(Ui.text(this,tool.title,15f,bold=true));labels.addView(Ui.space(this,6));labels.addView(Ui.text(this,if(manage && id in state.hidden) "已隐藏" else tool.subtitle,11f,Ui.muted))
             card.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
             if(manage) {
+                card.tag="tool_drag_$id"
+                if(!failed) drag.bind(card,id)
                 val hide=id !in state.hidden
                 listOf("上移" to { change { it.move(id,-1) } },"下移" to { change { it.move(id,1) } },(if(hide) "隐藏" else "恢复") to { change { it.hide(id,hide) } }).forEachIndexed { actionIndex,(label,action) ->
                     card.addView(Ui.textButton(this,label) { action() }.apply { textSize=12f;setPadding(0,Ui.dp(context,6),0,Ui.dp(context,6));tag="tool_${id}_$actionIndex";isEnabled=!failed && !(actionIndex==0 && index==0) && !(actionIndex==1 && index==ordered.lastIndex) },LinearLayout.LayoutParams(Ui.dp(this,44),-2))

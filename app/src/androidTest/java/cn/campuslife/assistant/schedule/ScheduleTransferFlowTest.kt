@@ -29,7 +29,7 @@ class ScheduleTransferFlowTest {
     @Test fun currentSemesterImportIsActionableBeforeAuthorizationAndExplainsMissingLogin() {
         val before = ScheduleStore(context).load()
         launchTransfer().use { scenario ->
-            await { enabled("登录学校平台") }; tap("登录学校平台")
+            await { enabled("检查课表更新") }; tap("检查课表更新")
             await { hasWebView() }
             scenario.onActivity { nodes().filterIsInstance<android.webkit.WebView>().single().stopLoading() }
             await { enabled("导入当前学期") }
@@ -52,7 +52,7 @@ class ScheduleTransferFlowTest {
             android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.AIRPLANE_MODE_ON, 0) == 1)
         val before = ScheduleStore(context).load()
         launchTransfer().use { scenario ->
-            await { enabled("登录学校平台") }; tap("登录学校平台")
+            await { enabled("检查课表更新") }; tap("检查课表更新")
             await { hasWebView() }
             await { textContains("学校页面暂时无法打开") }
             scenario.onActivity {
@@ -111,7 +111,7 @@ class ScheduleTransferFlowTest {
             android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.AIRPLANE_MODE_ON, 0) == 1)
         val before = ScheduleStore(context).load()
         launchTransfer().use { scenario ->
-            await { enabled("登录学校平台") }; tap("登录学校平台")
+            await { enabled("检查课表更新") }; tap("检查课表更新")
             await { enabled("导入当前学期") }
             scenario.onActivity { activity ->
                 val state = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
@@ -206,7 +206,7 @@ class ScheduleTransferFlowTest {
     }
     @Test fun schoolWebViewBlocksThirdPartyResourcesWithoutGrantingNativeAccess() {
         launchTransfer().use { scenario ->
-            await { enabled("登录学校平台") }; tap("登录学校平台")
+            await { enabled("检查课表更新") }; tap("检查课表更新")
             await { hasWebView() }
             scenario.onActivity {
                 val view = nodes().filterIsInstance<android.webkit.WebView>().single()

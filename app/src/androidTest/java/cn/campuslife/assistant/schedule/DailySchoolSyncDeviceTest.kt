@@ -74,6 +74,23 @@ class DailySchoolSyncDeviceTest {
         DailySchoolSync.setEnabled(context,true);assertTrue(DailySyncPreferences(context).read().enabled)
         assertEquals(SyncResult.NEEDS_LOGIN,DailySyncPreferences(context).read().result)
     }
+    @Test fun failedRunReplacesTomorrowPlanAndDueWorkerNeverRunsEarly() {
+        val now=today.atTime(8,10).atZone(java.time.ZoneId.systemDefault())
+        val prefs=DailySyncPreferences(context)
+        val complete=DailySyncState(enabled=true,generation=45,lastAttemptDay=today.toString(),result=SyncResult.NO_CHANGE)
+        val jobs=context.getSystemService(JobScheduler::class.java)
+        prefs.write(complete)
+        DailySyncScheduler.reconcile(context,reset=true,now=now)
+        assertEquals(DailySyncTiming.next(now).toInstant().toEpochMilli(),jobs.getPendingJob(DailySyncScheduler.JOB_ID)!!.extras.getLong("plannedAt"))
+        prefs.write(complete.copy(lastAttempt=now.minusMinutes(10).toInstant().toEpochMilli(),result=SyncResult.NETWORK_ERROR,attemptsToday=1))
+        DailySyncScheduler.reconcile(context,now=now)
+        val retry=now.plusMinutes(20)
+        assertEquals(retry.toInstant().toEpochMilli(),jobs.getPendingJob(DailySyncScheduler.JOB_ID)!!.extras.getLong("plannedAt"))
+        assertEquals(SyncResult.SKIPPED,DailySchoolSync.runDue(context,AtomicBoolean(),45,now))
+        assertEquals(SyncResult.SKIPPED,DailySchoolSync.runDue(context,AtomicBoolean(),44,retry))
+        // No credential: the due worker reports the login requirement without a school request.
+        assertEquals(SyncResult.NEEDS_LOGIN,DailySchoolSync.runDue(context,AtomicBoolean(),45,retry))
+    }
     @Test fun explicitConfirmedLoginResumesTomorrowAndDisabledImportDoesNotStoreToken() {
         assertFalse(DailySchoolSync.authorizeAfterImport(context,"Bearer synthetic-token",data()))
         assertNull(SchoolSyncVault(context).read())
@@ -86,7 +103,7 @@ class DailySchoolSyncDeviceTest {
         DailySyncPreferences(context).write(DailySyncState(enabled=true,result=SyncResult.CHECKING,lastAttemptDay=today.toString()))
         DailySyncScheduler.reconcile(context,reset=true)
         val recovered=DailySyncPreferences(context).read()
-        assertEquals(SyncResult.INTERRUPTED,recovered.result);assertEquals("",recovered.lastAttemptDay)
+        assertEquals(SyncResult.INTERRUPTED,recovered.result);assertEquals(today.toString(),recovered.lastAttemptDay)
         assertNotNull(context.getSystemService(JobScheduler::class.java).getPendingJob(DailySyncScheduler.JOB_ID))
     }
     @Test fun noChangeLeavesBothScheduleAndUndoBytesIdenticalAndChangedPlanBacksUp() {

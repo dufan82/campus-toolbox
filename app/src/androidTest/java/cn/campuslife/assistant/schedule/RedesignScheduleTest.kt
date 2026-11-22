@@ -103,17 +103,17 @@ class RedesignScheduleTest {
         val snapshot=store.loadSnapshot()
         val candidate=before.copy(courses=before.courses.mapIndexed {index,course->if(index==0)course.copy(classroom="离线新教室501") else course})
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-            await {enabled("登录学校平台")}
+            await {enabled("检查课表更新")}
             scenario.onActivity {activity->
                 val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
                 session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
                 activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,candidate,"离线差异夹具",emptyList<String>(),before,true)
             }
-            await {enabled("更新课表")}
+            await {enabled("更新这1门课")}
             assertTrue(hasTag("schedule.diff.local"));assertTrue(hasTag("schedule.diff.school"))
             assertFalse(hasTag("schedule.replace.options"));assertFalse(enabled("确认保存到本机"))
-            tap("更新课表");await {enabled("确认更新")};tap("取消")
-            tap("返回");await {enabled("登录学校平台")};assertEquals(snapshot,store.loadSnapshot())
+            tap("更新这1门课");await {enabled("确认更新")};tap("取消")
+            tap("返回");await {enabled("检查课表更新")};assertEquals(snapshot,store.loadSnapshot())
         }
     }
 

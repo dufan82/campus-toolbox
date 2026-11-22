@@ -36,6 +36,7 @@ class ScheduleTransferActivity : Activity() {
         var backupMode = false
         var syncState: DailySyncState? = null
         var checkPreview: SchoolCheckPreview? = null
+        var reviewLegacy:Set<String> = emptySet()
         var checkHistory: SchoolCheckRecord? = null
         var authorization: String? = null
         var autoImportAttempted = false
@@ -197,10 +198,6 @@ class ScheduleTransferActivity : Activity() {
         }
         when (session.stage) {
             Stage.HOME -> {
-                action(body, "登录学校平台", ready, true) {
-                    session.notice = ""; session.stage = Stage.LOGIN; render()
-                }
-                body.addView(Ui.space(this, 18))
                 showCheckResult(body)
                 body.addView(Ui.space(this, 20))
                 showDailyOptions(body)
@@ -221,6 +218,16 @@ class ScheduleTransferActivity : Activity() {
             }
             Stage.PREVIEW -> showPreview(body)
             Stage.LOGIN -> Unit
+        }
+        if(session.stage==Stage.HOME || (session.stage==Stage.PREVIEW && session.schoolPreview && session.warnings.isEmpty() &&
+            session.checkPreview?.plan?.data!=session.baseline && session.checkPreview!=null)) {
+            val footer=Ui.column(this).apply {setBackgroundColor(android.graphics.Color.WHITE);setPadding(dp(16),dp(10),dp(16),dp(10))}
+            val home=session.stage==Stage.HOME
+            if(!home)footer.addView(Ui.text(this,"尚未更新，确认后保存到本机",13f,Ui.muted))
+            footer.addView(Ui.button(this,if(home)"检查课表更新" else "更新这${session.checkPreview!!.plan.changes.total}门课",true) {
+                if(home){session.notice="";session.stage=Stage.LOGIN;render()}else previewFuture()
+            }.apply {tag=if(home)"school_check_start" else "schedule.apply.changes";isEnabled=ready},LinearLayout.LayoutParams(-1,-2))
+            page.addView(footer,LinearLayout.LayoutParams(-1,-2))
         }
     }
     private fun updateStatus() {
@@ -366,8 +373,9 @@ class ScheduleTransferActivity : Activity() {
                 .onFailure { session.notice = SchoolReadFailure.message(it,"课表"); rememberCheckFailure(session.notice); render() }
         })
     }
-    private fun preview(data: ScheduleData, source: String, warnings: List<String>, baseline: ScheduleData, school: Boolean = false) {
+    private fun preview(data: ScheduleData, source: String, warnings: List<String>, baseline: ScheduleData, school: Boolean=false) {
         session.schoolPreview = school
+        session.reviewLegacy=emptySet()
         session.checkPreview = null; session.previewDifference = null; session.previewDate = null
         if (!school) session.baselineSnapshot = null
         session.candidate = data; session.baseline = baseline; session.source = source; session.warnings = warnings
@@ -379,17 +387,19 @@ class ScheduleTransferActivity : Activity() {
             SchoolCheckHistoryStore(app).recordingFailure("检查未完成，差异计算失败") {
             val snapshot = session.baselineSnapshot ?: error("本地课表状态已丢失，请重新检查。")
             check(snapshot.data == baseline)
-            val plan = SchoolUpdateCheck.preview(snapshot, data, date)
+            val review = SchoolUpdateReview.plan(snapshot,data,date)
+            val plan=review.preview
             val diff=ScheduleUpdatePreview.compare(baseline,plan.plan.data,date)
             val message=when {warnings.isNotEmpty()->"课表未完整读取，未更新";plan.plan.data==baseline && plan.plan.conflicts>0->"已检查，受保护课程已保留";plan.plan.data==baseline->"已检查，课表没有变化";else->"已检查，发现课表更新"}
             val outcome=if(warnings.isNotEmpty())SchoolCheckOutcome.failed(untouched=true) else
                 SchoolCheckOutcome.preview(plan.plan.changes,plan.plan.conflicts,plan.plan.data!=baseline || plan.plan.conflicts>0)
-            val history=SchoolCheckRecord(System.currentTimeMillis(),message,if(warnings.isEmpty())SchoolCheckHistory.details(plan.plan,date,applied=false) else "",outcome)
+            val history=SchoolCheckRecord(System.currentTimeMillis(),message,if(warnings.isEmpty())
+                SchoolCheckHistory.details(plan.plan,date,applied=false).ifBlank {SchoolCheckHistory.readEvidence(snapshot.data,data,date)} else "",outcome,if(warnings.isEmpty())SchoolUpdateReview.summary(plan.plan,date,false) else "")
             runCatching {SchoolCheckHistoryStore(applicationContext).write(history)}
-            Triple(plan,diff,history)
+            Triple(review,diff,history)
             }
         }, { result ->
-            result.onSuccess { (plan,difference,history) -> session.checkPreview=plan;session.previewDifference=difference;session.previewDate=date;session.checkHistory=history }
+            result.onSuccess { (review,difference,history) -> session.checkPreview=review.preview;session.reviewLegacy=review.legacyToConfirm;session.previewDifference=difference;session.previewDate=date;session.checkHistory=history }
                 .onFailure { session.notice = "课表差异无法计算，原课表未改；请返回后重试。"; rememberCheckFailure("检查未完成，差异计算失败") }
             render()
         })
@@ -409,8 +419,14 @@ class ScheduleTransferActivity : Activity() {
         body.addView(Ui.text(this,SchoolCheckOutcomeText.from(outcome).check,15f).apply {tag="school_sync_result"})
         SchoolCheckStatusUi.add(this,body,outcome,record.details)
         if(outcome.phase==SchoolCheckPhase.FAILED)body.addView(Ui.text(this,record.result,13f,Ui.muted))
-        if(record.details.isNotBlank())body.addView(Ui.textButton(this,"查看更新内容") {
-            dialog=Ui.bottomSheet(this,"更新内容") {content,_->content.addView(Ui.text(this,record.details,15f).apply {setLineSpacing(dp(5).toFloat(),1f)})}
+        val summary=record.summary.ifBlank {if(outcome.differences==true)record.details else ""}
+        if(summary.isNotBlank()) {
+            body.addView(Ui.space(this,18))
+            body.addView(Ui.text(this,summary,15f).apply {tag="school_check_visible_changes";setLineSpacing(dp(6).toFloat(),1f)})
+        }
+        val hasDifference=outcome.differences==true
+        if(record.details.isNotBlank())body.addView(Ui.textButton(this,if(hasDifference)"查看更新内容" else "查看检查记录") {
+            dialog=Ui.bottomSheet(this,if(hasDifference)"更新内容" else "检查记录") {content,_->content.addView(Ui.text(this,record.details,15f).apply {setLineSpacing(dp(5).toFloat(),1f)})}
         }.apply {tag="school_check_details"})
     }
     private fun showDailyOptions(body: LinearLayout) {
@@ -452,10 +468,10 @@ class ScheduleTransferActivity : Activity() {
             } else if (preview != null && difference != null) {
                 val changed = preview.plan.data != session.baseline
                 body.addView(Ui.text(this, when {
-                    !changed && preview.plan.conflicts > 0 -> "没有可安全更新的课程"
-                    !changed -> "课表没有变化"
+                    !changed && preview.plan.conflicts > 0 -> "${preview.plan.conflicts}门课需要核对"
+                    !changed -> "本次读取未发现变化"
                     preview.initialImport -> "导入当前学期"
-                    else -> "课表有更新"
+                    else -> "发现${preview.plan.differences.size}门课有变化"
                 }, 22f, bold = true).apply { tag = "schedule.preview.summary" })
                 body.addView(Ui.space(this, 10))
                 if (changed) {
@@ -464,30 +480,22 @@ class ScheduleTransferActivity : Activity() {
                 }
                 if (preview.plan.conflicts > 0) {
                     body.addView(Ui.space(this, 10))
-                    body.addView(Ui.text(this, "${preview.plan.conflicts}组真实差异未应用，原因及本地/学校课程见下方。", 14f, Ui.muted))
+                    body.addView(Ui.text(this, "${preview.plan.conflicts}门课暂不更新，原因见下方。", 14f, Ui.muted))
                 }
-                val evidence = SchoolCheckHistory.details(preview.plan, session.previewDate ?: LocalDate.now(), applied=false)
+                val evidence = session.checkHistory?.summary.orEmpty()
                 if (evidence.isNotBlank()) {
                     body.addView(Ui.space(this, 12))
-                    body.addView(Ui.text(this, evidence, 14f).apply { tag="schedule.diff.details" })
+                    body.addView(Ui.text(this, evidence, 16f).apply {setLineSpacing(dp(6).toFloat(),1f)}.apply { tag="schedule.diff.details" })
+                }
+                if(preview.plan.differences.isEmpty() && !session.checkHistory?.details.isNullOrBlank()) {
+                    body.addView(Ui.textButton(this,"查看本次读取") {
+                        dialog=Ui.bottomSheet(this,"本次读取") {content,_->content.addView(Ui.text(this,session.checkHistory!!.details,14f))}
+                    }.apply {tag="schedule.read.evidence"})
                 }
                 body.addView(Ui.space(this, 20))
-                if (changed) action(body, "更新课表", ready, true) { previewFuture() }
                 if (session.syncState?.enabled == true) {
                     body.addView(Ui.textButton(this, "用于每日检查") { confirmBackgroundLogin() })
                 }
-                fun rows(label: String, values: List<ScheduleOccurrence>) {
-                    if (values.isEmpty()) return
-                    body.addView(Ui.space(this, 16))
-                    body.addView(Ui.text(this, "$label · ${values.size}次", 16f, bold = true))
-                    values.take(20).forEach { row ->
-                        body.addView(Ui.space(this, 10))
-                        body.addView(Ui.text(this, row.name, 15f, bold = true))
-                        body.addView(Ui.text(this, "${row.date} · 第${row.startPeriod}–${row.endPeriod}节 · ${row.classroom}", 13f, Ui.muted))
-                    }
-                }
-                rows("更新后", difference.onlySchool)
-                rows("更新前", difference.onlyLocal)
             }
             action(body, "返回", true) { home() }
             return
@@ -506,12 +514,15 @@ class ScheduleTransferActivity : Activity() {
         }
     }
     private fun previewFuture() {
+        if(!ready || dialog?.isShowing==true)return
         val snapshot = session.baselineSnapshot ?: return
         val school = session.candidate ?: return
         val preview = session.checkPreview ?: return
         if (!session.schoolPreview || session.warnings.isNotEmpty() || preview.plan.data == snapshot.data) return
-        dialog = AlertDialog.Builder(this).setTitle("更新未来课程？")
-            .setMessage("${preview.plan.changes.summary()}。只更新今天起可安全修改的学校课程，历史课程和手动修改会保留。")
+        val legacy=session.reviewLegacy.toSet()
+        val sourceConsent=if(legacy.isEmpty())"" else "以下旧课将按学校课表更新，请确认它们原本来自学校：\n${legacy.joinToString("、")}\n\n"
+        dialog = AlertDialog.Builder(this).setTitle("更新这${preview.plan.changes.total}门课？")
+            .setMessage(sourceConsent+SchoolUpdateReview.summary(preview.plan,session.previewDate ?: LocalDate.now(),false)+"\n\n只更新今天及以后的安排，历史课程和手动修改保留。")
             .setNegativeButton("取消", null).setPositiveButton("确认更新") { _, _ ->
                 val today = session.previewDate ?: return@setPositiveButton
                 val current = session; val app = applicationContext; val authorization = current.authorization
@@ -519,13 +530,15 @@ class ScheduleTransferActivity : Activity() {
                 current.work.submit("正在更新课表…", {
                     try {
                     require(today == LocalDate.now()) { "日期已变化，请重新检查。" }
-                    val fresh = SchoolUpdateCheck.preview(snapshot, school, today)
+                    val confirmed=legacy
+                    val fresh = SchoolUpdateCheck.preview(snapshot, school, today,confirmed)
                     val applied = if (fresh.initialImport) {
                         check(current.store.loadSnapshot() == snapshot) { "课表已变化，请重新检查。" }
                         fresh.plan.copy(data=current.store.replaceWithBackup(snapshot.data, fresh.plan.data, schoolImport = true))
-                    } else current.store.applyAutomatic(snapshot, school, today)
+                    } else if(confirmed.isEmpty())current.store.applyAutomatic(snapshot, school, today)
+                    else current.store.applyConfirmedSchool(snapshot,school,confirmed,today)
                     val saved=applied.data
-                    val record=SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表已更新",SchoolCheckHistory.details(applied,today,applied=true),SchoolCheckOutcome.completed(applied.changes,applied.conflicts))
+                    val record=SchoolCheckRecord(System.currentTimeMillis(),"已检查，课表已更新",SchoolCheckHistory.details(applied,today,applied=true),SchoolCheckOutcome.completed(applied.changes,applied.conflicts),SchoolUpdateReview.summary(applied,today,true))
                     applicationRecord=record
                     runCatching {SchoolCheckHistoryStore(app).write(record)}
                     DailySchoolSync.authorizeAfterImport(app, authorization, saved)

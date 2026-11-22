@@ -32,7 +32,7 @@ class SchoolPreviewPerformanceDeviceTest {
         val local=fixture("Local",1);val school=local.copy(courses=local.courses.map {it.copy(classroom="Changed")})
         val store=ScheduleStore(context);store.replaceWithBackup(store.load(),local,true);val snapshot=store.loadSnapshot()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-            await {enabled("登录学校平台")}
+            await {enabled("检查课表更新")}
             scenario.onActivity {activity->
                 val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
                 session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
@@ -40,23 +40,23 @@ class SchoolPreviewPerformanceDeviceTest {
                 activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,school,"Offline 500 x 60",emptyList<String>(),local,true)
                 assertTrue("Preview must dispatch computation",work.busy)
             }
-            await {enabled("更新课表")}
+            await {enabled("更新这500门课")}
             inst.runOnMainSync {assertTrue(nodes().count {it is CheckBox}<20);assertFalse(nodes().any {it.tag=="schedule.replace.options"})}
-            scenario.recreate();await {enabled("更新课表")};assertEquals(snapshot,store.loadSnapshot())
+            scenario.recreate();await {enabled("更新这500门课")};assertEquals(snapshot,store.loadSnapshot())
         }
     }
     @Test fun unknownOwnershipNeverOffersLegacyOverrideOrWholeReplacement() {
         val local=fixture("Local",1);val school=fixture("School",1001)
         val store=ScheduleStore(context);store.replaceWithBackup(store.load(),local);val snapshot=store.loadSnapshot()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-            await {enabled("登录学校平台")}
+            await {enabled("检查课表更新")}
             scenario.onActivity {activity->
                 val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
                 session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,snapshot)
                 activity.javaClass.getDeclaredMethod("preview",ScheduleData::class.java,String::class.java,List::class.java,ScheduleData::class.java,Boolean::class.javaPrimitiveType).apply {isAccessible=true}.invoke(activity,school,"Offline",emptyList<String>(),local,true)
             }
-            await {var found=false;inst.runOnMainSync {found=nodes().filterIsInstance<android.widget.TextView>().any {it.text.toString()=="没有可安全更新的课程"}};found}
-            assertFalse(enabled("更新课表"));assertFalse(enabled("确认保存到本机"));assertEquals(snapshot,store.loadSnapshot())
+            await {var found=false;inst.runOnMainSync {found=nodes().filterIsInstance<android.widget.TextView>().any {it.text.toString().endsWith("门课需要核对")}};found}
+            assertFalse(enabled("更新这500门课"));assertFalse(enabled("确认保存到本机"));assertEquals(snapshot,store.loadSnapshot())
         }
     }
     private fun tap(label: String) = inst.runOnMainSync {

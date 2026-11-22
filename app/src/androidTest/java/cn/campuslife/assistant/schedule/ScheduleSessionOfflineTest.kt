@@ -32,7 +32,7 @@ class ScheduleSessionOfflineTest {
         val candidate=if(before.data.semester==null)timetable("离线学校课程") else before.data.copy(courses=before.data.courses.map {it.copy(classroom="离线更新教室")})
         context.getSharedPreferences("schedule-school-import-history",0).edit().clear().commit()
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use {scenario->
-            await {enabled("登录学校平台")}
+            await {enabled("检查课表更新")}
             fun preview()=scenario.onActivity {activity->
                 val session=activity.javaClass.getDeclaredField("session").apply {isAccessible=true}.get(activity)
                 session.javaClass.getDeclaredField("baselineSnapshot").apply {isAccessible=true}.set(session,before)
@@ -40,9 +40,9 @@ class ScheduleSessionOfflineTest {
             }
             val plan=SchoolUpdateCheck.preview(before,candidate,LocalDate.now())
             preview();await {enabled("返回")};assertFalse(enabled("确认保存到本机"))
-            tap("返回");await {enabled("登录学校平台")};assertEquals(before,store.loadSnapshot())
+            tap("返回");await {enabled("检查课表更新")};assertEquals(before,store.loadSnapshot())
             if(plan.plan.data!=before.data){
-                preview();await {enabled("更新课表")};tap("更新课表");await {enabled("确认更新")};tap("确认更新")
+                preview();await {enabled("更新这1门课")};tap("更新这1门课");await {enabled("确认更新")};tap("确认更新")
                 await {store.load()==plan.plan.data};assertEquals(before.data,store.previousImport())
             }
         }
@@ -56,7 +56,7 @@ class ScheduleSessionOfflineTest {
         assertTrue(cookieDone.await(5, TimeUnit.SECONDS))
         assertEquals("\"synthetic\"", webValue("localStorage.setItem('offline_fixture','synthetic'); return localStorage.getItem('offline_fixture');"))
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
+            await { enabled("检查课表更新") }
             scenario.onActivity { activity ->
                 val session = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
                 val field = session.javaClass.getDeclaredField("authorization").apply { isAccessible = true }
@@ -67,7 +67,7 @@ class ScheduleSessionOfflineTest {
             assertTrue(cookie.getCookie("https://m.fjpit.com/").orEmpty().contains("offline_session=fixture"))
             assertEquals("\"synthetic\"", webValue("return localStorage.getItem('offline_fixture');"))
             tap("退出学校登录"); await { enabled("清除并退出") }; tap("清除并退出")
-            await { enabled("登录学校平台") && textContains("已清除本应用网页") }
+            await { enabled("检查课表更新") && textContains("已清除本应用网页") }
             assertFalse(cookie.getCookie("https://m.fjpit.com/").orEmpty().contains("offline_session=fixture"))
             assertEquals("null", webValue("return localStorage.getItem('offline_fixture');"))
             assertEquals(before, ScheduleStore(context).load())
@@ -78,8 +78,8 @@ class ScheduleSessionOfflineTest {
             android.provider.Settings.Global.getInt(context.contentResolver, android.provider.Settings.Global.AIRPLANE_MODE_ON, 0) == 1)
         assertEquals("\"synthetic\"", webValue("localStorage.setItem('offline_lifecycle','synthetic'); return localStorage.getItem('offline_lifecycle');"))
         ActivityScenario.launch(ScheduleTransferActivity::class.java).use { scenario ->
-            await { enabled("登录学校平台") }
-            tap("登录学校平台")
+            await { enabled("检查课表更新") }
+            tap("检查课表更新")
             await { enabled("导入当前学期") }
             scenario.onActivity { activity ->
                 val state = activity.javaClass.getDeclaredField("session").apply { isAccessible = true }.get(activity)
@@ -97,7 +97,7 @@ class ScheduleSessionOfflineTest {
                 @Suppress("DEPRECATION") activity.onBackPressed()
                 assertNull(authorization.get(state))
             }
-            await { enabled("登录学校平台") }
+            await { enabled("检查课表更新") }
             assertEquals("\"synthetic\"", webValue("return localStorage.getItem('offline_lifecycle');"))
         }
     }

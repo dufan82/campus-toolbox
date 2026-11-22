@@ -75,8 +75,12 @@ class DailySyncSettingsActivity:Activity() {
 
         body.addView(Ui.space(this,12));body.addView(Ui.text(this,session.error.ifEmpty {state?.let(DailySyncPresentation::summary)?:"正在读取…"},15f,Ui.muted).apply {tag="school_sync_result"})
         state?.takeIf {it.lastAttempt>0}?.let {SchoolCheckStatusUi.add(this,body,SchoolCheckOutcome.automatic(it),it.details)}
+        if (!state?.changeSummary.isNullOrBlank()) {
+            body.addView(Ui.space(this,16))
+            body.addView(Ui.text(this,state!!.changeSummary,15f).apply {tag="school_check_visible_changes";setLineSpacing(Ui.dp(this@DailySyncSettingsActivity,5).toFloat(),1f)})
+        }
         if (!state?.details.isNullOrBlank()) {
-            body.addView(Ui.textButton(this,"查看更新内容") {
+            body.addView(Ui.textButton(this,if(SchoolCheckOutcome.automatic(state!!).differences==true)"查看更新内容" else "查看检查记录") {
                 prompt=AlertDialog.Builder(this).setTitle("课表差异详情").setMessage(state!!.details)
                     .setPositiveButton("关闭",null).show()
             }.apply {tag="school_check_details"})

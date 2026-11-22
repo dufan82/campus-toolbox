@@ -95,20 +95,38 @@ class ScheduleActivity : Activity() {
         }
     }
 
+    private val syncPrefs by lazy { getSharedPreferences(DailySyncPreferences.NAME,MODE_PRIVATE) }
+    private val syncRefresh=Runnable { refreshSchedule(fromSync=true) }
+    private val syncListener=android.content.SharedPreferences.OnSharedPreferenceChangeListener { _,key ->
+        if(key=="success") { page.removeCallbacks(syncRefresh);page.post(syncRefresh) }
+    }
+
     override fun onResume() {
         super.onResume()
-        if (session.data != null && !session.work.busy) {
+        syncPrefs.registerOnSharedPreferenceChangeListener(syncListener)
+        refreshSchedule()
+        DailySchoolSync.onForeground(this)
+    }
+
+    override fun onPause() {
+        syncPrefs.unregisterOnSharedPreferenceChangeListener(syncListener)
+        page.removeCallbacks(syncRefresh)
+        super.onPause()
+    }
+
+    private fun refreshSchedule(fromSync:Boolean=false) {
+        if (fromSync || (session.data != null && !session.work.busy)) {
             val store = session.store; val mapStore = session.mapStore
             session.work.submit("正在刷新课程表…", { store.load() to runCatching { mapStore.load() } }, { result ->
                 result.onSuccess { (data, map) ->
                     if (draft != null && data != session.data) session.notice = "其他页面的更新已载入，正在编辑的草稿已保留。"
                     session.data = data; session.readError = false; session.map = map.getOrNull()
                     if (map.isFailure) session.notice = "校园地点读取失败，课程仍可编辑，地点导航暂不可用。"
-                    if (draft?.getString("type") == "list") dismissEditor()
+                    if (!fromSync && draft?.getString("type") == "list") dismissEditor()
                 }.onFailure { session.readError = true }
                 render()
                 updateNavigation()
-            })
+            },enqueue=fromSync)
         }
     }
 
